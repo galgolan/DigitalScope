@@ -46,8 +46,28 @@ const int gain_2 = 4;  // green
 
 const double vref = 5.05;
 const int res = 4096;
-const byte lastGainRegister = GAIN_1;
+byte lastGainRegister = GAIN_1;
 const double lastVoltage = 2.00;
+
+const double r1 = 149570;
+const double r2 = 9946;
+const double rg = 149790;
+const double rf = 49770;
+
+double calcR2t()
+{
+  return r2 / (r1+r2);
+}
+
+double calcR1t()
+{
+  return r1 / (r1+r2);
+}
+
+double calcRt()
+{
+  return (rf + rg) / rg;
+}
 
 int translateGain(byte gainRegister)
 {
@@ -110,13 +130,24 @@ void setup() {
  
  double calcInput(double voltage)
  {
-   int lastGain = translateGain(lastGainRegister);
-   return (voltage-lastGain * lastVoltage * 1.253373346)/(lastGain * 0.083874753);
+   double r1t = calcR1t();
+   double r2t = calcR2t();
+   double rt = calcRt();
+   double g = translateGain(lastGainRegister);
+   
+   double n = voltage + 2.5* (g-1) - g * r1t * rt * lastVoltage;
+   double d = r2t * rt * g;
+   
+   return n / d;
+   
+   
+//   int lastGain = translateGain(lastGainRegister);
+//   return (voltage-lastGain * lastVoltage * 1.253373346)/(lastGain * 0.083874753);
  }
 
 void loop()
 {
-  //changeGain();    // set gain
+  changeGain();    // set gain
   //selectGain(GAIN_1);
   programDac(DAC_UNBUFFERED | DAC_GAIN_1 | DAC_ACTIVE | DAC_A, lastVoltage);
   
@@ -126,8 +157,8 @@ void loop()
   double v = calcVoltage(analogValue);
   double vin = calcInput(v);
   
-  printOutput(vin);  
-  //debugPrint(analogValue, vin, v);
+  //printOutput(vin);  
+  debugPrint(analogValue, vin, v);
 }
 
 void printOutput(double ch1)
@@ -183,17 +214,17 @@ void programDac(byte configuration, double voltage)
   digitalWrite(dacSelectPin, HIGH);
 }
 
-//void changeGain()
-//{
-//  // read DIP switches
-//  byte b0 = digitalRead(gain_0);
-//  byte b1 = digitalRead(gain_1);
-//  byte b2 = digitalRead(gain_2);
-//  
-//  int gain = (b2 << 2) | (b1 << 1) | b0;
-//  
-//  if(lastGain != gain)
-//    selectGain(gain);
-//    
-//  lastGain = gain;
-//}
+void changeGain()
+{
+  // read DIP switches
+  byte b0 = digitalRead(gain_0);
+  byte b1 = digitalRead(gain_1);
+  byte b2 = digitalRead(gain_2);
+  
+  int gain = (b2 << 2) | (b1 << 1) | b0;
+  
+  if(lastGainRegister != gain)
+    selectGain(gain);
+    
+  lastGainRegister = gain;
+}
