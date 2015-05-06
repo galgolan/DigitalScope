@@ -38,32 +38,39 @@
 // set pin 10 as the slave select for the digital pot:
 const int slaveSelectPin = 10;
 const int dacSelectPin = 9;
+const int analogPin = 5;
 
 const int gain_0 = 2;  // yellow
 const int gain_1 = 3;  // red
 const int gain_2 = 4;  // green
 
-// v = (gain*d*ref)/4096
-// gain*d*ref=v*4096
-// d = 4096*v/(gain*ref)
-
-double vref = 4.92;
+const double vref = 5.05;
 const int res = 4096;
+const byte lastGainRegister = GAIN_1;
+const double lastVoltage = 2.00;
+
+int translateGain(byte gainRegister)
+{
+  if(gainRegister == GAIN_1)  return 1;
+  if(gainRegister == GAIN_2)  return 2;
+  if(gainRegister == GAIN_4)  return 4;
+  if(gainRegister == GAIN_5)  return 5;
+  if(gainRegister == GAIN_8)  return 8;
+  if(gainRegister == GAIN_10) return 10;
+  if(gainRegister == GAIN_16) return 16;
+  if(gainRegister == GAIN_32) return 32;
+}
 
 int calcD(double voltage, int gain)
 {
-  return res * voltage / ((double)gain * vref);
+  return (res-1) * voltage / ((double)gain * vref);
 }
 
 double calcVoltage(int d)
 {
   double tmp = vref * d;
-  return tmp / (double)1024;
+  return tmp / (double)1023;
 }
-
-byte lastGain;
-double lastVoltage = 2.00;
-int analogPin = 5;
 
 void setupSpi()
 {
@@ -71,7 +78,7 @@ void setupSpi()
   pinMode (dacSelectPin, OUTPUT);
   // initialize SPI:
   SPI.setDataMode(SPI_MODE0);
-  SPI.setClockDivider(SPI_CLOCK_DIV32);  // 16MHz/32=0.5MHz
+  SPI.setClockDivider(SPI_CLOCK_DIV4);  // 16MHz/32=0.5MHz
   SPI.setBitOrder(MSBFIRST);
   SPI.begin();
 }
@@ -83,43 +90,65 @@ void setupDip()
   pinMode(gain_2, INPUT);
 }
 
-// vout = (vref * d) / 2^12
-
 void setup() {
-  analogReference(INTERNAL);
-  Serial.begin(9600);
-  delay(100);
+  analogReference(EXTERNAL);  // INTERNAL doesnt really work
+  Serial.begin(115200);
+  delay(10);
   setupDip();
+  
   // set the slaveSelectPin as an output:
   setupSpi();
-  selectChannel(CHN0);
-  lastGain = GAIN_1;
-  selectGain(lastGain);
+  
+  // setup PGA
+  selectChannel(CHN0);  
+  selectGain(GAIN_1);
+  
+  // setup DAC
   programDac(DAC_UNBUFFERED | DAC_GAIN_1 | DAC_ACTIVE | DAC_A, lastVoltage);
- }
+  programDac(DAC_UNBUFFERED | DAC_GAIN_1 | DAC_ACTIVE | DAC_B, 2.5);
+}
  
  double calcInput(double voltage)
  {
+   int lastGain = translateGain(lastGainRegister);
    return (voltage-lastGain * lastVoltage * 1.253373346)/(lastGain * 0.083874753);
  }
 
 void loop()
 {
-  changeGain();    // set gain
-  programDac(DAC_BUFFERED | DAC_GAIN_1 | DAC_ACTIVE | DAC_A, lastVoltage);
+  //changeGain();    // set gain
+  //selectGain(GAIN_1);
+  programDac(DAC_UNBUFFERED | DAC_GAIN_1 | DAC_ACTIVE | DAC_A, lastVoltage);
   
-  delay(500);
+  delay(50);
 
   int analogValue = analogRead(A0);
   double v = calcVoltage(analogValue);
+  double vin = calcInput(v);
+  
+  printOutput(vin);  
+  //debugPrint(analogValue, vin, v);
+}
+
+void printOutput(double ch1)
+{
+  Serial.print(ch1);
+  Serial.println(",0");
+}
+
+void debugPrint(int analogValue, double vin, double v)
+{
   Serial.print("Gain=");
+  int lastGain = translateGain(lastGainRegister);
   Serial.print(lastGain);
+  //Serial.print(", A0=");
+  //Serial.print(analogValue);
   Serial.print(", Voffset=");
   Serial.print(lastVoltage);
   Serial.print(", Vout=");
   Serial.print(v);
   Serial.print(", Vin=");
-  Serial.println(calcInput(v));
+  Serial.println(vin);
 }
 
 void selectChannel(byte channel)
@@ -154,17 +183,17 @@ void programDac(byte configuration, double voltage)
   digitalWrite(dacSelectPin, HIGH);
 }
 
-void changeGain()
-{
-  // read DIP switches
-  byte b0 = digitalRead(gain_0);
-  byte b1 = digitalRead(gain_1);
-  byte b2 = digitalRead(gain_2);
-  
-  int gain = (b2 << 2) | (b1 << 1) | b0;
-  
-  if(lastGain != gain)
-    selectGain(gain);
-    
-  lastGain = gain;
-}
+//void changeGain()
+//{
+//  // read DIP switches
+//  byte b0 = digitalRead(gain_0);
+//  byte b1 = digitalRead(gain_1);
+//  byte b2 = digitalRead(gain_2);
+//  
+//  int gain = (b2 << 2) | (b1 << 1) | b0;
+//  
+//  if(lastGain != gain)
+//    selectGain(gain);
+//    
+//  lastGain = gain;
+//}
