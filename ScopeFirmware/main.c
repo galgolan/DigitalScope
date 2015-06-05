@@ -136,12 +136,11 @@ int main(void)
 	configAdc();
 	configSPI();
 	
-	setDacVoltage(3.3/2, 1);
-	setDacVoltage(3.3/2, 2);
+
 
 	while(1)
 	{
-		SysCtlDelay(g_ui32SysClock / 5000);
+		SysCtlDelay(g_ui32SysClock / 100000);
 		bool comp = ComparatorValueGet(COMP_BASE, 0);
 		//UARTprintf("COMP0=%d\n", comp);
 
@@ -149,7 +148,7 @@ int main(void)
 		UARTprintf("A3=%d\n", value);
 
 		setDacVoltage(3.3/2, 1);
-		setDacVoltage(3.3/2, 2);
+	//	setDacVoltage(3.3/2, 2);
 
 		UARTprintf("DAC1=%d\n", getDacVoltage(1));
 	}

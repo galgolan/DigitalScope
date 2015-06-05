@@ -77,17 +77,6 @@ uint16_t calcDacLevel(double voltage)
 	return (dacRes-1) * voltage / ((double)dacGain * dacReference);
 }
 
-uint8_t reverseBits(uint8_t ucNumber)
-{
-	uint8_t ucIndex;
-	uint8_t ucReversedNumber = 0;
-	for(ucIndex=0; ucIndex<8; ucIndex++)
-	{
-		ucReversedNumber = ucReversedNumber << 1;
-		ucReversedNumber |= ((1 << ucIndex) & ucNumber) >> ucIndex;
-	}
-	return ucReversedNumber;
-}
 
 void programDac(uint8_t config, double voltage)
 {
@@ -95,9 +84,6 @@ void programDac(uint8_t config, double voltage)
 	uint16_t inst = (((uint16_t)config) << 12) | (dn & 0x0FFF);
 	uint8_t msb = (inst & 0xFF00) >> 8;
 	uint8_t lsb = (inst & 0x00FF);
-
-	msb = reverseBits(msb);
-	lsb = reverseBits(lsb);
 
 	GPIOPinWrite(DAC_SS_PORT, DAC_SS_PIN, LOW);
 	SSIDataPut(SSI_BASE, msb);
