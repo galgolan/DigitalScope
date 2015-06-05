@@ -148,7 +148,7 @@ int main(void)
 		uint32_t value = sampleAdc();
 		UARTprintf("A3=%d\n", value);
 
-		UARTprintf("DAC1=%f\n", getDacVoltage(1));
+		UARTprintf("DAC1=%d\n", getDacVoltage(1));
 	}
 
 	return 0;

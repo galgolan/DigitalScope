@@ -50,16 +50,16 @@ void configSPI()
 {
 	configSlaveSelectPins();
 
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOP);
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
+	// CLK2	-	PD3
+	// MOSI2	PD0
+
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
 
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI2);
-	GPIOPinTypeSSI(GPIO_PORTP_BASE, GPIO_PIN_2);
-	GPIOPinTypeSSI(GPIO_PORTN_BASE, GPIO_PIN_2);
-	GPIOPinTypeSSI(GPIO_PORTN_BASE, GPIO_PIN_3);
+	GPIOPinTypeSSI(GPIO_PORTD_BASE, GPIO_PIN_3 | GPIO_PIN_0);
 
 	// Configure the SSI.
-	SSIConfigSetExpClk(SSI_BASE, SysCtlClockGet(), SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, 200000, 8);
+	SSIConfigSetExpClk(SSI_BASE, SysCtlClockGet(), SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, 10000, 8);
 	SSIEnable(SSI_BASE);
 
 	setDacVoltage(0, 1);
