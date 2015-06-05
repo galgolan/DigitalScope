@@ -10,3 +10,4 @@ driverlib/.settings/*
 .metadata/**/*
 ~$*.docx
 *.tmp
+RemoteSystemsTempFiles/*
