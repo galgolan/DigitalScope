@@ -1,2 +1,6 @@
 ScopeFirmware/Debug/**/*
 ScopeFirmware/Debug/*
+ScopeFirmware/.metadata/**/*
+ScopeFirmware/.metadata/*
+driverlib/Debug/**/*
+driverlib/Debug/*
