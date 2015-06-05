@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>Experiments</name>
+	<name>ScopeFirmware</name>
 	<comment></comment>
 	<projects>
 		<project>driverlib</project>
@@ -35,7 +35,7 @@
 	<variableList>
 		<variable>
 			<name>SW_ROOT</name>
-			<value>file:/C:/ti/TivaWare_C_Series-2.1.0.12573</value>
+			<value>file:/C:/ti/TivaWare_C_Series-2.1.1.71</value>
 		</variable>
 	</variableList>
 </projectDescription>

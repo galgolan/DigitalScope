@@ -12,11 +12,12 @@
 //#include "driverlib/rom_map.h"
 
 #include "driverlib/sysctl.h"
-#include "driverlib/interrupt.h"
+//#include "driverlib/interrupt.h"
 
 // peripherals
 #include "driverlib/uart.h"
 #include "driverlib/comp.h"
+#include "driverlib/adc.h"
 
 // utilities
 #include "utils/uartstdio.h"
@@ -57,7 +58,6 @@ void configComparator()
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
 
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_COMP0);
-
 	GPIOPinConfigure(GPIO_PD0_C0O);
 
 	GPIOPinTypeComparator(GPIO_PORTC_BASE, GPIO_PIN_7);		// neg input
@@ -65,6 +65,64 @@ void configComparator()
 	GPIOPinTypeComparator(GPIO_PORTD_BASE, GPIO_PIN_0);		// out
 
 	ComparatorConfigure(COMP_BASE, 0, COMP_TRIG_NONE | COMP_ASRCP_PIN0 | COMP_OUTPUT_NORMAL);
+}
+
+void configAdc()
+{
+	// ch1 - A3 (PE0)
+	// ch2 - A4 (PD7)
+
+	// enable required ports
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
+
+	// enable ADC0
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
+
+	// configure adc pins
+	GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_0);
+	GPIOPinTypeADC(GPIO_PORTD_BASE, GPIO_PIN_7);
+
+	// configure adc
+	ADCReferenceSet(ADC0_BASE, ADC_REF_INT);
+
+	// configure sequencer with 1 step: sample from CH3
+	ADCSequenceConfigure(ADC0_BASE, 0, ADC_TRIGGER_PROCESSOR, 0);
+	ADCSequenceStepConfigure(ADC0_BASE, 0, 0, ADC_CTL_IE | ADC_CTL_END | ADC_CTL_CH3);
+	ADCSequenceEnable(ADC0_BASE, 0);
+}
+
+uint32_t sampleAdc()
+{
+	uint32_t value;
+
+	//
+	// Trigger the sample sequence.
+	//
+	ADCProcessorTrigger(ADC0_BASE, 0);
+
+	//
+	// Wait until the sample sequence has completed.
+	//
+	while(!ADCIntStatus(ADC0_BASE, 0, false))
+	{
+	}
+
+	//
+	// Read the value from the ADC.
+	//
+	ADCSequenceDataGet(ADC0_BASE, 0, &value);
+
+	return value;
+
+}
+
+// config SPI2
+void configSpi()
+{
+	// pga1 cs - pin 11
+	// pga2 cs - pin 13
+	// dac cs - pin 12
 }
 
 /*
@@ -81,12 +139,16 @@ int main(void)
 
 	configUART();
 	configComparator();
+	configAdc();
 	
 	while(1)
 	{
 		SysCtlDelay(g_ui32SysClock / 50);
 		bool comp = ComparatorValueGet(COMP_BASE, 0);
 		UARTprintf("COMP0=%d\n", comp);
+
+		uint32_t value = sampleAdc();
+		UARTprintf("A3=%d\n", value);
 	}
 
 	return 0;
