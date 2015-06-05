@@ -4,3 +4,5 @@ ScopeFirmware/.metadata/**/*
 ScopeFirmware/.metadata/*
 driverlib/Debug/**/*
 driverlib/Debug/*
+~$*.docx
+*.tmp
