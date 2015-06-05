@@ -142,7 +142,7 @@ int main(void)
 	while(1)
 	{
 		SysCtlDelay(g_ui32SysClock / 100000);
-		bool comp = ComparatorValueGet(COMP_BASE, 0);
+		//bool comp = ComparatorValueGet(COMP_BASE, 0);
 		//UARTprintf("COMP0=%d\n", comp);
 
 		uint32_t ch1Value = sampleAdc();
