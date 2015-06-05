@@ -33,12 +33,14 @@ void configSlaveSelectPins()
 {
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOP);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
 
 	// pga1 cs - pin 11 PP2
 	// pga2 cs - pin 13 PN2
 	// dac cs - pin 12 PN3
 	GPIOPinTypeGPIOOutput(GPIO_PORTP_BASE, GPIO_PIN_2);
 	GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_2 | GPIO_PIN_3);
+	GPIOPinTypeGPIOOutput(GPIO_PORTD_BASE, GPIO_PIN_2);
 
 	GPIOPinWrite(DAC_SS_PORT, DAC_SS_PIN, HIGH);
 	GPIOPinWrite(PGA1_SS_PORT, PGA1_SS_PIN, HIGH);
@@ -52,11 +54,14 @@ void configSPI()
 
 	// CLK2	-	PD3
 	// MOSI2	PD1
+	// CS2		PD2
 
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
-	GPIOPinConfigure(GPIO_PD0_SSI2XDAT1);
-	GPIOPinConfigure(GPIO_PD1_SSI2XDAT0);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI2);
+
+	GPIOPinConfigure(GPIO_PD3_SSI2CLK);
+	GPIOPinConfigure(GPIO_PD1_SSI2XDAT0);
+	GPIOPinConfigure(GPIO_PD2_SSI2FSS);
 	GPIOPinTypeSSI(GPIO_PORTD_BASE, GPIO_PIN_3 | GPIO_PIN_1);
 
 	// Configure the SSI.
@@ -72,12 +77,27 @@ uint16_t calcDacLevel(double voltage)
 	return (dacRes-1) * voltage / ((double)dacGain * dacReference);
 }
 
+uint8_t reverseBits(uint8_t ucNumber)
+{
+	uint8_t ucIndex;
+	uint8_t ucReversedNumber = 0;
+	for(ucIndex=0; ucIndex<8; ucIndex++)
+	{
+		ucReversedNumber = ucReversedNumber << 1;
+		ucReversedNumber |= ((1 << ucIndex) & ucNumber) >> ucIndex;
+	}
+	return ucReversedNumber;
+}
+
 void programDac(uint8_t config, double voltage)
 {
 	uint16_t dn = calcDacLevel(voltage);
 	uint16_t inst = (((uint16_t)config) << 12) | (dn & 0x0FFF);
 	uint8_t msb = (inst & 0xFF00) >> 8;
 	uint8_t lsb = (inst & 0x00FF);
+
+	msb = reverseBits(msb);
+	lsb = reverseBits(lsb);
 
 	GPIOPinWrite(DAC_SS_PORT, DAC_SS_PIN, LOW);
 	SSIDataPut(SSI_BASE, msb);

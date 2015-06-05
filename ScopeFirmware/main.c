@@ -141,12 +141,15 @@ int main(void)
 
 	while(1)
 	{
-		SysCtlDelay(g_ui32SysClock / 1000);
+		SysCtlDelay(g_ui32SysClock / 5000);
 		bool comp = ComparatorValueGet(COMP_BASE, 0);
 		//UARTprintf("COMP0=%d\n", comp);
 
 		uint32_t value = sampleAdc();
 		UARTprintf("A3=%d\n", value);
+
+		setDacVoltage(3.3/2, 1);
+		setDacVoltage(3.3/2, 2);
 
 		UARTprintf("DAC1=%d\n", getDacVoltage(1));
 	}
