@@ -1,5 +1,8 @@
+#include <MCP49x2.h>
+#include <mcp6s2x.h>
+
 /*
-  Microchip PGA control
+  Digital Scope MCU Stub
   
  The circuit:
   * CS - to digital pin 10  (SS pin)
@@ -10,39 +13,14 @@
 // inslude the SPI library:
 #include <SPI.h>
 
-#define INST_SET_GAIN    B01000000
-#define INST_SET_CHA     B01000001
-
-#define GAIN_1   B00000000
-#define GAIN_2   B00000001
-#define GAIN_4   B00000010
-#define GAIN_5   B00000011
-#define GAIN_8   B00000100
-#define GAIN_10  B00000101
-#define GAIN_16  B00000110
-#define GAIN_32  B00000111
-
-#define CHN0    B00000000
-#define CHN1    B00000001
-
-// set pin 10 as the slave select for the digital pot:
-const int slaveSelectPin = 10;
-
-const int gain_0 = 2;  // yellow
-const int gain_1 = 3;  // red
-const int gain_2 = 4;  // green
+// dip switches
+const int gain_0 = 2;
+const int gain_1 = 3;
+const int gain_2 = 4;
 
 byte lastGain;
-
-void setupSpi()
-{
-  pinMode (slaveSelectPin, OUTPUT);
-  // initialize SPI:
-  SPI.setDataMode(SPI_MODE0);
-  SPI.setClockDivider(SPI_CLOCK_DIV32);  // 16MHz/32=0.5MHz
-  SPI.setBitOrder(MSBFIRST);
-  SPI.begin();
-}
+MCP6s2x pga(10);
+MCP49x2 dac(14);
 
 void setupDip()
 {
@@ -51,42 +29,24 @@ void setupDip()
   pinMode(gain_2, INPUT);
 }
 
-void setup() {
+void setup()
+{
   delay(100);
+  
   setupDip();
-  // set the slaveSelectPin as an output:
-  setupSpi();
-  selectChannel(CHN0);
+  pga.start();
+  
+  pga.setChannel(0);
   lastGain = GAIN_1;
-  selectGain(lastGain);
- }
+  pga.setGain(GAIN_1);
+  
+  dac.program(DAC_A | DAC_BUFFERED | DAC_GAIN_1 | DAC_ACTIVE, 0x000);
+}
 
-void loop() {
+void loop()
+{
   changeGain();    // set gain
   delay(500);
-}
-
-void selectChannel(byte channel)
-{
-  programPga(INST_SET_CHA, channel);
-}
-
-void selectGain(byte gain)
-{
-  programPga(INST_SET_GAIN, gain);
-}
-
-void programPga(byte instruction, byte data)
-{
-  digitalWrite(slaveSelectPin, LOW);
-  SPI.transfer(instruction);
-  SPI.transfer(data);
-  digitalWrite(slaveSelectPin, HIGH);
-}
-
-void programDac()
-{
-  // todo
 }
 
 void changeGain()
@@ -99,5 +59,5 @@ void changeGain()
   int gain = (b2 << 2) | (b1 << 1) | b0;
   
   if(lastGain != gain)
-    selectGain(gain);
+    pga.setGain(gain);
 }
