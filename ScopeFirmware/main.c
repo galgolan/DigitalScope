@@ -136,6 +136,9 @@ int main(void)
 	configAdc();
 	configSPI();
 	
+	setDacVoltage(3.3/2, 1);
+	setDacVoltage(3.3/2, 2);
+
 	while(1)
 	{
 		SysCtlDelay(g_ui32SysClock / 1000);
@@ -144,6 +147,8 @@ int main(void)
 
 		uint32_t value = sampleAdc();
 		UARTprintf("A3=%d\n", value);
+
+		UARTprintf("DAC1=%f\n", getDacVoltage(1));
 	}
 
 	return 0;
