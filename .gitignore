@@ -6,5 +6,7 @@ ScopeFirmware/.settings/*
 driverlib/Debug/**/*
 driverlib/Debug/*
 driverlib/.settings/*
+.metadata/*
+.metadata/**/*
 ~$*.docx
 *.tmp
