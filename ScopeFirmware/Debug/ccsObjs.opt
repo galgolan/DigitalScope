@@ -1,1 +1,0 @@
-"./main.obj" "./tm4c1294ncpdt_startup_ccs.obj" "./uartstdio.obj" "../tm4c1294ncpdt.cmd" -l"libc.a" -l"C:/ti/TivaWare_C_Series-2.1.0.12573/driverlib/ccs/Debug/driverlib.lib" 
