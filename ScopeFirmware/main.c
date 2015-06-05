@@ -143,9 +143,9 @@ int main(void)
 	
 	while(1)
 	{
-		SysCtlDelay(g_ui32SysClock / 100);
+		SysCtlDelay(g_ui32SysClock / 1000);
 		bool comp = ComparatorValueGet(COMP_BASE, 0);
-		UARTprintf("COMP0=%d\n", comp);
+		//UARTprintf("COMP0=%d\n", comp);
 
 		uint32_t value = sampleAdc();
 		UARTprintf("A3=%d\n", value);
