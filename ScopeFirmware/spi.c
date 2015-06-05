@@ -51,12 +51,13 @@ void configSPI()
 	configSlaveSelectPins();
 
 	// CLK2	-	PD3
-	// MOSI2	PD0
+	// MOSI2	PD1
 
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
-
+	GPIOPinConfigure(GPIO_PD0_SSI2XDAT1);
+	GPIOPinConfigure(GPIO_PD1_SSI2XDAT0);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI2);
-	GPIOPinTypeSSI(GPIO_PORTD_BASE, GPIO_PIN_3 | GPIO_PIN_0);
+	GPIOPinTypeSSI(GPIO_PORTD_BASE, GPIO_PIN_3 | GPIO_PIN_1);
 
 	// Configure the SSI.
 	SSIConfigSetExpClk(SSI_BASE, SysCtlClockGet(), SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, 10000, 8);
