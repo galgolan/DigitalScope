@@ -22,6 +22,8 @@
 // utilities
 #include "utils/uartstdio.h"
 
+#include "spi.h"
+
 #ifdef DEBUG
 void
 __error__(char *pcFilename, uint32_t ui32Line)
@@ -117,14 +119,6 @@ uint32_t sampleAdc()
 
 }
 
-// config SPI2
-void configSpi()
-{
-	// pga1 cs - pin 11
-	// pga2 cs - pin 13
-	// dac cs - pin 12
-}
-
 /*
  * main.c
  */
@@ -140,6 +134,7 @@ int main(void)
 	configUART();
 	configComparator();
 	configAdc();
+	configSPI();
 	
 	while(1)
 	{
