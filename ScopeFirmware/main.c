@@ -1,4 +1,6 @@
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 #include <stdbool.h>
 
 // board definitions
@@ -23,6 +25,7 @@
 #include "utils/uartstdio.h"
 
 #include "spi.h"
+#include "calc.h"
 
 #ifdef DEBUG
 void
@@ -135,8 +138,6 @@ int main(void)
 	configComparator();
 	configAdc();
 	configSPI();
-	
-
 
 	while(1)
 	{
@@ -144,13 +145,16 @@ int main(void)
 		bool comp = ComparatorValueGet(COMP_BASE, 0);
 		//UARTprintf("COMP0=%d\n", comp);
 
-		uint32_t value = sampleAdc();
-		UARTprintf("A3=%d\n", value);
+		uint32_t ch1Value = sampleAdc();
+		//UARTprintf("A3=%d\n", value);
 
 		setDacVoltage(3.3/2, 1);
-	//	setDacVoltage(3.3/2, 2);
+		setPga1Gain(PGA_GAIN_1);
+		setPga2Gain(PGA_GAIN_1);
 
-		UARTprintf("DAC1=%d\n", getDacVoltage(1));
+		//UARTprintf("DAC1=%d\n", getDacVoltage(1));
+
+		double vin1 = calcCh1Input(ch1Value);
 	}
 
 	return 0;

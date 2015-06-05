@@ -29,6 +29,9 @@ static double dacReference = 3.3;
 static uint32_t dacGain = 1;
 static uint32_t dacRes = 4096;
 
+static uint8_t pga1Gain = 1;
+static uint8_t pga2Gain = 2;
+
 void configSlaveSelectPins()
 {
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOP);
@@ -70,6 +73,11 @@ void configSPI()
 
 	setDacVoltage(0, 1);
 	setDacVoltage(0, 2);
+
+	setPga1Channel(PGA_CHANNEL_0);
+	setPga1Channel(PGA_CHANNEL_0);
+	setPga1Gain(PGA_GAIN_1);
+	setPga2Gain(PGA_GAIN_1);
 }
 
 uint16_t calcDacLevel(double voltage)
@@ -77,6 +85,55 @@ uint16_t calcDacLevel(double voltage)
 	return (dacRes-1) * voltage / ((double)dacGain * dacReference);
 }
 
+void programPga(uint8_t inst, uint8_t data, uint32_t ssPort, uint32_t ssPin)
+{
+	GPIOPinWrite(ssPort, ssPin, LOW);
+	SSIDataPut(SSI_BASE, inst);
+	SSIDataPut(SSI_BASE, data);
+	GPIOPinWrite(ssPort, ssPin, HIGH);
+}
+
+void programPga1(uint8_t inst, uint8_t data)
+{
+	programPga(inst, data, PGA1_SS_PORT, PGA1_SS_PIN);
+}
+
+void programPga2(uint8_t inst, uint8_t data)
+{
+	programPga(inst, data, PGA2_SS_PORT, PGA2_SS_PIN);
+}
+
+void setPga1Gain(uint8_t gain)
+{
+	programPga1(PGA_SET_GAIN, gain);
+	pga1Gain = gain;
+}
+
+void setPga2Gain(uint8_t gain)
+{
+	programPga2(PGA_SET_GAIN, gain);
+	pga2Gain = gain;
+}
+
+void setPga1Channel(uint8_t channel)
+{
+	programPga1(PGA_SET_CHANNEL, channel);
+}
+
+uint8_t getPga1Gain()
+{
+	return pga1Gain;
+}
+
+void setPga2Channel(uint8_t channel)
+{
+	programPga2(PGA_SET_CHANNEL, channel);
+}
+
+uint8_t getPga2Gain()
+{
+	return pga2Gain;
+}
 
 void programDac(uint8_t config, double voltage)
 {
