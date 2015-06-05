@@ -2,7 +2,9 @@ ScopeFirmware/Debug/**/*
 ScopeFirmware/Debug/*
 ScopeFirmware/.metadata/**/*
 ScopeFirmware/.metadata/*
+ScopeFirmware/.settings/*
 driverlib/Debug/**/*
 driverlib/Debug/*
+driverlib/.settings/*
 ~$*.docx
 *.tmp
