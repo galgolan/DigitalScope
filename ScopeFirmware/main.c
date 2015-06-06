@@ -75,11 +75,13 @@ int main(void)
 	setup();
 	SysCtlDelay(1000);
 
+	uint32_t samples[2];
+
 	while(1)
 	{
 		SysCtlDelay(g_ui32SysClock / 1000000);
 
-		uint32_t* samples = sampleAdc();
+		sampleAdc(samples);
 		double vin1 = calcCh1Input(samples[0]);
 		double vin2 = calcCh1Input(samples[1]);
 
