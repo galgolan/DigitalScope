@@ -49,8 +49,8 @@ void setup()
 					SYSCTL_CFG_VCO_480), 120000000);
 
 	configUART(g_ui32SysClock);
-	configAdc();
 	configSPI();
+	configAdc();
 }
 
 /*
