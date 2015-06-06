@@ -60,6 +60,7 @@ void configSPI()
 
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI2);
+	SysCtlDelay(1000);
 
 	GPIOPinConfigure(GPIO_PD3_SSI2CLK);
 	GPIOPinConfigure(GPIO_PD1_SSI2XDAT0);

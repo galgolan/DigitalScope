@@ -15,6 +15,7 @@
 
 #include "driverlib/sysctl.h"
 #include "driverlib/fpu.h"
+#include "driverlib/adc.h"
 //#include "driverlib/interrupt.h"
 
 // utilities
@@ -43,6 +44,7 @@ uint32_t g_ui32SysClock;
 void setup()
 {
 	FPUEnable();
+	SysCtlDelay(1000);
 
 	//
 	// Run from the PLL at 120 MHz.
@@ -51,13 +53,13 @@ void setup()
 					SYSCTL_OSC_MAIN | SYSCTL_USE_PLL |
 					SYSCTL_CFG_VCO_480), 120000000);
 
+
 	configUART(g_ui32SysClock);
-	configSPI();
 	configAdc();
+	configSPI();
 
 	setDacVoltage(3.3/2, 1);
 	setDacVoltage(3.3/2, 2);
-
 	setPga1Channel(PGA_CHANNEL_0);
 	setPga1Channel(PGA_CHANNEL_0);
 	setPga1Gain(PGA_GAIN_1);
@@ -69,9 +71,10 @@ void setup()
  */
 int main(void)
 {
+	SysCtlDelay(10000000);
 	setup();
+	SysCtlDelay(1000);
 
-	char buffer[256];
 	while(1)
 	{
 		SysCtlDelay(g_ui32SysClock / 1000000);
@@ -80,6 +83,7 @@ int main(void)
 		double vin1 = calcCh1Input(samples[0]);
 		double vin2 = calcCh1Input(samples[1]);
 
+		char buffer[256];
 		sprintf(buffer, "Vin1=%f Vin2=%f\n", vin1, vin2);
 		UARTprintf(buffer);
 	}

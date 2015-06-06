@@ -36,6 +36,7 @@ void configUART(uint32_t sysClock)
 	// UART0: PA.0 - RX, PA.1 - TX
 
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
+	SysCtlDelay(1000);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
 
 	// always use PinType after PinConfigure
