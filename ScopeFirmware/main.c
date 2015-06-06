@@ -76,10 +76,11 @@ int main(void)
 	{
 		SysCtlDelay(g_ui32SysClock / 1000000);
 
-		uint32_t ch1Value = sampleAdc();
-		double vin1 = calcCh1Input(ch1Value);
+		uint32_t* samples = sampleAdc();
+		double vin1 = calcCh1Input(samples[0]);
+		double vin2 = calcCh1Input(samples[1]);
 
-		sprintf(buffer, "Vin1=%f\n", vin1);
+		sprintf(buffer, "Vin1=%f Vin2=%f\n", vin1, vin2);
 		UARTprintf(buffer);
 	}
 

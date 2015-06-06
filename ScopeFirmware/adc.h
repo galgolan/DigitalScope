@@ -10,6 +10,6 @@
 
 void configAdc();
 
-uint32_t sampleAdc();
+uint32_t* sampleAdc();
 
 #endif /* ADC_H_ */

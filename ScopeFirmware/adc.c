@@ -58,13 +58,14 @@ void configAdc()
 
 	// configure sequencer with 1 step: sample from CH3
 	ADCSequenceConfigure(ADC0_BASE, 0, ADC_TRIGGER_PROCESSOR, 0);
-	ADCSequenceStepConfigure(ADC0_BASE, 0, 0, ADC_CTL_IE | ADC_CTL_END | ADC_CTL_CH3);
+	ADCSequenceStepConfigure(ADC0_BASE, 0, 0, ADC_CTL_CH3);
+	ADCSequenceStepConfigure(ADC0_BASE, 0, 1, ADC_CTL_IE | ADC_CTL_END | ADC_CTL_CH4);
 	ADCSequenceEnable(ADC0_BASE, 0);
 }
 
-uint32_t sampleAdc()
+uint32_t* sampleAdc()
 {
-	uint32_t value;
+	static uint32_t value[2];
 
 	//
 	// Trigger the sample sequence.
@@ -81,7 +82,7 @@ uint32_t sampleAdc()
 	//
 	// Read the value from the ADC.
 	//
-	ADCSequenceDataGet(ADC0_BASE, 0, &value);
+	ADCSequenceDataGet(ADC0_BASE, 0, value);
 
 	return value;
 }
