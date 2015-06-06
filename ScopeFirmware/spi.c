@@ -22,28 +22,27 @@
 
 #define SSI_BASE	SSI2_BASE
 
-
 static double voltages[2] = {0, 0};
 
 static double dacReference = 3.3;
 static uint32_t dacGain = 1;
 static uint32_t dacRes = 4096;
 
-static uint8_t pga1Gain = 1;
-static uint8_t pga2Gain = 2;
+static uint8_t pga1GainRegister = 1;
+static uint8_t pga2GainRegister = 2;
 
 void configSlaveSelectPins()
 {
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOP);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
-	//SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
 
 	// pga1 cs - pin 11 PP2
 	// pga2 cs - pin 13 PN2
 	// dac cs - pin 12 PN3
 	GPIOPinTypeGPIOOutput(GPIO_PORTP_BASE, GPIO_PIN_2);
 	GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_2 | GPIO_PIN_3);
-	//GPIOPinTypeGPIOOutput(GPIO_PORTD_BASE, GPIO_PIN_2);
+	GPIOPinTypeGPIOOutput(GPIO_PORTD_BASE, GPIO_PIN_2);
 
 	GPIOPinWrite(DAC_SS_PORT, DAC_SS_PIN, HIGH);
 	GPIOPinWrite(PGA1_SS_PORT, PGA1_SS_PIN, HIGH);
@@ -64,11 +63,11 @@ void configSPI()
 
 	GPIOPinConfigure(GPIO_PD3_SSI2CLK);
 	GPIOPinConfigure(GPIO_PD1_SSI2XDAT0);
-	//GPIOPinConfigure(GPIO_PD2_SSI2FSS);
+	GPIOPinConfigure(GPIO_PD2_SSI2FSS);
 	GPIOPinTypeSSI(GPIO_PORTD_BASE, GPIO_PIN_3 | GPIO_PIN_1);
 
 	// Configure the SSI.
-	SSIConfigSetExpClk(SSI_BASE, SysCtlClockGet(), SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, 10000, 8);
+	SSIConfigSetExpClk(SSI_BASE, SysCtlClockGet(), SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, 500000, 8);
 	SSIEnable(SSI_BASE);
 }
 
@@ -98,13 +97,13 @@ void programPga2(uint8_t inst, uint8_t data)
 void setPga1Gain(uint8_t gain)
 {
 	programPga1(PGA_SET_GAIN, gain);
-	pga1Gain = gain;
+	pga1GainRegister = gain;
 }
 
 void setPga2Gain(uint8_t gain)
 {
 	programPga2(PGA_SET_GAIN, gain);
-	pga2Gain = gain;
+	pga2GainRegister = gain;
 }
 
 void setPga1Channel(uint8_t channel)
@@ -112,9 +111,26 @@ void setPga1Channel(uint8_t channel)
 	programPga1(PGA_SET_CHANNEL, channel);
 }
 
+uint8_t getPgaGain(uint8_t gainRegister)
+{
+	switch(gainRegister)
+	{
+	case PGA_GAIN_1: return 1;
+	case PGA_GAIN_2: return 2;
+	case PGA_GAIN_4: return 4;
+	case PGA_GAIN_5: return 5;
+	case PGA_GAIN_8: return 8;
+	case PGA_GAIN_10: return 10;
+	case PGA_GAIN_16: return 16;
+	case PGA_GAIN_32: return 32;
+	}
+
+	return 0;
+}
+
 uint8_t getPga1Gain()
 {
-	return pga1Gain;
+	return getPgaGain(pga1GainRegister);
 }
 
 void setPga2Channel(uint8_t channel)
@@ -124,7 +140,7 @@ void setPga2Channel(uint8_t channel)
 
 uint8_t getPga2Gain()
 {
-	return pga2Gain;
+	return getPgaGain(pga2GainRegister);
 }
 
 void programDac(uint8_t config, double voltage)

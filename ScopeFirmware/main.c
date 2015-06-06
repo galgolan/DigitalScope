@@ -71,23 +71,16 @@ int main(void)
 {
 	setup();
 
-	//char buffer[256];
+	char buffer[256];
 	while(1)
 	{
-		SysCtlDelay(g_ui32SysClock / 100000);
-		//bool comp = ComparatorValueGet(COMP_BASE, 0);
-		//UARTprintf("COMP0=%d\n", comp);
+		SysCtlDelay(g_ui32SysClock / 1000000);
 
 		uint32_t ch1Value = sampleAdc();
-		UARTprintf("ch1=%d\n", ch1Value);
+		double vin1 = calcCh1Input(ch1Value);
 
-		//setDacVoltage(3.3/2, 1);
-		//setPga1Gain(PGA_GAIN_1);
-		//setPga2Gain(PGA_GAIN_1);
-
-		//double vin1 = calcCh1Input(ch1Value);
-		//sprintf(buffer, "Vin1=%f\n", vin1);
-		//UARTprintf(buffer);
+		sprintf(buffer, "Vin1=%f\n", vin1);
+		UARTprintf(buffer);
 	}
 
 	return 0;
