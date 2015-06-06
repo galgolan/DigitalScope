@@ -36,14 +36,14 @@ void configSlaveSelectPins()
 {
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOP);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
+	//SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
 
 	// pga1 cs - pin 11 PP2
 	// pga2 cs - pin 13 PN2
 	// dac cs - pin 12 PN3
 	GPIOPinTypeGPIOOutput(GPIO_PORTP_BASE, GPIO_PIN_2);
 	GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_2 | GPIO_PIN_3);
-	GPIOPinTypeGPIOOutput(GPIO_PORTD_BASE, GPIO_PIN_2);
+	//GPIOPinTypeGPIOOutput(GPIO_PORTD_BASE, GPIO_PIN_2);
 
 	GPIOPinWrite(DAC_SS_PORT, DAC_SS_PIN, HIGH);
 	GPIOPinWrite(PGA1_SS_PORT, PGA1_SS_PIN, HIGH);
@@ -70,14 +70,6 @@ void configSPI()
 	// Configure the SSI.
 	SSIConfigSetExpClk(SSI_BASE, SysCtlClockGet(), SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, 10000, 8);
 	SSIEnable(SSI_BASE);
-
-	setDacVoltage(0, 1);
-	setDacVoltage(0, 2);
-
-	setPga1Channel(PGA_CHANNEL_0);
-	setPga1Channel(PGA_CHANNEL_0);
-	setPga1Gain(PGA_GAIN_1);
-	setPga2Gain(PGA_GAIN_1);
 }
 
 uint16_t calcDacLevel(double voltage)

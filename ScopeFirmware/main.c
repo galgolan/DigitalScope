@@ -14,6 +14,7 @@
 //#include "driverlib/rom_map.h"
 
 #include "driverlib/sysctl.h"
+#include "driverlib/fpu.h"
 //#include "driverlib/interrupt.h"
 
 // utilities
@@ -41,6 +42,8 @@ uint32_t g_ui32SysClock;
 
 void setup()
 {
+	FPUEnable();
+
 	//
 	// Run from the PLL at 120 MHz.
 	//
@@ -51,6 +54,14 @@ void setup()
 	configUART(g_ui32SysClock);
 	configSPI();
 	configAdc();
+
+	setDacVoltage(3.3/2, 1);
+	setDacVoltage(3.3/2, 2);
+
+	setPga1Channel(PGA_CHANNEL_0);
+	setPga1Channel(PGA_CHANNEL_0);
+	setPga1Gain(PGA_GAIN_1);
+	setPga2Gain(PGA_GAIN_1);
 }
 
 /*
@@ -60,7 +71,7 @@ int main(void)
 {
 	setup();
 
-	char buffer[256];
+	//char buffer[256];
 	while(1)
 	{
 		SysCtlDelay(g_ui32SysClock / 100000);
@@ -68,14 +79,15 @@ int main(void)
 		//UARTprintf("COMP0=%d\n", comp);
 
 		uint32_t ch1Value = sampleAdc();
+		UARTprintf("ch1=%d\n", ch1Value);
 
-		setDacVoltage(3.3/2, 1);
-		setPga1Gain(PGA_GAIN_1);
-		setPga2Gain(PGA_GAIN_1);
+		//setDacVoltage(3.3/2, 1);
+		//setPga1Gain(PGA_GAIN_1);
+		//setPga2Gain(PGA_GAIN_1);
 
-		double vin1 = calcCh1Input(ch1Value);
-		sprintf(buffer, "Vin1=%f\n", vin1);
-		UARTprintf(buffer);
+		//double vin1 = calcCh1Input(ch1Value);
+		//sprintf(buffer, "Vin1=%f\n", vin1);
+		//UARTprintf(buffer);
 	}
 
 	return 0;
