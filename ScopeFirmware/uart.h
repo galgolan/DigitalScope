@@ -10,4 +10,6 @@
 
 void configUART(uint32_t sysClock);
 
+void outputDebug(double vin1, double vin2);
+
 #endif /* UART_H_ */

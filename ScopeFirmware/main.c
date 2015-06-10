@@ -6,6 +6,7 @@
 // board definitions
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
+#include "inc/hw_ints.h"
 #include "driverlib/gpio.h"
 #include "driverlib/pin_map.h"
 
@@ -16,7 +17,7 @@
 #include "driverlib/sysctl.h"
 #include "driverlib/fpu.h"
 #include "driverlib/adc.h"
-//#include "driverlib/interrupt.h"
+#include "driverlib/interrupt.h"
 
 // utilities
 #include "utils/uartstdio.h"
@@ -44,6 +45,7 @@ uint32_t g_ui32SysClock;
 void setup()
 {
 	FPUEnable();
+
 	SysCtlDelay(1000);
 
 	//
@@ -53,6 +55,8 @@ void setup()
 					SYSCTL_OSC_MAIN | SYSCTL_USE_PLL |
 					SYSCTL_CFG_VCO_480), 120000000);
 
+	// TODO: if g_ui32SysClock == 0 error
+	SysCtlDelay(1000);
 
 	configUART(g_ui32SysClock);
 	configAdc();
@@ -71,23 +75,14 @@ void setup()
  */
 int main(void)
 {
-	SysCtlDelay(10000000);
+	SysCtlDelay(1000000);
 	setup();
 	SysCtlDelay(1000);
 
-	uint32_t samples[2];
-
+	triggerAdc();
 	while(1)
 	{
 		SysCtlDelay(g_ui32SysClock / 1000000);
-
-		sampleAdc(samples);
-		double vin1 = calcCh1Input(samples[0]);
-		double vin2 = calcCh1Input(samples[1]);
-
-		char buffer[256];
-		sprintf(buffer, "Vin1=%f Vin2=%f\n", vin1, vin2);
-		UARTprintf(buffer);
 	}
 
 	return 0;

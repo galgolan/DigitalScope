@@ -10,6 +10,10 @@
 
 void configAdc();
 
+void triggerAdc();
+
 void sampleAdc(uint32_t* samples);
+
+void AdcISR(void);
 
 #endif /* ADC_H_ */

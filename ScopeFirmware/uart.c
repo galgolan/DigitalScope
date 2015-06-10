@@ -46,3 +46,10 @@ void configUART(uint32_t sysClock)
 
 	UARTStdioConfig(0, 115200, sysClock);
 }
+
+void outputDebug(double vin1, double vin2)
+{
+	char buffer[256];
+	sprintf(buffer, "Vin1=%f Vin2=%f\n", vin1, vin2);
+	UARTprintf(buffer);
+}
