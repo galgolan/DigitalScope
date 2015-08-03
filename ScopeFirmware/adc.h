@@ -8,7 +8,13 @@
 #ifndef ADC_H_
 #define ADC_H_
 
-void configAdc();
+#include "config.h"
+
+extern volatile bool ready;
+extern double samples_ch1[BUFFER_SIZE];
+extern double samples_ch2[BUFFER_SIZE];
+
+void configAdc(Trigger trigger);
 
 void triggerAdc();
 

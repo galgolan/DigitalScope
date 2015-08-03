@@ -31,6 +31,35 @@
 
 #include "uart.h"
 
+void twoChannelPrint(char* buffer, double ch1, double ch2)
+{
+	sprintf(buffer, "%.2f,%.2f\n", ch1, ch2);
+}
+
+void oneChannelPrint(char* buffer, double value)
+{
+	sprintf(buffer, "%.2f\n", value);
+}
+
+void outputDebugMany(double* ch1, double* ch2, uint32_t n, ScopeConfig* config)
+{
+	char buffer[24];
+	int i;
+	for(i=0; i<n; ++i)
+	{
+		if(config->channels[0].active && config->channels[1].active)
+			twoChannelPrint(buffer, ch1[i], ch2[i]);
+		else if(config->channels[0].active && !config->channels[1].active)
+			oneChannelPrint(buffer, ch1[i]);
+		else if(!config->channels[0].active && config->channels[1].active)
+			oneChannelPrint(buffer, ch2[i]);
+		else
+			return;
+
+		UARTprintf(buffer);
+	}
+}
+
 void configUART(uint32_t sysClock)
 {
 	// UART0: PA.0 - RX, PA.1 - TX
@@ -50,6 +79,9 @@ void configUART(uint32_t sysClock)
 void outputDebug(double vin1, double vin2)
 {
 	char buffer[256];
-	sprintf(buffer, "Vin1=%f Vin2=%f\n", vin1, vin2);
+	if(vin1>=0)
+		sprintf(buffer, "Vin1=+%.2f Vin2=%.2f\n", vin1, vin2);
+	else
+		sprintf(buffer, "Vin1=%.2f Vin2=%.2f\n", vin1, vin2);
 	UARTprintf(buffer);
 }

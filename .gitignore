@@ -3,6 +3,8 @@ ScopeFirmware/Debug/*
 ScopeFirmware/.metadata/**/*
 ScopeFirmware/.metadata/*
 ScopeFirmware/.settings/*
+ScopeUI/*
+ScopeUI/**/*
 driverlib/Debug/**/*
 driverlib/Debug/*
 driverlib/.settings/*

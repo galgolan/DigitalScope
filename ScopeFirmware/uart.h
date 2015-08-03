@@ -8,8 +8,12 @@
 #ifndef UART_H_
 #define UART_H_
 
+#include "config.h"
+
 void configUART(uint32_t sysClock);
 
 void outputDebug(double vin1, double vin2);
+
+void outputDebugMany(double* ch1, double* ch2, uint32_t n, ScopeConfig* config);
 
 #endif /* UART_H_ */

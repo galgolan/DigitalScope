@@ -22,14 +22,14 @@
 
 #define SSI_BASE	SSI2_BASE
 
-static double voltages[2] = {0, 0};
+static volatile double voltages[2] = {0, 0};
 
-static double dacReference = 3.3;
-static uint32_t dacGain = 1;
-static uint32_t dacRes = 4096;
+const double dacReference = 3.3;
+static volatile uint32_t dacGain = 1;
+const uint32_t dacRes = 4096;
 
-static uint8_t pga1GainRegister = 1;
-static uint8_t pga2GainRegister = 2;
+static volatile uint8_t pga1GainRegister = 1;
+static volatile uint8_t pga2GainRegister = 1;
 
 void configSlaveSelectPins()
 {
