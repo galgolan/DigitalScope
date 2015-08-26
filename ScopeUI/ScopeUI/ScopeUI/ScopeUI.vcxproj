@@ -41,7 +41,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(GTKDIR)\include;$(GTKDIR)\include\gtk-3.0\gtk;$(GTKDIR)\lib\glib-2.0\include;$(GTKDIR)\include\glib-2.0;$(IncludePath)</IncludePath>
+    <IncludePath>$(GTKDIR)\include;$(GTKDIR)\lib\glib-2.0\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(GTKDIR)\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -54,12 +54,12 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalOptions>-IC:/GTK/include/gtk-3.0 -IC:/GTK/include/cairo -IC:/GTK/include/pango-1.0 -IC:/GTK/include/atk-1.0 -IC:/GTK/include/cairo -IC:/GTK/include/pixman-1 -IC:/GTK/include -IC:/GTK/include/freetype2 -IC:/GTK/include -IC:/GTK/include/libpng15 -IC:/GTK/include/gdk-pixbuf-2.0 -IC:/GTK/include/libpng15 -IC:/GTK/include/glib-2.0 -IC:/GTK/lib/glib-2.0/include %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-IC:/GTK/include/gtk-3.0 -IC:/GTK/include/cairo -IC:/GTK/include/pango-1.0 -IC:/GTK/include/atk-1.0 -IC:/GTK/include/cairo -IC:/GTK/include/pixman-1 -IC:/GTK/include -IC:/GTK/include/freetype2 -IC:/GTK/include -IC:/GTK/include/libpng15 -IC:/GTK/include/gdk-pixbuf-2.0 -IC:/GTK/include/libpng15 -IC:/GTK/include/glib-2.0 -IC:/GTK/lib/glib-2.0/include  -Dinline= %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalOptions>/libpath:C:/GTK/lib gtk-win32-3.0.lib gdk-win32-3.0.lib gdi32.lib imm32.lib shell32.lib ole32.lib pangocairo-1.0.lib pangoft2-1.0.lib fontconfig.lib pangowin32-1.0.lib gdi32.lib pango-1.0.lib atk-1.0.lib cairo.lib gdk_pixbuf-2.0.lib gio-2.0.lib gobject-2.0.lib glib-2.0.lib /ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/libpath:C:/GTK/lib gtk-win32-3.0.lib gdk-win32-3.0.lib gdi32.lib imm32.lib shell32.lib ole32.lib pangocairo-1.0.lib pangoft2-1.0.lib fontconfig.lib pangowin32-1.0.lib gdi32.lib pango-1.0.lib atk-1.0.lib cairo.lib gdk_pixbuf-2.0.lib gio-2.0.lib gobject-2.0.lib glib-2.0.lib /ENTRY:mainCRTStartup /link /libpath:%GTKDIR% gtk-win32-3.0.lib gobject-2.0.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -80,19 +80,25 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="app.c" />
     <ClCompile Include="main.c" />
-    <ClCompile Include="window.c" />
+    <ClCompile Include="scope_ui_handlers.c" />
+    <ClCompile Include="scope.c" />
+    <ClCompile Include="serial.c" />
   </ItemGroup>
   <ItemGroup>
-    <Xml Include="builder.ui">
-      <DeploymentContent>true</DeploymentContent>
-      <FileType>Document</FileType>
-    </Xml>
+    <None Include="scopeui.cfg" />
+    <None Include="ui.xml" />
+    <Content Include="ui.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="scopeui.cfg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="app.h" />
-    <ClInclude Include="window.h" />
+    <ClInclude Include="common.h" />
+    <ClInclude Include="scope.h" />
+    <ClInclude Include="serial.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
