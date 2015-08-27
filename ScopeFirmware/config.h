@@ -24,9 +24,9 @@ typedef enum TriggerType
 
 typedef enum TriggerMode
 {
-	TRIG_SINGLE,
-	TRIG_AUTO,
-	TRIG_FREE_RUNNING
+	TRIG_MODE_SINGLE,
+	TRIG_MODE_AUTO,
+	TRIG_MODE_FREE_RUNNING
 } TriggerMode;
 
 typedef struct Trigger
@@ -48,6 +48,9 @@ typedef struct ScopeConfig
 {
 	Trigger trigger;
 	ChannelConfig channels[NUM_CHANNELS];
+	// TODO: sample rate
 } ScopeConfig;
+
+ScopeConfig* getConfig();
 
 #endif /* CONFIG_H_ */

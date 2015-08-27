@@ -46,8 +46,9 @@ __error__(char *pcFilename, uint32_t ui32Line)
 //*****************************************************************************
 uint32_t g_ui32SysClock;
 
-void configureAnalogFrontend(ScopeConfig* config)
+void configureAnalogFrontend()
 {
+	ScopeConfig* config = getConfig();
 	int i;
 	for(i=1; i <= NUM_CHANNELS; ++i)
 	{
@@ -61,9 +62,16 @@ void configureAnalogFrontend(ScopeConfig* config)
 	setPga2Gain(config->channels[1].gain);
 }
 
-void setup(ScopeConfig* config)
+void configureFPU()
 {
 	FPUEnable();
+}
+
+void setup()
+{
+	ScopeConfig* config = getConfig();
+
+	configureFPU();
 
 	SysCtlDelay(1000);
 
@@ -90,29 +98,33 @@ void waitUntilReady()
 	}
 }
 
-void reArmTrigger(ScopeConfig* config)
+void reArmTrigger()
 {
+	ScopeConfig* config = getConfig();
 	ready = false;
-	if(config->trigger.mode == TRIG_FREE_RUNNING)
+	if(config->trigger.mode == TRIG_MODE_FREE_RUNNING)
 	{
 		triggerAdc();
 	}
-	else if (config->trigger.mode == TRIG_AUTO)
+	else if (config->trigger.mode == TRIG_MODE_AUTO)
 	{
 		configAdc(config->trigger);
+		ADCComparatorIntEnable(ADC0_BASE, 0);
 	}
-	else if (config->trigger.mode == TRIG_SINGLE)
+	else if (config->trigger.mode == TRIG_MODE_SINGLE)
 	{
 		// nothing to do
 	}
 }
 
-void createConfig(ScopeConfig* config)
+void createConfig()
 {
+	ScopeConfig* config = getConfig();
+
 	// configure trigger
 	config->trigger.level = COMP_REF_1_65V;
 	config->trigger.type = TRIG_RISING;
-	config->trigger.mode = TRIG_SINGLE;
+	config->trigger.mode = TRIG_MODE_SINGLE;
 
 	// configure ch1
 	config->channels[0].active = true;
@@ -128,11 +140,10 @@ void createConfig(ScopeConfig* config)
  */
 int main(void)
 {
-	ScopeConfig config;
-	createConfig(&config);
+	createConfig();
 
 	SysCtlDelay(1000000);
-	setup(&config);
+	setup();
 	SysCtlDelay(1000);
 
 	//uint32_t samples[2];
@@ -140,8 +151,8 @@ int main(void)
 	{
 		waitUntilReady();
 		//outputDebug(samples_ch1[0], samples_ch2[0]);
-		outputDebugMany(samples_ch1, samples_ch2, BUFFER_SIZE, &config);
-		reArmTrigger(&config);
+		outputDebugMany(samples_ch1, samples_ch2, BUFFER_SIZE);
+		reArmTrigger();
 /*
 		sampleAdc(samples);
 		double ch1 = calcCh1Input(samples[0]);

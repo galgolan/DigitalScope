@@ -14,7 +14,7 @@ extern volatile bool ready;
 extern double samples_ch1[BUFFER_SIZE];
 extern double samples_ch2[BUFFER_SIZE];
 
-void configAdc(Trigger trigger);
+void configAdc();
 
 void triggerAdc();
 

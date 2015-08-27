@@ -85,14 +85,11 @@
     <ClCompile Include="window.c" />
   </ItemGroup>
   <ItemGroup>
-    <Xml Include="builder.ui">
-      <DeploymentContent>true</DeploymentContent>
-      <FileType>Document</FileType>
-    </Xml>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="app.h" />
     <ClInclude Include="window.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="scope.desktop" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

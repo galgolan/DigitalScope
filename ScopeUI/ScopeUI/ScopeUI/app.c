@@ -31,6 +31,7 @@ static void scope_app_activate(GApplication *app)
 // start app with command line args
 static void scope_app_open(GApplication *app, GFile **files, gint n_files, const gchar *hint)
 {
+	ScopeAppWindow* window = scope_app_window_new(SCOPE_APP(app));
 	/*
 	GList* windows;
 	ScopeAppWindow* window;
@@ -44,13 +45,14 @@ static void scope_app_open(GApplication *app, GFile **files, gint n_files, const
 		*/
 
 	//ScopeAppWindow* window = scope_app_window_new(SCOPE_APP(app));
-	//gtk_window_present(GTK_WINDOW(window));
+	scope_app_window_open(window);
+	gtk_window_present(GTK_WINDOW(window));
 }
 
 static void scope_app_class_init(ScopeAppClass* class)
 {
 	G_APPLICATION_CLASS(class)->activate = scope_app_activate;
-	//G_APPLICATION_CLASS(class)->open = scope_app_open;
+	G_APPLICATION_CLASS(class)->open = scope_app_open;
 }
 
 ScopeApp* scope_app_new(void)

@@ -72,12 +72,15 @@ void configComparator(Trigger trigger)
 	SysCtlDelay(1000);
 }
 
-void configAdc(Trigger trigger)
+void configAdc()
 {
+	ScopeConfig* config = getConfig();
+	Trigger trigger = config->trigger;
+
 	ready = false;
 	index = 0;
 
-	if(trigger.mode != TRIG_FREE_RUNNING)
+	if(trigger.mode != TRIG_MODE_FREE_RUNNING)
 		configComparator(trigger);
 
 	// ch1 - A3 (PE0)
@@ -105,7 +108,7 @@ void configAdc(Trigger trigger)
 	// configure sequencer with 1 step: sample from CH3
 	ADCSequenceDisable(ADC0_BASE, 0);
 
-	if(trigger.mode == TRIG_FREE_RUNNING)
+	if(trigger.mode == TRIG_MODE_FREE_RUNNING)
 		ADCSequenceConfigure(ADC0_BASE, 0, ADC_TRIGGER_PROCESSOR, 0);
 	else
 		ADCSequenceConfigure(ADC0_BASE, 0, ADC_TRIGGER_COMP0, 0);
@@ -117,7 +120,7 @@ void configAdc(Trigger trigger)
 	// enable ADC0 sequencer 0 interrupt
 	ADCIntClear(ADC0_BASE, 0);
 	ADCIntEnable(ADC0_BASE, 0);
-	if(trigger.mode != TRIG_FREE_RUNNING)
+	if(trigger.mode != TRIG_MODE_FREE_RUNNING)
 		IntEnable(INT_ADC0SS0);
 	IntMasterEnable();
 }
@@ -146,17 +149,17 @@ void AdcISR(void)
 {
 	ADCComparatorIntDisable(ADC0_BASE, 0);
 
-
-
 	// Read the value from the ADC.
 	ADCSequenceDataGet(ADC0_BASE, 0, samples);
 
 	ADCComparatorIntClear(ADC0_BASE, 1);
-		IntPendClear(INT_ADC0SS0);
-		ADCIntClear(ADC0_BASE, 0);
+	IntPendClear(INT_ADC0SS0);
+	ADCIntClear(ADC0_BASE, 0);
 
 	ADCSequenceConfigure(ADC0_BASE, 0, ADC_TRIGGER_PROCESSOR, 0);
 
+	// TODO: remove floating point calculations from here avoid corruption of the stack
+	// we can configure the FPU to save the stack but this will increase ISR latency
 	samples_ch1[index] = calcCh1Input(samples[0]);
 	samples_ch2[index] = calcCh2Input(samples[1]);
 	++index;
