@@ -1,0 +1,53 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.c">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="scope_ui_handlers.c">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="scope.c">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="serial.c">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="measurement.c">
+      <Filter>Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="common.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="scope.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="serial.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="measurement.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ui.xml">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="scopeui.cfg">
+      <Filter>Resources</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source">
+      <UniqueIdentifier>{b6910812-e025-4a9e-91ca-c0dae3ad8622}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{b1c92deb-4bc2-4701-abce-470b2d850bea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{3cf66abf-8495-4cd0-8313-0f361ffe6400}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
