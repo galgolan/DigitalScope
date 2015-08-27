@@ -2,23 +2,44 @@
 
 #include "common.h"
 #include "scope.h"
+#include "measurement.h"
 
 static Scope scope;
 
 void channel_create(AnalogChannel* channel)
 {
 	channel->buffer = malloc(sizeof(SampleBuffer));
+	channel->buffer->size = BUFFER_SIZE;
 	channel->enabled = TRUE;
-	channel->scale = 1;
 }
 
-void trace_create(Trace* trace, cairo_pattern_t* pattern, SampleBuffer* samples)
+void trace_create(Trace* trace, cairo_pattern_t* pattern, SampleBuffer* samples, const char* name)
 {
 	trace->offset = 0;
 	trace->trace_width = 1;
 	trace->pattern = pattern;
 	trace->samples = samples;
 	trace->visible = TRUE;
+	trace->scale = 1;
+	trace->name = name;
+}
+
+void add_measurement(int i, Measurement* measurement, Trace* source)
+{
+	ScopeUI* ui = common_get_ui();
+
+	// append to tree view
+	GtkTreeIter iter;
+	gtk_list_store_append(ui->listMeasurements, &iter);
+	gtk_list_store_set(ui->listMeasurements, &iter,
+		0, Measurement_Average.name,
+		1, source->name,
+		2, 0.0f,
+		-1);
+
+	// append to scope
+	scope.measurements[i].measurement = measurement;
+	scope.measurements[i].trace = source;
 }
 
 void screen_init()
@@ -26,7 +47,7 @@ void screen_init()
 	// setup screen
 	scope.screen.background = cairo_pattern_create_rgb(0, 0, 0);
 	scope.screen.dt = 1e-3;	// 1ms
-	scope.screen.dv = 1;		// 1v/div
+//	scope.screen.dv = 1;		// 1v/div
 	scope.screen.grid.linePattern = cairo_pattern_create_rgb(0.5, 0.5, 0.5);
 	scope.screen.grid.horizontal = 8;
 	scope.screen.grid.vertical = 14;
@@ -40,11 +61,17 @@ void screen_init()
 
 	scope.screen.num_traces = scope.num_channels;
 	scope.screen.traces = malloc(sizeof(Trace) * scope.screen.num_traces);
-	trace_create(&scope.screen.traces[0], cairo_pattern_create_rgb(1, 0, 0), scope.channels[0].buffer);	
-	trace_create(&scope.screen.traces[1], cairo_pattern_create_rgb(0, 1, 0), scope.channels[1].buffer);
+	trace_create(&scope.screen.traces[0], cairo_pattern_create_rgb(1, 0, 0), scope.channels[0].buffer, "CH1");	
+	trace_create(&scope.screen.traces[1], cairo_pattern_create_rgb(0, 1, 0), scope.channels[1].buffer, "CH2");
+
+	// add default measurements
+	scope.num_channels = 2;
+	scope.measurements = malloc(sizeof(MeasurementInstance) * scope.num_measurements);
+	add_measurement(0, &Measurement_Average, &scope.screen.traces[0]);
+	add_measurement(1, &Measurement_Average, &scope.screen.traces[1]);
 }
 
-Scope* screen_get()
+Scope* scope_get()
 {
 	return &scope;
 }
@@ -69,7 +96,7 @@ void screen_draw_grid(GtkWidget *widget, cairo_t *cr)
 		cairo_stroke(cr);
 	}
 
-	// horizontal lines
+	// vertical lines
 	for (i = 0; i < scope.screen.grid.vertical; ++i)
 	{
 		int x = i * width / scope.screen.grid.vertical;
@@ -89,6 +116,21 @@ void screen_fill_background(GtkWidget *widget, cairo_t *cr)
 	cairo_fill(cr);
 }
 
+void draw_ground_marker(const Trace* trace, GtkWidget* widget, cairo_t* cr)
+{
+	int height = gtk_widget_get_allocated_height(widget);
+	int width = gtk_widget_get_allocated_width(widget);
+
+	int triangleHeight = 9, triangleWidth = 8;
+
+	cairo_move_to(cr, 0, height / 2 + trace->offset - triangleHeight / 2);
+	cairo_line_to(cr, triangleWidth, height / 2 + trace->offset);
+	cairo_line_to(cr, 0, height / 2 + trace->offset + triangleHeight / 2);
+	
+	cairo_set_source(cr, trace->pattern);
+	cairo_fill(cr);
+}
+
 void trace_draw(const Trace* trace, GtkWidget *widget, cairo_t *cr)
 {
 	int i, height, width;
@@ -97,13 +139,16 @@ void trace_draw(const Trace* trace, GtkWidget *widget, cairo_t *cr)
 
 	for (i = 0; i < MIN(BUFFER_SIZE, width); ++i)
 	{
-		int y = (int)(trace->samples->data[i] * 10 + height / 2 + trace->offset);
+		// y = offset - (sample/scale * height/grid.h)
+		int y = (int)(height/2 + trace->offset - (trace->samples->data[i] / trace->scale)*(height / scope.screen.grid.horizontal));
 		cairo_line_to(cr, i, y);
 	}
 
 	cairo_set_source(cr, trace->pattern);
 	cairo_set_line_width(cr, trace->trace_width);
 	cairo_stroke(cr);
+
+	draw_ground_marker(trace, widget, cr);
 }
 
 void screen_draw_traces(GtkWidget *widget, cairo_t *cr)

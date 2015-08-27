@@ -3,12 +3,23 @@
 
 #include <stdbool.h>
 
+//#include "measurement.h"
+
 #define BUFFER_SIZE	2048
 
 typedef struct SampleBuffer
 {
 	float data[BUFFER_SIZE];
+	int size;
 } SampleBuffer;
+
+typedef float(CalcFunc)(SampleBuffer* samples);
+
+typedef struct Measurement
+{
+	CalcFunc* measure;
+	char* name;
+} Measurement;
 
 typedef struct Grid
 {
@@ -25,14 +36,22 @@ typedef struct Trace
 	float trace_width;
 	int offset;
 	bool visible;
+	float scale;
+	char* name;
 } Trace;
+
+typedef struct MeasurementInstance
+{
+	Measurement* measurement;
+	Trace* trace;
+} MeasurementInstance;
 
 typedef struct Screen
 {
 	cairo_pattern_t* background;
 
 	float dt;	// samples/sec
-	float dv;	// volts/div
+	//float dv;	// volts/div
 
 	Grid grid;
 
@@ -43,7 +62,6 @@ typedef struct Screen
 // describes an analog channel
 typedef struct AnalogChannel
 {
-	float scale;
 	bool enabled;
 	SampleBuffer* buffer;
 } AnalogChannel;
@@ -82,13 +100,15 @@ typedef struct Scope
 	AnalogChannel* channels;
 	int num_channels;
 	Trigger trigger;
+	MeasurementInstance* measurements;
+	int num_measurements;
 } Scope;
 
 void trace_draw(const Trace* trace, GtkWidget *widget, cairo_t *cr);
 
 void screen_init();
 
-Scope* screen_get();
+Scope* scope_get();
 
 void screen_draw_grid(GtkWidget *widget, cairo_t *cr);
 
