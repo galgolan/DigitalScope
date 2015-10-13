@@ -87,19 +87,24 @@
     <ClCompile Include="serial.c" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="scopeui.cfg" />
-    <None Include="ui.xml" />
-    <Content Include="ui.xml">
+    <None Include="scopeui.cfg" >
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="style.css" >
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="ui.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="scopeui.cfg">
+    </None>
+    <None Include="scopeui.cfg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h" />
     <ClInclude Include="measurement.h" />
     <ClInclude Include="scope.h" />
+    <ClInclude Include="scope_ui_handlers.h" />
     <ClInclude Include="serial.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

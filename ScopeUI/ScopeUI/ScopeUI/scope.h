@@ -57,6 +57,7 @@ typedef struct Screen
 
 	Trace* traces;
 	int num_traces;
+	short fps;
 } Screen;
 
 // describes an analog channel
@@ -115,5 +116,11 @@ void screen_draw_grid(GtkWidget *widget, cairo_t *cr);
 void screen_draw_traces(GtkWidget *widget, cairo_t *cr);
 
 void screen_fill_background(GtkWidget *widget, cairo_t *cr);
+
+// redraws the screen immediately if the FPS is low. Ignores the redraw if the FPS is high.
+void request_redraw();
+
+// forces a redraw of the scope screen
+void force_redraw();
 
 #endif

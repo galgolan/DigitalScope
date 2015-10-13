@@ -30,12 +30,18 @@
     <ClInclude Include="measurement.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="scope_ui_handlers.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ui.xml">
       <Filter>Resources</Filter>
     </None>
     <None Include="scopeui.cfg">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="style.css">
       <Filter>Resources</Filter>
     </None>
   </ItemGroup>

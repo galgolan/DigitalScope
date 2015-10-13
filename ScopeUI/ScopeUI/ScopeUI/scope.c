@@ -1,8 +1,12 @@
 #include <gtk-3.0\gtk\gtk.h>
 
+#include <Windows.h>
+#include <math.h>
+
 #include "common.h"
 #include "scope.h"
 #include "measurement.h"
+#include "scope_ui_handlers.h"
 
 static Scope scope;
 
@@ -42,11 +46,58 @@ void add_measurement(int i, Measurement* measurement, Trace* source)
 	scope.measurements[i].trace = source;
 }
 
+// signal screen redraw if enough time has passed	
+void redraw_if_needed()
+{
+	static DWORD lastDrawTs = 0;
+	float refreshMs = 1 / (float)scope.screen.fps * 1000;	// the number of milliseconds to wait between redrawing the screen
+
+	// signal screen redraw if enough time has passed	
+	DWORD elapsedMs = GetTickCount() - lastDrawTs;
+	if (elapsedMs > refreshMs)
+	{
+		guint timeout_id = gdk_threads_add_idle_full(G_PRIORITY_DEFAULT, timeout_callback, NULL, NULL);
+		lastDrawTs = GetTickCount();
+	}
+	else
+	{
+		// this can create a 10% error in fps, we are fine with this
+		Sleep(refreshMs / 10);
+	}
+}
+
+DWORD WINAPI serial_worker_thread(LPVOID param)
+{
+	// TODO: open serial port
+
+	unsigned long long n = 0;	// sample counter for simulating signals
+
+	while (TRUE)
+	{
+		float T = scope.screen.dt;		// create local copy of sample time
+
+		// fill channels with samples
+		for (int i = 0; i < BUFFER_SIZE; ++i)
+		{
+			scope.channels[0].buffer->data[i] = sin(100e3 * n * T);
+			scope.channels[1].buffer->data[i] = sin(0.2*n*T) * - 3 * sin(5e3 * n * T);
+
+			++n;
+		}
+
+		// signal screen redraw if enough time has passed	
+		redraw_if_needed();
+	}
+
+	// TODO: close serial port
+}
+
 void screen_init()
 {
 	// setup screen
 	scope.screen.background = cairo_pattern_create_rgb(0, 0, 0);
 	scope.screen.dt = 1e-3;	// 1ms
+	scope.screen.fps = 20;
 //	scope.screen.dv = 1;		// 1v/div
 	scope.screen.grid.linePattern = cairo_pattern_create_rgb(0.5, 0.5, 0.5);
 	scope.screen.grid.horizontal = 8;
@@ -61,14 +112,24 @@ void screen_init()
 
 	scope.screen.num_traces = scope.num_channels;
 	scope.screen.traces = malloc(sizeof(Trace) * scope.screen.num_traces);
-	trace_create(&scope.screen.traces[0], cairo_pattern_create_rgb(1, 0, 0), scope.channels[0].buffer, "CH1");	
-	trace_create(&scope.screen.traces[1], cairo_pattern_create_rgb(0, 1, 0), scope.channels[1].buffer, "CH2");
+	trace_create(&scope.screen.traces[0], cairo_pattern_create_rgb(0, 1, 0), scope.channels[0].buffer, "CH1");	
+	trace_create(&scope.screen.traces[1], cairo_pattern_create_rgb(1, 0, 0), scope.channels[1].buffer, "CH2");
 
 	// add default measurements
 	scope.num_channels = 2;
 	scope.measurements = malloc(sizeof(MeasurementInstance) * scope.num_measurements);
 	add_measurement(0, &Measurement_Average, &scope.screen.traces[0]);
-	add_measurement(1, &Measurement_Average, &scope.screen.traces[1]);
+	add_measurement(1, &Measurement_Average, &scope.screen.traces[1]);	
+
+	// create serial worker thread
+	long serialThreadId;
+	HANDLE hSerialThread = CreateThread(NULL, 0, serial_worker_thread, NULL, 0, &serialThreadId);
+	if (hSerialThread == INVALID_HANDLE_VALUE)
+	{
+		// TODO: handle error
+	}
+
+	update_statusbar();
 }
 
 Scope* scope_get()

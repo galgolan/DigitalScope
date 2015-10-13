@@ -1,0 +1,18 @@
+@define-color ch1TraceColor red;
+@define-color ch2TraceColor green;
+
+.ch1Labels {
+    color: @ch1TraceColor;
+}
+
+GtkButton.ch1Labels GtkLabel{
+    color: @ch1TraceColor
+}
+
+.ch2Labels {
+    color: @ch2TraceColor
+}
+
+GtkButton.ch2Labels GtkLabel{
+    color: @ch2TraceColor
+}

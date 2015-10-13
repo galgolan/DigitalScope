@@ -1,0 +1,10 @@
+.ch1Labels {
+    color: red;
+}
+.ch2Labels {
+    color: green;
+}
+
+#checkCh1Visible GtkLabel {
+    color: red
+}
