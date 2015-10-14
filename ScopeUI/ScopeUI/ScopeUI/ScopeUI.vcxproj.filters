@@ -44,6 +44,7 @@
     <None Include="style.css">
       <Filter>Resources</Filter>
     </None>
+    <None Include="scopeui.cfg" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source">

@@ -17,30 +17,19 @@ void channel_create(AnalogChannel* channel)
 	channel->enabled = TRUE;
 }
 
-void trace_create(Trace* trace, cairo_pattern_t* pattern, SampleBuffer* samples, const char* name)
+void trace_create(Trace* trace, cairo_pattern_t* pattern, SampleBuffer* samples, const char* name, int offset)
 {
-	trace->offset = 0;
-	trace->trace_width = 1;
-	trace->pattern = pattern;
+	trace->offset = offset;
+	trace->trace_width = 1;	// TODO: use style
+	trace->pattern = pattern;	// TODO: use style
 	trace->samples = samples;
 	trace->visible = TRUE;
 	trace->scale = 1;
 	trace->name = name;
 }
 
-void add_measurement(int i, Measurement* measurement, Trace* source)
+void add_measurement_definition(int i, Measurement* measurement, Trace* source)
 {
-	ScopeUI* ui = common_get_ui();
-
-	// append to tree view
-	GtkTreeIter iter;
-	gtk_list_store_append(ui->listMeasurements, &iter);
-	gtk_list_store_set(ui->listMeasurements, &iter,
-		0, Measurement_Average.name,
-		1, source->name,
-		2, 0.0f,
-		-1);
-
 	// append to scope
 	scope.measurements[i].measurement = measurement;
 	scope.measurements[i].trace = source;
@@ -56,7 +45,7 @@ void redraw_if_needed()
 	DWORD elapsedMs = GetTickCount() - lastDrawTs;
 	if (elapsedMs > refreshMs)
 	{
-		guint timeout_id = gdk_threads_add_idle_full(G_PRIORITY_DEFAULT, timeout_callback, NULL, NULL);
+		guint source_id = gdk_threads_add_idle_full(G_PRIORITY_DEFAULT, timeout_callback, NULL, NULL);
 		lastDrawTs = GetTickCount();
 	}
 	else
@@ -76,6 +65,12 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 	{
 		float T = scope.screen.dt;		// create local copy of sample time
 
+		if (scope.state == SCOPE_STATE_PAUSED)
+		{
+			Sleep(100);
+			continue;
+		}
+
 		// fill channels with samples
 		for (int i = 0; i < BUFFER_SIZE; ++i)
 		{
@@ -92,8 +87,26 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 	// TODO: close serial port
 }
 
+void cursors_init()
+{
+	scope.cursors.visible = FALSE;
+	scope.cursors.x1.type = CURSOR_TYPE_HORIZONTAL;
+	scope.cursors.x2.type = CURSOR_TYPE_HORIZONTAL;
+	scope.cursors.y1.type = CURSOR_TYPE_VERTICAL;
+	scope.cursors.y2.type = CURSOR_TYPE_VERTICAL;
+
+	scope.cursors.x1.position = 100;
+	scope.cursors.x2.position = 100;
+	scope.cursors.y1.position = 100;
+	scope.cursors.y2.position = 100;
+}
+
 void screen_init()
 {
+	scope.state = SCOPE_STATE_RUNNING;
+	scope.display_mode = DISPLAY_MODE_WAVEFORM;
+	cursors_init();
+
 	// setup screen
 	scope.screen.background = cairo_pattern_create_rgb(0, 0, 0);
 	scope.screen.dt = 1e-3;	// 1ms
@@ -112,19 +125,34 @@ void screen_init()
 
 	scope.screen.num_traces = scope.num_channels;
 	scope.screen.traces = malloc(sizeof(Trace) * scope.screen.num_traces);
-	trace_create(&scope.screen.traces[0], cairo_pattern_create_rgb(0, 1, 0), scope.channels[0].buffer, "CH1");	
-	trace_create(&scope.screen.traces[1], cairo_pattern_create_rgb(1, 0, 0), scope.channels[1].buffer, "CH2");
+	trace_create(&scope.screen.traces[0], cairo_pattern_create_rgb(0, 1, 0), scope.channels[0].buffer, "CH1", -60);	
+	trace_create(&scope.screen.traces[1], cairo_pattern_create_rgb(1, 0, 0), scope.channels[1].buffer, "CH2", 60);
 
 	// add default measurements
-	scope.num_channels = 2;
+	scope.num_measurements = 10;
 	scope.measurements = malloc(sizeof(MeasurementInstance) * scope.num_measurements);
-	add_measurement(0, &Measurement_Average, &scope.screen.traces[0]);
-	add_measurement(1, &Measurement_Average, &scope.screen.traces[1]);	
+	add_measurement_definition(0, &Measurement_Average, &scope.screen.traces[0]);
+	add_measurement_definition(1, &Measurement_Average, &scope.screen.traces[1]);
+	add_measurement_definition(2, &Measurement_Minimum, &scope.screen.traces[0]);
+	add_measurement_definition(3, &Measurement_Minimum, &scope.screen.traces[1]);
+	add_measurement_definition(4, &Measurement_Maximum, &scope.screen.traces[0]);
+	add_measurement_definition(5, &Measurement_Maximum, &scope.screen.traces[1]);
+	add_measurement_definition(6, &Measurement_PeakToPeak, &scope.screen.traces[0]);
+	add_measurement_definition(7, &Measurement_PeakToPeak, &scope.screen.traces[1]);
+	add_measurement_definition(8, &Measurement_RMS, &scope.screen.traces[0]);
+	add_measurement_definition(9, &Measurement_RMS, &scope.screen.traces[1]);	
 
 	// create serial worker thread
 	long serialThreadId;
 	HANDLE hSerialThread = CreateThread(NULL, 0, serial_worker_thread, NULL, 0, &serialThreadId);
 	if (hSerialThread == INVALID_HANDLE_VALUE)
+	{
+		// TODO: handle error
+	}
+
+	long measurementThreadId;
+	HANDLE hMeasurementThread = CreateThread(NULL, 0, measurement_worker_thread, NULL, 0, &measurementThreadId);
+	if (hMeasurementThread == INVALID_HANDLE_VALUE)
 	{
 		// TODO: handle error
 	}
@@ -192,6 +220,47 @@ void draw_ground_marker(const Trace* trace, GtkWidget* widget, cairo_t* cr)
 	cairo_fill(cr);
 }
 
+void draw_cursor(const Cursor* cursor, GtkWidget *widget, cairo_t *cr)
+{
+	cairo_pattern_t* cursorPattern = cairo_pattern_create_rgb(1, 1, 1);	// TODO: read from css
+	int height = gtk_widget_get_allocated_height(widget);
+	int width = gtk_widget_get_allocated_width(widget);
+
+	double src_x, src_y, dst_x, dst_y;
+
+	if (cursor->type == CURSOR_TYPE_HORIZONTAL)
+	{
+		src_x = cursor->position;
+		src_y = 0;
+		dst_x = src_x;
+		dst_y = height;
+	}
+	else
+	{
+		src_x = 0;
+		src_y = cursor->position;
+		dst_x = width;
+		dst_y = src_y;
+	}
+
+	cairo_move_to(cr, src_x, src_y);
+	cairo_line_to(cr, dst_x, dst_y);
+	cairo_set_source(cr, cursorPattern);
+	cairo_set_line_width(cr, scope.screen.grid.stroke_width);	// TODO: use style
+	cairo_stroke(cr);
+}
+
+void draw_cursors(GtkWidget *widget, cairo_t *cr)
+{
+	if (scope.cursors.visible == FALSE)
+		return;
+
+	draw_cursor(&scope.cursors.x1, widget, cr);
+	draw_cursor(&scope.cursors.x2, widget, cr);
+	draw_cursor(&scope.cursors.y1, widget, cr);
+	draw_cursor(&scope.cursors.y2, widget, cr);
+}
+
 void trace_draw(const Trace* trace, GtkWidget *widget, cairo_t *cr)
 {
 	int i, height, width;
@@ -222,4 +291,24 @@ void screen_draw_traces(GtkWidget *widget, cairo_t *cr)
 			trace_draw(&scope.screen.traces[i], widget, cr);
 		}
 	}
+}
+
+void screen_clear_measurements()
+{
+	ScopeUI* ui = common_get_ui();
+	gtk_list_store_clear(ui->listMeasurements);
+}
+
+void screen_add_measurement(char* name, char* source, double value)
+{
+	ScopeUI* ui = common_get_ui();
+
+	// append to tree view
+	GtkTreeIter iter;
+	gtk_list_store_append(ui->listMeasurements, &iter);
+	gtk_list_store_set(ui->listMeasurements, &iter,
+		0, name,
+		1, source,
+		2, value,
+		-1);
 }

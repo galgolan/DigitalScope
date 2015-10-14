@@ -11,7 +11,7 @@
 void request_redraw()
 {
 	Scope* scope = scope_get();
-	if (scope->screen.fps < LOW_FPS)
+	if ((scope->screen.fps < LOW_FPS) || (scope->state == SCOPE_STATE_PAUSED))
 		force_redraw();
 }
 
@@ -53,9 +53,19 @@ void update_statusbar()
 }
 
 G_MODULE_EXPORT
-void on_button1_pressed(GtkButton *button, gpointer user_data)
+void cursorsButton_toggle(GtkToggleButton* btn, gpointer user_data)
 {
-	
+	Scope* scope = scope_get();
+	scope->cursors.visible = gtk_toggle_button_get_active(btn);
+	request_redraw();
+}
+
+G_MODULE_EXPORT
+void runButton_toggled(GtkToggleButton* runButton, gpointer user_data)
+{
+	Scope* scope = scope_get();
+	scope->state = gtk_toggle_button_get_active(runButton);
+	force_redraw();	// make sure the display is most updated as possible
 }
 
 // TODO: add finalize and remove timeout callback source
@@ -147,7 +157,8 @@ gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data)
 	width = gtk_widget_get_allocated_width(widget);
 	height = gtk_widget_get_allocated_height(widget);
 
-	screen_draw_traces(widget, cr);	
+	screen_draw_traces(widget, cr);
+	draw_cursors(widget, cr);
 
 	return FALSE;
 }

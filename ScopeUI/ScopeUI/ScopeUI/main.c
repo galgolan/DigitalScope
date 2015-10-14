@@ -48,9 +48,7 @@ int main(int argc, char *argv[])
 	gtk_style_context_add_provider_for_screen(screen, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 	if (!gtk_css_provider_load_from_path(provider, "style.css", NULL))	// TODO: consider using the GError
 		return 1;	
-
 	
-
 	populate_ui(builder);
 	screen_init(builder);
 	
