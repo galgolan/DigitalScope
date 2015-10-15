@@ -1,5 +1,10 @@
 #include <gtk-3.0\gtk\gtk.h>
 
+#include "..\..\..\libxml2-2.9.2-win32-x86_64\include\libxml2\libxml\tree.h"
+#include "..\..\..\libxml2-2.9.2-win32-x86_64\include\libxml2\libxml\parser.h"
+#include "..\..\..\libxml2-2.9.2-win32-x86_64\include\libxml2\libxml\xpath.h"
+#include "..\..\..\libxml2-2.9.2-win32-x86_64\include\libxml2\libxml\xpathInternals.h"
+
 #include "common.h"
 #include "scope.h"
 #include "serial.h"
@@ -51,6 +56,8 @@ int main(int argc, char *argv[])
 	
 	populate_ui(builder);
 	screen_init(builder);
+	// TODO: set default values for controls
+	// TODO: load configuration
 	
 	g_object_unref(G_OBJECT(builder));
 	gtk_main();

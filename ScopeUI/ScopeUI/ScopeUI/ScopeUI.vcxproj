@@ -41,12 +41,12 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(GTKDIR)\include;$(GTKDIR)\lib\glib-2.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(GTKDIR)\include;$(GTKDIR)\lib\glib-2.0\include;$(IncludePath);..\..\..\libxml2-2.9.2-win32-x86_64\include\libxml2</IncludePath>
     <LibraryPath>$(GTKDIR)\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(GTKDIR)\include;$(GTKDIR)\lib\glib-2.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(GTKDIR)\include;$(GTKDIR)\lib\glib-2.0\include;$(IncludePath);..\..\..\libxml2-2.9.2-win32-x86_64\include\libxml2</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(GTKDIR)\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -94,7 +94,7 @@
     <ClCompile Include="trace_math.c" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="scopeui.cfg">
+    <None Include="config.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="style.css">
