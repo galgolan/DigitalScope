@@ -1,9 +1,9 @@
 #include <gtk-3.0\gtk\gtk.h>
 
-#include "..\..\..\libxml2-2.9.2-win32-x86_64\include\libxml2\libxml\tree.h"
-#include "..\..\..\libxml2-2.9.2-win32-x86_64\include\libxml2\libxml\parser.h"
-#include "..\..\..\libxml2-2.9.2-win32-x86_64\include\libxml2\libxml\xpath.h"
-#include "..\..\..\libxml2-2.9.2-win32-x86_64\include\libxml2\libxml\xpathInternals.h"
+#include "libxml\tree.h"
+#include "libxml\parser.h"
+#include "libxml\xpath.h"
+#include "libxml\xpathInternals.h"
 
 #include "common.h"
 #include "scope.h"
@@ -25,6 +25,11 @@ void populate_ui(GtkBuilder* builder)
 	scopeUI.statusBar = GET_GTK_WIDGET("statusbar");
 	scopeUI.listMeasurements = (GtkListStore*)GET_GTK_OBJECT("listMeasurements");
 	//scopeUI.viewMeasurements = GET_GTK_OBJECT("treeview1");
+}
+
+void configuration_load()
+{
+
 }
 
 int main(int argc, char *argv[])
@@ -53,6 +58,8 @@ int main(int argc, char *argv[])
 	gtk_style_context_add_provider_for_screen(screen, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 	if (!gtk_css_provider_load_from_path(provider, "style.css", NULL))	// TODO: consider using the GError
 		return 1;	
+
+	configuration_load();
 	
 	populate_ui(builder);
 	screen_init(builder);
