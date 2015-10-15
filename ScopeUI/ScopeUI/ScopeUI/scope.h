@@ -57,7 +57,7 @@ typedef struct Trace
 	int offset;
 	bool visible;
 	float scale;
-	char* name;
+	const char* name;
 } Trace;
 
 typedef struct MeasurementInstance
@@ -66,11 +66,26 @@ typedef struct MeasurementInstance
 	Trace* trace;
 } MeasurementInstance;
 
+typedef void(MathFunc)(const SampleBuffer* first, const SampleBuffer* second, SampleBuffer* result);
+
+typedef struct MathTrace
+{
+	MathFunc* function;
+	char* name;
+} MathTrace;
+
+typedef struct MathTraceInstance
+{
+	MathTrace* mathTrace;
+	Trace* firstTrace;
+	Trace* secondTrace;
+} MathTraceInstance;
+
 typedef struct Screen
 {
 	cairo_pattern_t* background;
 
-	float dt;	// samples/sec
+	float dt;	// sec (sample period time)
 	//float dv;	// volts/div
 
 	Grid grid;
@@ -123,8 +138,8 @@ typedef enum ScopeState
 
 typedef enum DisplayMode
 {
-	DISPLAY_MODE_WAVEFORM,
-	DISPLAY_MODE_XY
+	DISPLAY_MODE_WAVEFORM = 0,
+	DISPLAY_MODE_XY = 1
 } DisplayMode;
 
 typedef struct Scope
@@ -138,6 +153,7 @@ typedef struct Scope
 	ScopeState state;	
 	Cursors cursors;
 	DisplayMode display_mode;
+	MathTraceInstance mathTraceDefinition;
 } Scope;
 
 void trace_draw(const Trace* trace, GtkWidget *widget, cairo_t *cr);
@@ -152,7 +168,7 @@ void screen_draw_traces(GtkWidget *widget, cairo_t *cr);
 
 void screen_fill_background(GtkWidget *widget, cairo_t *cr);
 
-void screen_add_measurement(char* name, char* source, double value);
+void screen_add_measurement(const char* name, const char* source, double value);
 
 void screen_clear_measurements();
 

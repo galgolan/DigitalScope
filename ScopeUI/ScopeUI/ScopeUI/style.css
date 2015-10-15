@@ -1,30 +1,37 @@
-@define-color ch1TraceColor green;
+@define-color ch1TraceColor darkgreen;
 @define-color ch2TraceColor red;
+@define-color chMathTraceColor blue;
 
 .ch1Labels {
     color: @ch1TraceColor;
-}
-
-GtkToggleButton:active {
-    background-color: ghostwhite;
-    color: green;
-}
-
-GtkCheckButton.ch1Labels GtkLabel{
-    color: @ch1TraceColor;
-    background-color: ghostwhite;
 }
 
 .ch2Labels {
     color: @ch2TraceColor;
 }
 
-GtkCheckButton.ch2Labels GtkLabel{
-    color: @ch2TraceColor;
-    background-color: ghostwhite;
+.chMathLabels {
+    color: @chMathTraceColor;
 }
 
-GtkToggleButton {
+.runPauseToggleButton:active {
+    background-color: green;
+    color: green;
+}
+
+.runPauseToggleButton {
     background-color: red;
     color: red;
+}
+
+GtkCheckButton.ch1Labels GtkLabel {
+    color: @ch1TraceColor;
+}
+
+GtkCheckButton.ch2Labels GtkLabel {
+    color: @ch2TraceColor;
+}
+
+GtkCheckButton.chMathLabels GtkLabel {
+    color: @chMathTraceColor;
 }

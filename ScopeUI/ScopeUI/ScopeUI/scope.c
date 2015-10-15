@@ -6,6 +6,7 @@
 #include "common.h"
 #include "scope.h"
 #include "measurement.h"
+#include "trace_math.h"
 #include "scope_ui_handlers.h"
 
 static Scope scope;
@@ -51,7 +52,7 @@ void redraw_if_needed()
 	else
 	{
 		// this can create a 10% error in fps, we are fine with this
-		Sleep(refreshMs / 10);
+		Sleep((DWORD)refreshMs / 10);
 	}
 }
 
@@ -75,10 +76,13 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 		for (int i = 0; i < BUFFER_SIZE; ++i)
 		{
 			scope.channels[0].buffer->data[i] = sin(100e3 * n * T);
-			scope.channels[1].buffer->data[i] = sin(0.2*n*T) * - 3 * sin(5e3 * n * T);
+			//scope.channels[1].buffer->data[i] = sin(0.2*n*T) * - 3 * sin(5e3 * n * T);
+			scope.channels[1].buffer->data[i] = 2 * sin(200e3 * n * T + G_PI/4);
 
 			++n;
 		}
+
+		math_update_trace();
 
 		// signal screen redraw if enough time has passed	
 		redraw_if_needed();
@@ -109,7 +113,7 @@ void screen_init()
 
 	// setup screen
 	scope.screen.background = cairo_pattern_create_rgb(0, 0, 0);
-	scope.screen.dt = 1e-3;	// 1ms
+	scope.screen.dt = 1e-3f;	// 1ms
 	scope.screen.fps = 20;
 //	scope.screen.dv = 1;		// 1v/div
 	scope.screen.grid.linePattern = cairo_pattern_create_rgb(0.5, 0.5, 0.5);
@@ -117,30 +121,33 @@ void screen_init()
 	scope.screen.grid.vertical = 14;
 	scope.screen.grid.stroke_width = 1;
 
-	// create traces for 2 analog channels
+	// create traces for 2 analog channels & the math channel
 	scope.num_channels = 2;
 	scope.channels = malloc(sizeof(AnalogChannel) * scope.num_channels);
 	channel_create(&scope.channels[0]);
 	channel_create(&scope.channels[1]);
 
-	scope.screen.num_traces = scope.num_channels;
+	scope.screen.num_traces = scope.num_channels + 1;
 	scope.screen.traces = malloc(sizeof(Trace) * scope.screen.num_traces);
 	trace_create(&scope.screen.traces[0], cairo_pattern_create_rgb(0, 1, 0), scope.channels[0].buffer, "CH1", -60);	
 	trace_create(&scope.screen.traces[1], cairo_pattern_create_rgb(1, 0, 0), scope.channels[1].buffer, "CH2", 60);
 
+	// create the math trace
+	scope.screen.traces[2].samples = malloc(sizeof(SampleBuffer));
+	scope.screen.traces[2].samples->size = BUFFER_SIZE;	
+	scope.mathTraceDefinition.mathTrace = &MathTrace_Dft_Amplitude;
+	scope.mathTraceDefinition.firstTrace = &scope.screen.traces[0];
+	scope.mathTraceDefinition.secondTrace = &scope.screen.traces[1];
+	trace_create(&scope.screen.traces[2], cairo_pattern_create_rgb(0, 0, 1), scope.screen.traces[2].samples, "Math", 60);
+	scope.screen.traces[2].visible = FALSE;
+
 	// add default measurements
-	scope.num_measurements = 10;
+	scope.num_measurements = 4;
 	scope.measurements = malloc(sizeof(MeasurementInstance) * scope.num_measurements);
-	add_measurement_definition(0, &Measurement_Average, &scope.screen.traces[0]);
-	add_measurement_definition(1, &Measurement_Average, &scope.screen.traces[1]);
-	add_measurement_definition(2, &Measurement_Minimum, &scope.screen.traces[0]);
-	add_measurement_definition(3, &Measurement_Minimum, &scope.screen.traces[1]);
-	add_measurement_definition(4, &Measurement_Maximum, &scope.screen.traces[0]);
-	add_measurement_definition(5, &Measurement_Maximum, &scope.screen.traces[1]);
-	add_measurement_definition(6, &Measurement_PeakToPeak, &scope.screen.traces[0]);
-	add_measurement_definition(7, &Measurement_PeakToPeak, &scope.screen.traces[1]);
-	add_measurement_definition(8, &Measurement_RMS, &scope.screen.traces[0]);
-	add_measurement_definition(9, &Measurement_RMS, &scope.screen.traces[1]);	
+	add_measurement_definition(0, &Measurement_PeakToPeak, &scope.screen.traces[0]);
+	add_measurement_definition(1, &Measurement_PeakToPeak, &scope.screen.traces[1]);
+	add_measurement_definition(2, &Measurement_RMS, &scope.screen.traces[0]);
+	add_measurement_definition(3, &Measurement_RMS, &scope.screen.traces[1]);	
 
 	// create serial worker thread
 	long serialThreadId;
@@ -246,7 +253,7 @@ void draw_cursor(const Cursor* cursor, GtkWidget *widget, cairo_t *cr)
 	cairo_move_to(cr, src_x, src_y);
 	cairo_line_to(cr, dst_x, dst_y);
 	cairo_set_source(cr, cursorPattern);
-	cairo_set_line_width(cr, scope.screen.grid.stroke_width);	// TODO: use style
+	cairo_set_line_width(cr, 1);	// TODO: use style
 	cairo_stroke(cr);
 }
 
@@ -259,6 +266,46 @@ void draw_cursors(GtkWidget *widget, cairo_t *cr)
 	draw_cursor(&scope.cursors.x2, widget, cr);
 	draw_cursor(&scope.cursors.y1, widget, cr);
 	draw_cursor(&scope.cursors.y2, widget, cr);
+}
+
+int translate(float value, const Trace* trace, int gridLines, int height, int width)
+{
+	int c = (int)(height / 2 + trace->offset - (value / trace->scale) * (height / gridLines));
+	return c;
+}
+
+void screen_draw_xy(GtkWidget *widget, cairo_t *cr)
+{
+	int i;
+	int height = gtk_widget_get_allocated_height(widget);
+	int width = gtk_widget_get_allocated_width(widget);
+
+	// channel1 - x, channel2 - y
+	AnalogChannel* xChannel = &scope.channels[0];
+	AnalogChannel* yChannel = &scope.channels[1];
+	Trace* xTrace = &scope.screen.traces[0];
+	Trace* yTrace = &scope.screen.traces[1];
+
+	float x = xChannel->buffer->data[0];
+	float y = yChannel->buffer->data[0];
+
+	cairo_move_to(cr,
+		translate(x, xTrace, scope.screen.grid.horizontal, height, width),
+		translate(y, yTrace, scope.screen.grid.vertical, height, width));
+	for (i = 1; i < BUFFER_SIZE; ++i)
+	{
+		x = xChannel->buffer->data[i];
+		y = yChannel->buffer->data[i];
+				
+		cairo_line_to(cr,
+			translate(x, xTrace, scope.screen.grid.horizontal, height, width),
+			translate(y, yTrace, scope.screen.grid.vertical, height, width));
+	}
+
+	cairo_pattern_t* pattern = cairo_pattern_create_rgb(0, 0, 1);	// TODO: read from css
+	cairo_set_source(cr, pattern);
+	cairo_set_line_width(cr, 1);	// TODO: use style
+	cairo_stroke(cr);
 }
 
 void trace_draw(const Trace* trace, GtkWidget *widget, cairo_t *cr)
@@ -284,12 +331,20 @@ void trace_draw(const Trace* trace, GtkWidget *widget, cairo_t *cr)
 void screen_draw_traces(GtkWidget *widget, cairo_t *cr)
 {
 	int i;
-	for (i = 0; i < scope.screen.num_traces; ++i)
+
+	if (scope.display_mode == DISPLAY_MODE_WAVEFORM)
 	{
-		if (scope.screen.traces[i].visible)
+		for (i = 0; i < scope.screen.num_traces; ++i)
 		{
-			trace_draw(&scope.screen.traces[i], widget, cr);
+			if (scope.screen.traces[i].visible)
+			{
+				trace_draw(&scope.screen.traces[i], widget, cr);
+			}
 		}
+	}
+	else if (scope.display_mode == DISPLAY_MODE_XY)
+	{
+		screen_draw_xy(widget, cr);
 	}
 }
 
@@ -299,7 +354,7 @@ void screen_clear_measurements()
 	gtk_list_store_clear(ui->listMeasurements);
 }
 
-void screen_add_measurement(char* name, char* source, double value)
+void screen_add_measurement(const char* name, const char* source, double value)
 {
 	ScopeUI* ui = common_get_ui();
 

@@ -53,10 +53,26 @@ void update_statusbar()
 }
 
 G_MODULE_EXPORT
+void checkMathVisible_toggled(GtkToggleButton* btn, gpointer user_data)
+{
+	Scope* scope = scope_get();
+	scope->screen.traces[2].visible = gtk_toggle_button_get_active(btn);
+	request_redraw();
+}
+
+G_MODULE_EXPORT
 void cursorsButton_toggle(GtkToggleButton* btn, gpointer user_data)
 {
 	Scope* scope = scope_get();
 	scope->cursors.visible = gtk_toggle_button_get_active(btn);
+	request_redraw();
+}
+
+G_MODULE_EXPORT
+void on_displayModeButton_toggled(GtkToggleButton* displayModeButton, gpointer user_data)
+{
+	Scope* scope = scope_get();
+	scope->display_mode = gtk_toggle_button_get_active(displayModeButton);
 	request_redraw();
 }
 
@@ -97,7 +113,7 @@ G_MODULE_EXPORT
 void on_change_scale1(GtkSpinButton *spin_button, gpointer user_data)
 {
 	Scope* scope = scope_get();
-	scope->screen.traces[0].scale = gtk_spin_button_get_value(spin_button);
+	scope->screen.traces[0].scale = (float)gtk_spin_button_get_value(spin_button);
 	update_statusbar();
 	request_redraw();
 }
@@ -106,7 +122,7 @@ G_MODULE_EXPORT
 void on_change_offset1(GtkSpinButton *spin_button, gpointer user_data)
 {
 	Scope* scope = scope_get();
-	scope->screen.traces[0].offset = -1 * gtk_spin_button_get_value(spin_button);
+	scope->screen.traces[0].offset = -1 * (int)gtk_spin_button_get_value(spin_button);
 	request_redraw();
 }
 
@@ -114,7 +130,7 @@ G_MODULE_EXPORT
 void on_change_scale2(GtkSpinButton *spin_button, gpointer user_data)
 {
 	Scope* scope = scope_get();
-	scope->screen.traces[1].scale = gtk_spin_button_get_value(spin_button);
+	scope->screen.traces[1].scale = (float)gtk_spin_button_get_value(spin_button);
 	update_statusbar();
 	request_redraw();
 }
@@ -123,7 +139,7 @@ G_MODULE_EXPORT
 void on_change_offset2(GtkSpinButton *spin_button, gpointer user_data)
 {
 	Scope* scope = scope_get();
-	scope->screen.traces[1].offset = -1 * gtk_spin_button_get_value(spin_button);
+	scope->screen.traces[1].offset = -1 * (int)gtk_spin_button_get_value(spin_button);
 	request_redraw();
 }
 

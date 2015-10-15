@@ -71,7 +71,7 @@ bool serial_write(char* data, int bytes_to_send)
 	// Send specified text (remaining command line arguments)
 	DWORD bytes_written, total_bytes_written = 0;
 	fprintf(stderr, "Sending bytes...");
-	if (!WriteFile(hSerial, bytes_to_send, 5, &bytes_written, NULL))
+	if (!WriteFile(hSerial, data, bytes_to_send, &bytes_written, NULL))
 	{
 		fprintf(stderr, "Error\n");
 		CloseHandle(hSerial);
@@ -84,7 +84,7 @@ bool serial_write(char* data, int bytes_to_send)
 
 bool serial_read(char* buffer, int size)
 {
-
+	return FALSE;
 }
 
 bool serial_close()

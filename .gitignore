@@ -43,3 +43,10 @@ RemoteSystemsTempFiles/*
 
 # Debug files
 *.dSYM/
+/ScopeUI/ScopeUI/Debug
+/ScopeUI/ScopeUI/Release
+/ScopeUI/ScopeUI/msvcr120.i386.pdb/16F5E2EF340A453ABC8B8F67DC6FD8082
+/ScopeUI/ScopeUI/ScopeUI/Debug
+/ScopeUI/ScopeUI/ScopeUI/Release
+*.sdf
+*.suo

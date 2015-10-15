@@ -23,7 +23,7 @@ Measurement Measurement_RMS = { .name = "Vrms", .measure = measure_rms };
 
 typedef struct AddMeasurementMessage
 {
-	MeasurementInstance* measurement;
+	const MeasurementInstance* measurement;
 	double value;	
 } AddMeasurementMessage;
 
@@ -73,7 +73,7 @@ DWORD WINAPI measurement_worker_thread(LPVOID param)
 			process_measurement(&scope->measurements[i]);
 		}
 
-		Sleep(100);
+		Sleep(300);
 	}
 }
 
@@ -132,10 +132,10 @@ float measure_rms(SampleBuffer* samples)
 	float sum_squares = 0;
 	int i;
 
-	for (i = 1; i < samples->size; ++i)
+	for (i = 0; i < samples->size; ++i)
 	{
 		sum_squares += samples->data[i] * samples->data[i];
 	}
 
-	return sqrt(sum_squares / samples->size);
+	return (float)sqrt(sum_squares / samples->size);
 }

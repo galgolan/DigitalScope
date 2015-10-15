@@ -16,6 +16,9 @@
     <ClCompile Include="measurement.c">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="trace_math.c">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h">
@@ -31,6 +34,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="scope_ui_handlers.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="trace_math.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

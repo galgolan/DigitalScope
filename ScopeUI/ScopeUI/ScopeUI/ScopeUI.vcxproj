@@ -46,6 +46,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(GTKDIR)\include;$(GTKDIR)\lib\glib-2.0\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(GTKDIR)\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -73,12 +75,14 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>-IC:/GTK/include/gtk-3.0 -IC:/GTK/include/cairo -IC:/GTK/include/pango-1.0 -IC:/GTK/include/atk-1.0 -IC:/GTK/include/cairo -IC:/GTK/include/pixman-1 -IC:/GTK/include -IC:/GTK/include/freetype2 -IC:/GTK/include -IC:/GTK/include/libpng15 -IC:/GTK/include/gdk-pixbuf-2.0 -IC:/GTK/include/libpng15 -IC:/GTK/include/glib-2.0 -IC:/GTK/lib/glib-2.0/include  -Dinline= %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalOptions>/libpath:C:/GTK/lib gtk-win32-3.0.lib gdk-win32-3.0.lib gdi32.lib imm32.lib shell32.lib ole32.lib pangocairo-1.0.lib pangoft2-1.0.lib fontconfig.lib pangowin32-1.0.lib gdi32.lib pango-1.0.lib atk-1.0.lib cairo.lib gdk_pixbuf-2.0.lib gio-2.0.lib gobject-2.0.lib glib-2.0.lib /ENTRY:mainCRTStartup /link /libpath:%GTKDIR% gtk-win32-3.0.lib gobject-2.0.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -87,6 +91,7 @@
     <ClCompile Include="scope_ui_handlers.c" />
     <ClCompile Include="scope.c" />
     <ClCompile Include="serial.c" />
+    <ClCompile Include="trace_math.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="scopeui.cfg">
@@ -105,6 +110,7 @@
     <ClInclude Include="scope.h" />
     <ClInclude Include="scope_ui_handlers.h" />
     <ClInclude Include="serial.h" />
+    <ClInclude Include="trace_math.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
