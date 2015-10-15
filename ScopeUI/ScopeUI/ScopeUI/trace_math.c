@@ -28,7 +28,7 @@ void math_trace_dft_amplitude(const SampleBuffer* first, const SampleBuffer* sec
 {
 	int N = BUFFER_SIZE;
 	int k,n;
-	float* x = first->data;
+	const float* x = first->data;
 	float PI2 = G_PI * 2;
 
 	for (k = 0; k<N; ++k)
@@ -36,11 +36,11 @@ void math_trace_dft_amplitude(const SampleBuffer* first, const SampleBuffer* sec
 		float xk_r = 0, xk_im = 0;
 		for (n = 0; n < N; ++n)
 		{
-			xk_r += x[n] * cos(n * k * PI2 / N);
-			xk_im -= x[n] * sin(n * k * PI2 / N);
+			xk_r += x[n] * (float)cos(n * k * PI2 / N);
+			xk_im -= x[n] * (float)sin(n * k * PI2 / N);
 		}
 
-		// Power at kth frequency bin
+		// Power at Kth frequency bin (should we calculate in dB ?)
 		result->data[k] = xk_r * xk_r + xk_im * xk_im;
 	}
 }

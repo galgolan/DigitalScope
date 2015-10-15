@@ -18,7 +18,7 @@ void populate_ui(GtkBuilder* builder)
 {
 	scopeUI.drawingArea = GET_GTK_WIDGET("drawingarea");
 	scopeUI.statusBar = GET_GTK_WIDGET("statusbar");
-	scopeUI.listMeasurements = GET_GTK_OBJECT("listMeasurements");
+	scopeUI.listMeasurements = (GtkListStore*)GET_GTK_OBJECT("listMeasurements");
 	//scopeUI.viewMeasurements = GET_GTK_OBJECT("treeview1");
 }
 

@@ -3,6 +3,9 @@
 
 #include <stdbool.h>
 
+#include "..\..\..\gdsl-1.8\src\gdsl_types.h"
+#include "..\..\..\gdsl-1.8\src\gdsl_list.h"
+
 #define BUFFER_SIZE	2048		// TODO: match this to the Scope's buffer ?
 
 typedef struct SampleBuffer

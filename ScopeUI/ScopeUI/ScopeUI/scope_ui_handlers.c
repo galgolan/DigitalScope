@@ -18,7 +18,7 @@ void request_redraw()
 void force_redraw()
 {
 	ScopeUI* ui = common_get_ui();
-	GtkWindow* window = gtk_widget_get_window(ui->drawingArea);
+	GdkWindow* window = gtk_widget_get_window(ui->drawingArea);
 
 	GdkRectangle rect;
 	rect.x = 0;

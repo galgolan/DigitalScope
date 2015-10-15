@@ -82,7 +82,7 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 			++n;
 		}
 
-		math_update_trace();
+		math_update_trace();	// TODO: move to other thread
 
 		// signal screen redraw if enough time has passed	
 		redraw_if_needed();
