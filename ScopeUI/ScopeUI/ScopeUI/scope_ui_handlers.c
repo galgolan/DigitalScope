@@ -20,6 +20,8 @@ void force_redraw()
 	ScopeUI* ui = common_get_ui();
 	GdkWindow* window = gtk_widget_get_window(ui->drawingArea);
 
+	// TODO: what about persistency (not clearing the display) ?
+
 	GdkRectangle rect;
 	rect.x = 0;
 	rect.y = 0;
@@ -43,8 +45,8 @@ void update_statusbar()
 	guint context_id = gtk_statusbar_get_context_id(GTK_STATUSBAR(ui->statusBar), "Statusbar example");
 
 	gchar* msg = g_strdup_printf("CH1: %.1fv/div, CH2: %.1fv/div, Time: %.3fs/div",
-		scope->screen.traces[0].scale,
-		scope->screen.traces[1].scale,
+		scope_trace_get_nth(0)->scale,
+		scope_trace_get_nth(1)->scale,
 		scope->screen.dt
 		);
 
@@ -55,8 +57,7 @@ void update_statusbar()
 G_MODULE_EXPORT
 void checkMathVisible_toggled(GtkToggleButton* btn, gpointer user_data)
 {
-	Scope* scope = scope_get();
-	scope->screen.traces[2].visible = gtk_toggle_button_get_active(btn);
+	scope_trace_get_math()->visible = gtk_toggle_button_get_active(btn);
 	request_redraw();
 }
 
@@ -95,16 +96,14 @@ void on_window1_destroy(GtkWidget *object, gpointer user_data)
 G_MODULE_EXPORT
 void on_checkCh1Visible_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 {
-	Scope* scope = scope_get();
-	scope->screen.traces[0].visible = gtk_toggle_button_get_active(togglebutton);
+	scope_trace_get_nth(0)->visible = gtk_toggle_button_get_active(togglebutton);
 	request_redraw();
 }
 
 G_MODULE_EXPORT
 void on_checkCh2Visible_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 {
-	Scope* scope = scope_get();
-	scope->screen.traces[1].visible = gtk_toggle_button_get_active(togglebutton);
+	scope_trace_get_nth(1)->visible = gtk_toggle_button_get_active(togglebutton);
 	request_redraw();
 }
 
@@ -112,8 +111,7 @@ void on_checkCh2Visible_toggled(GtkToggleButton *togglebutton, gpointer user_dat
 G_MODULE_EXPORT
 void on_change_scale1(GtkSpinButton *spin_button, gpointer user_data)
 {
-	Scope* scope = scope_get();
-	scope->screen.traces[0].scale = (float)gtk_spin_button_get_value(spin_button);
+	scope_trace_get_nth(0)->scale = (float)gtk_spin_button_get_value(spin_button);
 	update_statusbar();
 	request_redraw();
 }
@@ -121,16 +119,14 @@ void on_change_scale1(GtkSpinButton *spin_button, gpointer user_data)
 G_MODULE_EXPORT
 void on_change_offset1(GtkSpinButton *spin_button, gpointer user_data)
 {
-	Scope* scope = scope_get();
-	scope->screen.traces[0].offset = -1 * (int)gtk_spin_button_get_value(spin_button);
+	scope_trace_get_nth(0)->offset = -1 * (int)gtk_spin_button_get_value(spin_button);
 	request_redraw();
 }
 
 G_MODULE_EXPORT
 void on_change_scale2(GtkSpinButton *spin_button, gpointer user_data)
 {
-	Scope* scope = scope_get();
-	scope->screen.traces[1].scale = (float)gtk_spin_button_get_value(spin_button);
+	scope_trace_get_nth(1)->scale = (float)gtk_spin_button_get_value(spin_button);
 	update_statusbar();
 	request_redraw();
 }
@@ -138,8 +134,7 @@ void on_change_scale2(GtkSpinButton *spin_button, gpointer user_data)
 G_MODULE_EXPORT
 void on_change_offset2(GtkSpinButton *spin_button, gpointer user_data)
 {
-	Scope* scope = scope_get();
-	scope->screen.traces[1].offset = -1 * (int)gtk_spin_button_get_value(spin_button);
+	scope_trace_get_nth(1)->offset = -1 * (int)gtk_spin_button_get_value(spin_button);
 	request_redraw();
 }
 

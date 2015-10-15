@@ -1,4 +1,5 @@
 #include <gtk-3.0\gtk\gtk.h>
+#include <glib-2.0\glib.h>
 
 #include "libxml\tree.h"
 #include "libxml\parser.h"
@@ -29,7 +30,7 @@ void populate_ui(GtkBuilder* builder)
 
 void configuration_load()
 {
-
+	
 }
 
 int main(int argc, char *argv[])

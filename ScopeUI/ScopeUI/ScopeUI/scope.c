@@ -1,4 +1,5 @@
 #include <gtk-3.0\gtk\gtk.h>
+#include <glib-2.0\glib.h>
 
 #include <Windows.h>
 #include <math.h>
@@ -11,15 +12,35 @@
 
 static Scope scope;
 
-void channel_create(AnalogChannel* channel)
+SampleBuffer* sample_buffer_create(int size)
 {
-	channel->buffer = malloc(sizeof(SampleBuffer));
-	channel->buffer->size = BUFFER_SIZE;
-	channel->enabled = TRUE;
+	SampleBuffer* buffer = (SampleBuffer*)malloc(sizeof(SampleBuffer));
+	buffer->size = size;
+	// TODO: use memset to zero all data
+	return buffer;
 }
 
-void trace_create(Trace* trace, cairo_pattern_t* pattern, SampleBuffer* samples, const char* name, int offset)
+AnalogChannel* scope_channel_add_new()
 {
+	AnalogChannel* channel = (AnalogChannel*)malloc(sizeof(AnalogChannel));
+	g_queue_push_tail(scope.channels, channel);
+
+	channel->buffer = sample_buffer_create(BUFFER_SIZE);
+	channel->enabled = TRUE;
+
+	return channel;
+}
+
+AnalogChannel* scope_channel_get_nth(int n)
+{
+	return (AnalogChannel*)g_queue_peek_nth(scope.channels, n);
+}
+
+Trace* scope_trace_add_new(cairo_pattern_t* pattern, SampleBuffer* samples, const char* name, int offset)
+{
+	Trace* trace = (Trace*)malloc(sizeof(Trace));
+	g_queue_push_tail(scope.screen.traces, trace);
+
 	trace->offset = offset;
 	trace->trace_width = 1;	// TODO: use style
 	trace->pattern = pattern;	// TODO: use style
@@ -27,13 +48,35 @@ void trace_create(Trace* trace, cairo_pattern_t* pattern, SampleBuffer* samples,
 	trace->visible = TRUE;
 	trace->scale = 1;
 	trace->name = name;
+
+	return trace;
 }
 
-void add_measurement_definition(int i, Measurement* measurement, Trace* source)
+Trace* scope_trace_get_nth(int n)
 {
-	// append to scope
-	scope.measurements[i].measurement = measurement;
-	scope.measurements[i].trace = source;
+	return (Trace*)g_queue_peek_nth(scope.screen.traces, n);
+}
+
+MeasurementInstance* scope_measurement_get_nth(int n)
+{
+	return (MeasurementInstance*)g_queue_peek_nth(scope.measurements, n);
+}
+
+// returns the math trace
+Trace* scope_trace_get_math()
+{
+	return (Trace*)g_queue_peek_nth(scope.screen.traces, SCOPE_NUM_ANALOG_CHANNELS);
+}
+
+MeasurementInstance* scope_measurement_add(Measurement* measurement, Trace* source)
+{
+	MeasurementInstance* instance = (MeasurementInstance*)malloc(sizeof(MeasurementInstance));
+	g_queue_push_tail(scope.measurements, instance);
+
+	instance->measurement = measurement;
+	instance->trace = source;
+
+	return instance;
 }
 
 // signal screen redraw if enough time has passed	
@@ -62,6 +105,9 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 
 	unsigned long long n = 0;	// sample counter for simulating signals
 
+	AnalogChannel* ch1 = scope_channel_get_nth(0);
+	AnalogChannel* ch2 = scope_channel_get_nth(1);
+
 	while (TRUE)
 	{
 		float T = scope.screen.dt;		// create local copy of sample time
@@ -75,9 +121,9 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 		// fill channels with samples
 		for (int i = 0; i < BUFFER_SIZE; ++i)
 		{
-			scope.channels[0].buffer->data[i] = sin(100e3 * n * T);
-			//scope.channels[1].buffer->data[i] = sin(0.2*n*T) * - 3 * sin(5e3 * n * T);
-			scope.channels[1].buffer->data[i] = 2 * sin(200e3 * n * T + G_PI/4);
+			ch1->buffer->data[i] = sin(100e3 * n * T);
+			//ch2->buffer->data[i] = sin(0.2*n*T) * - 3 * sin(5e3 * n * T);
+			ch2->buffer->data[i] = 2 * sin(200e3 * n * T + G_PI/4);
 
 			++n;
 		}
@@ -122,32 +168,27 @@ void screen_init()
 	scope.screen.grid.stroke_width = 1;
 
 	// create traces for 2 analog channels & the math channel
-	scope.num_channels = 2;
-	scope.channels = malloc(sizeof(AnalogChannel) * scope.num_channels);
-	channel_create(&scope.channels[0]);
-	channel_create(&scope.channels[1]);
+	scope.channels = g_queue_new();
+	for (int i = 0; i < SCOPE_NUM_ANALOG_CHANNELS;++i)
+		scope_channel_add_new();
 
-	scope.screen.num_traces = scope.num_channels + 1;
-	scope.screen.traces = malloc(sizeof(Trace) * scope.screen.num_traces);
-	trace_create(&scope.screen.traces[0], cairo_pattern_create_rgb(0, 1, 0), scope.channels[0].buffer, "CH1", -60);	
-	trace_create(&scope.screen.traces[1], cairo_pattern_create_rgb(1, 0, 0), scope.channels[1].buffer, "CH2", 60);
+	scope.screen.traces = g_queue_new();
+	scope_trace_add_new(cairo_pattern_create_rgb(0, 1, 0), scope_channel_get_nth(0)->buffer, "CH1", -60);	
+	scope_trace_add_new(cairo_pattern_create_rgb(1, 0, 0), scope_channel_get_nth(1)->buffer, "CH2", 60);
 
 	// create the math trace
-	scope.screen.traces[2].samples = malloc(sizeof(SampleBuffer));
-	scope.screen.traces[2].samples->size = BUFFER_SIZE;	
+	Trace* mathTrace = scope_trace_add_new(cairo_pattern_create_rgb(0, 0, 1), sample_buffer_create(BUFFER_SIZE), "Math", 60);
 	scope.mathTraceDefinition.mathTrace = &MathTrace_Dft_Amplitude;
-	scope.mathTraceDefinition.firstTrace = &scope.screen.traces[0];
-	scope.mathTraceDefinition.secondTrace = &scope.screen.traces[1];
-	trace_create(&scope.screen.traces[2], cairo_pattern_create_rgb(0, 0, 1), scope.screen.traces[2].samples, "Math", 60);
-	scope.screen.traces[2].visible = FALSE;
+	scope.mathTraceDefinition.firstTrace = scope_trace_get_nth(0);
+	scope.mathTraceDefinition.secondTrace = scope_trace_get_nth(1);
+	mathTrace->visible = FALSE;
 
 	// add default measurements
-	scope.num_measurements = 4;
-	scope.measurements = malloc(sizeof(MeasurementInstance) * scope.num_measurements);
-	add_measurement_definition(0, &Measurement_PeakToPeak, &scope.screen.traces[0]);
-	add_measurement_definition(1, &Measurement_PeakToPeak, &scope.screen.traces[1]);
-	add_measurement_definition(2, &Measurement_RMS, &scope.screen.traces[0]);
-	add_measurement_definition(3, &Measurement_RMS, &scope.screen.traces[1]);	
+	scope.measurements = g_queue_new();
+	scope_measurement_add(&Measurement_PeakToPeak, scope_trace_get_nth(0));
+	scope_measurement_add(&Measurement_PeakToPeak, scope_trace_get_nth(1));
+	scope_measurement_add(&Measurement_RMS, scope_trace_get_nth(0));
+	scope_measurement_add(&Measurement_RMS, scope_trace_get_nth(1));
 
 	// create serial worker thread
 	long serialThreadId;
@@ -281,10 +322,10 @@ void screen_draw_xy(GtkWidget *widget, cairo_t *cr)
 	int width = gtk_widget_get_allocated_width(widget);
 
 	// channel1 - x, channel2 - y
-	AnalogChannel* xChannel = &scope.channels[0];
-	AnalogChannel* yChannel = &scope.channels[1];
-	Trace* xTrace = &scope.screen.traces[0];
-	Trace* yTrace = &scope.screen.traces[1];
+	AnalogChannel* xChannel = scope_channel_get_nth(0);
+	AnalogChannel* yChannel = scope_channel_get_nth(1);
+	Trace* xTrace = scope_trace_get_nth(0);
+	Trace* yTrace = scope_trace_get_nth(1);
 
 	float x = xChannel->buffer->data[0];
 	float y = yChannel->buffer->data[0];
@@ -331,14 +372,16 @@ void trace_draw(const Trace* trace, GtkWidget *widget, cairo_t *cr)
 void screen_draw_traces(GtkWidget *widget, cairo_t *cr)
 {
 	int i;
+	int numTraces = g_queue_get_length(scope.screen.traces);
 
 	if (scope.display_mode == DISPLAY_MODE_WAVEFORM)
 	{
-		for (i = 0; i < scope.screen.num_traces; ++i)
+		for (i = 0; i < numTraces; ++i)
 		{
-			if (scope.screen.traces[i].visible)
+			Trace* trace = scope_trace_get_nth(i);	// TODO: use iterator
+			if (trace->visible)
 			{
-				trace_draw(&scope.screen.traces[i], widget, cr);
+				trace_draw(trace, widget, cr);
 			}
 		}
 	}

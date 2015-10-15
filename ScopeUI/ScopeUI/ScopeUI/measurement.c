@@ -68,9 +68,10 @@ DWORD WINAPI measurement_worker_thread(LPVOID param)
 		guint source_id = gdk_threads_add_idle_full(G_PRIORITY_DEFAULT, clear_measurements_callback, NULL, NULL);
 
 		// iterate over all measurements and update them
-		for (int i = 0; i < scope->num_measurements; ++i)
+		for (int i = 0; i < g_queue_get_length(scope->measurements); ++i)
 		{
-			process_measurement(&scope->measurements[i]);
+			MeasurementInstance* meas = scope_measurement_get_nth(i);
+			process_measurement(meas);
 		}
 
 		Sleep(300);

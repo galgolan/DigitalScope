@@ -13,7 +13,7 @@ MathTrace MathTrace_Dft_Amplitude = { .name = "DFT", .function = math_trace_dft_
 void math_update_trace()
 {
 	Scope* scope = scope_get();
-	Trace* mathTrace = &scope->screen.traces[2];
+	Trace* mathTrace = scope_trace_get_math();
 	MathTraceInstance* mathInstance = &scope->mathTraceDefinition;
 
 	if ((mathTrace->visible == TRUE) && (mathInstance != NULL) && (scope->state == SCOPE_STATE_RUNNING))

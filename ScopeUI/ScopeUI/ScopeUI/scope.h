@@ -3,10 +3,10 @@
 
 #include <stdbool.h>
 
-#include "..\..\..\gdsl-1.8\src\gdsl_types.h"
-#include "..\..\..\gdsl-1.8\src\gdsl_list.h"
+#include <glib-2.0\glib.h>
 
 #define BUFFER_SIZE	2048		// TODO: match this to the Scope's buffer ?
+#define SCOPE_NUM_ANALOG_CHANNELS	2
 
 typedef struct SampleBuffer
 {
@@ -93,8 +93,7 @@ typedef struct Screen
 
 	Grid grid;
 
-	Trace* traces;
-	int num_traces;
+	GQueue* traces;	// contains Trace*
 	short fps;
 } Screen;
 
@@ -148,11 +147,9 @@ typedef enum DisplayMode
 typedef struct Scope
 {
 	Screen screen;
-	AnalogChannel* channels;
-	int num_channels;
+	GQueue* channels;	// contains AnalogChannel*
 	Trigger trigger;
-	MeasurementInstance* measurements;
-	int num_measurements;
+	GQueue* measurements;	// contains MeasurementInstance*
 	ScopeState state;	
 	Cursors cursors;
 	DisplayMode display_mode;
@@ -182,5 +179,13 @@ void request_redraw();
 
 // forces a redraw of the scope screen
 void force_redraw();
+
+MeasurementInstance* scope_measurement_get_nth(int n);
+
+AnalogChannel* scope_channel_get_nth(int n);
+
+Trace* scope_trace_get_nth(int n);
+
+Trace* scope_trace_get_math();
 
 #endif
