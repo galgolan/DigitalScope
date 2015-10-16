@@ -47,8 +47,7 @@
     <None Include="style.css">
       <Filter>Resources</Filter>
     </None>
-    <None Include="scopeui.cfg" />
-    <None Include="config.xml">
+    <None Include="settings.ini">
       <Filter>Resources</Filter>
     </None>
   </ItemGroup>

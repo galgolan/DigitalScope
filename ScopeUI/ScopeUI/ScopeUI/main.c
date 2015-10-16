@@ -1,11 +1,6 @@
 #include <gtk-3.0\gtk\gtk.h>
 #include <glib-2.0\glib.h>
 
-#include "libxml\tree.h"
-#include "libxml\parser.h"
-#include "libxml\xpath.h"
-#include "libxml\xpathInternals.h"
-
 #include "common.h"
 #include "scope.h"
 #include "serial.h"
@@ -28,9 +23,19 @@ void populate_ui(GtkBuilder* builder)
 	//scopeUI.viewMeasurements = GET_GTK_OBJECT("treeview1");
 }
 
-void configuration_load()
+GKeyFile* configuration_load()
 {
-	
+	GKeyFile* keyFile = g_key_file_new();
+	GError* error = NULL;
+
+	if (!g_key_file_load_from_file(keyFile, "settings.ini", G_KEY_FILE_NONE, &error))
+	{
+		// TODO: handle error
+		g_debug("%s", error->message);
+		return NULL;
+	}
+
+	return keyFile;
 }
 
 int main(int argc, char *argv[])
@@ -41,6 +46,8 @@ int main(int argc, char *argv[])
 	GtkCssProvider *provider;
 	GdkDisplay *display;
 	GdkScreen *screen;
+
+	GError* error = NULL;
 
 	gtk_init(&argc, &argv);
 
@@ -57,15 +64,17 @@ int main(int argc, char *argv[])
 	screen = gdk_display_get_default_screen(display);
 
 	gtk_style_context_add_provider_for_screen(screen, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-	if (!gtk_css_provider_load_from_path(provider, "style.css", NULL))	// TODO: consider using the GError
-		return 1;	
+	if (!gtk_css_provider_load_from_path(provider, "style.css", &error))
+	{
+		g_debug("%s", error->message);
+		return 1;
+	}
 
-	configuration_load();
+	GKeyFile* keyfile = configuration_load();
 	
 	populate_ui(builder);
-	screen_init(builder);
+	screen_init(keyfile);
 	// TODO: set default values for controls
-	// TODO: load configuration
 	
 	g_object_unref(G_OBJECT(builder));
 	gtk_main();

@@ -1,8 +1,11 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <gtk-3.0\gtk\gtk.h>
 #include <glib-2.0\glib.h>
 
 #include <Windows.h>
 #include <math.h>
+#include <stdio.h>
 
 #include "common.h"
 #include "scope.h"
@@ -16,6 +19,7 @@ SampleBuffer* sample_buffer_create(int size)
 {
 	SampleBuffer* buffer = (SampleBuffer*)malloc(sizeof(SampleBuffer));
 	buffer->size = size;
+	buffer->data = (float*)malloc(sizeof(float) * size);
 	// TODO: use memset to zero all data
 	return buffer;
 }
@@ -25,7 +29,7 @@ AnalogChannel* scope_channel_add_new()
 	AnalogChannel* channel = (AnalogChannel*)malloc(sizeof(AnalogChannel));
 	g_queue_push_tail(scope.channels, channel);
 
-	channel->buffer = sample_buffer_create(BUFFER_SIZE);
+	channel->buffer = sample_buffer_create(scope.bufferSize);
 	channel->enabled = TRUE;
 
 	return channel;
@@ -65,7 +69,7 @@ MeasurementInstance* scope_measurement_get_nth(int n)
 // returns the math trace
 Trace* scope_trace_get_math()
 {
-	return (Trace*)g_queue_peek_nth(scope.screen.traces, SCOPE_NUM_ANALOG_CHANNELS);
+	return (Trace*)g_queue_peek_nth(scope.screen.traces, g_queue_get_length(scope.channels));
 }
 
 MeasurementInstance* scope_measurement_add(Measurement* measurement, Trace* source)
@@ -119,7 +123,7 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 		}
 
 		// fill channels with samples
-		for (int i = 0; i < BUFFER_SIZE; ++i)
+		for (int i = 0; i < scope.bufferSize; ++i)
 		{
 			ch1->buffer->data[i] = sin(100e3 * n * T);
 			//ch2->buffer->data[i] = sin(0.2*n*T) * - 3 * sin(5e3 * n * T);
@@ -151,8 +155,12 @@ void cursors_init()
 	scope.cursors.y2.position = 100;
 }
 
-void screen_init()
+void screen_init(GKeyFile* keyfile)
 {
+	GError* error = NULL;
+
+	scope.bufferSize = g_key_file_get_integer(keyfile, "config", "bufferSize", &error);
+
 	scope.state = SCOPE_STATE_RUNNING;
 	scope.display_mode = DISPLAY_MODE_WAVEFORM;
 	cursors_init();
@@ -160,24 +168,37 @@ void screen_init()
 	// setup screen
 	scope.screen.background = cairo_pattern_create_rgb(0, 0, 0);
 	scope.screen.dt = 1e-3f;	// 1ms
-	scope.screen.fps = 20;
+	scope.screen.fps = g_key_file_get_integer(keyfile, "display", "fps", &error);
 //	scope.screen.dv = 1;		// 1v/div
 	scope.screen.grid.linePattern = cairo_pattern_create_rgb(0.5, 0.5, 0.5);
-	scope.screen.grid.horizontal = 8;
-	scope.screen.grid.vertical = 14;
+	scope.screen.grid.horizontal = g_key_file_get_integer(keyfile, "display", "gridlinesHorizontal", &error);
+	scope.screen.grid.vertical = g_key_file_get_integer(keyfile, "display", "gridlinesVertical", &error);
 	scope.screen.grid.stroke_width = 1;
 
-	// create traces for 2 analog channels & the math channel
+	// create analog channels
 	scope.channels = g_queue_new();
-	for (int i = 0; i < SCOPE_NUM_ANALOG_CHANNELS;++i)
+	int numChannels = g_key_file_get_integer(keyfile, "hardware", "channels", &error);
+	for (int i = 0; i < numChannels; ++i)
 		scope_channel_add_new();
 
+	// create traces for the analog channels
 	scope.screen.traces = g_queue_new();
-	scope_trace_add_new(cairo_pattern_create_rgb(0, 1, 0), scope_channel_get_nth(0)->buffer, "CH1", -60);	
-	scope_trace_add_new(cairo_pattern_create_rgb(1, 0, 0), scope_channel_get_nth(1)->buffer, "CH2", 60);
-
+	int offsetCount;
+	int* offsets = g_key_file_get_integer_list(keyfile, "display", "defaultOffset", &offsetCount, &error);
+	cairo_pattern_t* tracePatterns[] = {
+		cairo_pattern_create_rgb(0, 1, 0),
+		cairo_pattern_create_rgb(1, 0, 0),
+		cairo_pattern_create_rgb(0, 0, 1) };
+	for (int i = 0; i < numChannels; ++i)
+	{
+		// generate trace name
+		char* traceName = (char*)malloc(sizeof(char) * 10);
+		sprintf(traceName, "CH%d", i+1);
+		scope_trace_add_new(tracePatterns[i], scope_channel_get_nth(i)->buffer, traceName, offsets[i]);
+	}
+	
 	// create the math trace
-	Trace* mathTrace = scope_trace_add_new(cairo_pattern_create_rgb(0, 0, 1), sample_buffer_create(BUFFER_SIZE), "Math", 60);
+	Trace* mathTrace = scope_trace_add_new(cairo_pattern_create_rgb(0, 0, 1), sample_buffer_create(scope.bufferSize), "Math", offsets[offsetCount]);
 	scope.mathTraceDefinition.mathTrace = &MathTrace_Dft_Amplitude;
 	scope.mathTraceDefinition.firstTrace = scope_trace_get_nth(0);
 	scope.mathTraceDefinition.secondTrace = scope_trace_get_nth(1);
@@ -333,7 +354,7 @@ void screen_draw_xy(GtkWidget *widget, cairo_t *cr)
 	cairo_move_to(cr,
 		translate(x, xTrace, scope.screen.grid.horizontal, height, width),
 		translate(y, yTrace, scope.screen.grid.vertical, height, width));
-	for (i = 1; i < BUFFER_SIZE; ++i)
+	for (i = 1; i < scope.bufferSize; ++i)
 	{
 		x = xChannel->buffer->data[i];
 		y = yChannel->buffer->data[i];
@@ -355,7 +376,7 @@ void trace_draw(const Trace* trace, GtkWidget *widget, cairo_t *cr)
 	height = gtk_widget_get_allocated_height(widget);
 	width = gtk_widget_get_allocated_width(widget);
 
-	for (i = 0; i < MIN(BUFFER_SIZE, width); ++i)
+	for (i = 0; i < MIN(scope.bufferSize, width); ++i)
 	{
 		// y = offset - (sample/scale * height/grid.h)
 		int y = (int)(height/2 + trace->offset - (trace->samples->data[i] / trace->scale)*(height / scope.screen.grid.horizontal));

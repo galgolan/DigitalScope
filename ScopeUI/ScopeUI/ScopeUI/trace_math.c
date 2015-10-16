@@ -26,7 +26,8 @@ void math_update_trace()
 // second can be null
 void math_trace_dft_amplitude(const SampleBuffer* first, const SampleBuffer* second, SampleBuffer* result)
 {
-	int N = BUFFER_SIZE;
+	Scope* scope = scope_get();
+	int N = scope->bufferSize;
 	int k,n;
 	const float* x = first->data;
 	float PI2 = G_PI * 2;
@@ -48,8 +49,9 @@ void math_trace_dft_amplitude(const SampleBuffer* first, const SampleBuffer* sec
 void math_trace_difference(const SampleBuffer* first, const SampleBuffer* second, SampleBuffer* result)
 {
 	int i;
+	Scope* scope = scope_get();
 
-	for (i = 0; i < BUFFER_SIZE; ++i)
+	for (i = 0; i < scope->bufferSize; ++i)
 	{
 		result->data[i] = first->data[i] - second->data[i];
 	}

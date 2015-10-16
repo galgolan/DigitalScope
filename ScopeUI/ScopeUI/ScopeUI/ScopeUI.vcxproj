@@ -96,8 +96,10 @@
     <ClCompile Include="trace_math.c" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="config.xml">
+    <None Include="settings.ini">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</DeploymentContent>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </None>
     <None Include="style.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

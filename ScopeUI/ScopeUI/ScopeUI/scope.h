@@ -5,12 +5,12 @@
 
 #include <glib-2.0\glib.h>
 
-#define BUFFER_SIZE	2048		// TODO: match this to the Scope's buffer ?
-#define SCOPE_NUM_ANALOG_CHANNELS	2
+//#define BUFFER_SIZE	2048		// TODO: match this to the Scope's buffer ?
+//#define SCOPE_NUM_ANALOG_CHANNELS	2
 
 typedef struct SampleBuffer
 {
-	float data[BUFFER_SIZE];
+	float* data;
 	int size;
 } SampleBuffer;
 
@@ -154,11 +154,12 @@ typedef struct Scope
 	Cursors cursors;
 	DisplayMode display_mode;
 	MathTraceInstance mathTraceDefinition;
+	int bufferSize;		// TODO: remove (and use SampleBuffer.size instead)
 } Scope;
 
 void trace_draw(const Trace* trace, GtkWidget *widget, cairo_t *cr);
 
-void screen_init();
+void screen_init(GKeyFile* keyfile);
 
 Scope* scope_get();
 
