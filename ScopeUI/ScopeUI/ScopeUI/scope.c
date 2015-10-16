@@ -198,7 +198,7 @@ void screen_init(GKeyFile* keyfile)
 	}
 	
 	// create the math trace
-	Trace* mathTrace = scope_trace_add_new(cairo_pattern_create_rgb(0, 0, 1), sample_buffer_create(scope.bufferSize), "Math", offsets[offsetCount]);
+	Trace* mathTrace = scope_trace_add_new(tracePatterns[numChannels], sample_buffer_create(scope.bufferSize), "Math", offsets[offsetCount]);
 	scope.mathTraceDefinition.mathTrace = &MathTrace_Dft_Amplitude;
 	scope.mathTraceDefinition.firstTrace = scope_trace_get_nth(0);
 	scope.mathTraceDefinition.secondTrace = scope_trace_get_nth(1);
