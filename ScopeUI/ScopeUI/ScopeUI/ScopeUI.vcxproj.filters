@@ -45,6 +45,7 @@
     <ClInclude Include="config.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ui.xml">
@@ -67,5 +68,11 @@
     <Filter Include="Resources">
       <UniqueIdentifier>{3cf66abf-8495-4cd0-8313-0f361ffe6400}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ScopeUI.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="icon1.ico" />
   </ItemGroup>
 </Project>

@@ -24,6 +24,21 @@ void populate_ui(GtkBuilder* builder)
 	//scopeUI.viewMeasurements = GET_GTK_OBJECT("treeview1");
 }
 
+void controls_set_default_values(GtkBuilder* builder)
+{
+	GList* keys = config_get_keys("controls");
+	while (keys != NULL)
+	{
+		char* key = (char*)keys->data;
+
+		GtkWidget* widget = GET_GTK_WIDGET(key);
+
+		keys = keys->next;
+	}
+
+	g_list_free_full(keys, g_strfreev);
+}
+
 int main(int argc, char *argv[])
 {
 	GtkBuilder      *builder;
@@ -59,6 +74,7 @@ int main(int argc, char *argv[])
 	config_open();
 	
 	populate_ui(builder);
+	//controls_set_default_values(builder);
 	screen_init();
 	// TODO: set default values for controls
 	

@@ -16,4 +16,6 @@ int config_get_int(const char* group, const char* key);
 
 void config_close();
 
+GList* config_get_keys(const char* group);
+
 #endif

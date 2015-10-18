@@ -57,3 +57,21 @@ void config_close()
 		g_key_file_free(keyfile);
 	}
 }
+
+GList* config_get_keys(const char* group)
+{
+	int count, i;
+	GList* keys = NULL;
+
+	char** keysArray = g_key_file_get_keys(keyfile, group, &count, &error);
+	if (keysArray == NULL)
+		return keys;
+
+	for (i = 0; i < count; ++i)
+	{
+		keys = g_list_append(keys, keysArray[i]);
+	}
+
+	//g_strfreev(keysArray);
+	return keys;
+}
