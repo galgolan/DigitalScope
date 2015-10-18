@@ -159,7 +159,7 @@ typedef struct Scope
 
 void trace_draw(const Trace* trace, GtkWidget *widget, cairo_t *cr);
 
-void screen_init(GKeyFile* keyfile);
+void screen_init();
 
 Scope* scope_get();
 

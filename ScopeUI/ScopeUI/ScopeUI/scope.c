@@ -12,6 +12,7 @@
 #include "measurement.h"
 #include "trace_math.h"
 #include "scope_ui_handlers.h"
+#include "config.h"
 
 static Scope scope;
 
@@ -122,12 +123,14 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 			continue;
 		}
 
+		Sleep(10);	// throttle down to simulate serial port
+
 		// fill channels with samples
 		for (int i = 0; i < scope.bufferSize; ++i)
 		{
-			ch1->buffer->data[i] = sin(100e3 * n * T);
 			//ch2->buffer->data[i] = sin(0.2*n*T) * - 3 * sin(5e3 * n * T);
-			ch2->buffer->data[i] = 2 * sin(200e3 * n * T + G_PI/4);
+			ch1->buffer->data[i] = (float)sin(100e3 * n * T) > 0 ? 1 : 0;	// square wave 100KHz
+			ch2->buffer->data[i] = 2 * (float)sin(200e3 * n * T + G_PI/4);	// cosine 200KHz
 
 			++n;
 		}
@@ -155,11 +158,11 @@ void cursors_init()
 	scope.cursors.y2.position = 100;
 }
 
-void screen_init(GKeyFile* keyfile)
+void screen_init()
 {
 	GError* error = NULL;
 
-	scope.bufferSize = g_key_file_get_integer(keyfile, "config", "bufferSize", &error);
+	scope.bufferSize = config_get_int("config", "bufferSize");
 
 	scope.state = SCOPE_STATE_RUNNING;
 	scope.display_mode = DISPLAY_MODE_WAVEFORM;
@@ -168,42 +171,46 @@ void screen_init(GKeyFile* keyfile)
 	// setup screen
 	scope.screen.background = cairo_pattern_create_rgb(0, 0, 0);
 	scope.screen.dt = 1e-3f;	// 1ms
-	scope.screen.fps = g_key_file_get_integer(keyfile, "display", "fps", &error);
+	scope.screen.fps = config_get_int("display", "fps");
 //	scope.screen.dv = 1;		// 1v/div
 	scope.screen.grid.linePattern = cairo_pattern_create_rgb(0.5, 0.5, 0.5);
-	scope.screen.grid.horizontal = g_key_file_get_integer(keyfile, "display", "gridlinesHorizontal", &error);
-	scope.screen.grid.vertical = g_key_file_get_integer(keyfile, "display", "gridlinesVertical", &error);
+	scope.screen.grid.horizontal = config_get_int("display", "gridlinesHorizontal");
+	scope.screen.grid.vertical = config_get_int("display", "gridlinesVertical");
 	scope.screen.grid.stroke_width = 1;
 
 	// create analog channels
 	scope.channels = g_queue_new();
-	int numChannels = g_key_file_get_integer(keyfile, "hardware", "channels", &error);
+	int numChannels = config_get_int("hardware", "channels");
 	for (int i = 0; i < numChannels; ++i)
 		scope_channel_add_new();
 
 	// create traces for the analog channels
 	scope.screen.traces = g_queue_new();
-	int offsetCount;
-	int* offsets = g_key_file_get_integer_list(keyfile, "display", "defaultOffset", &offsetCount, &error);
+	GList* offsets = config_get_int_list("display", "defaultOffset");
 	cairo_pattern_t* tracePatterns[] = {
 		cairo_pattern_create_rgb(0, 1, 0),
 		cairo_pattern_create_rgb(1, 0, 0),
 		cairo_pattern_create_rgb(0, 0, 1) };
+
+	GList* offsetIt = offsets;
+	int count = g_list_length(offsets);
 	for (int i = 0; i < numChannels; ++i)
 	{
 		// generate trace name
 		char* traceName = (char*)malloc(sizeof(char) * 10);
 		sprintf(traceName, "CH%d", i+1);
-		scope_trace_add_new(tracePatterns[i], scope_channel_get_nth(i)->buffer, traceName, offsets[i]);
+		int offset = offsetIt == NULL ? 0 : GPOINTER_TO_INT(offsetIt->data);
+		scope_trace_add_new(tracePatterns[i], scope_channel_get_nth(i)->buffer, traceName, offset);
+		offsetIt = offsetIt->next;
 	}
 	
 	// create the math trace
-	Trace* mathTrace = scope_trace_add_new(tracePatterns[numChannels], sample_buffer_create(scope.bufferSize), "Math", offsets[offsetCount]);
+	Trace* mathTrace = scope_trace_add_new(tracePatterns[numChannels], sample_buffer_create(scope.bufferSize), "Math", GPOINTER_TO_INT(offsetIt->data));
 	scope.mathTraceDefinition.mathTrace = &MathTrace_Dft_Amplitude;
 	scope.mathTraceDefinition.firstTrace = scope_trace_get_nth(0);
 	scope.mathTraceDefinition.secondTrace = scope_trace_get_nth(1);
 	mathTrace->visible = FALSE;
-
+	g_list_free(offsets);
 	// add default measurements
 	scope.measurements = g_queue_new();
 	scope_measurement_add(&Measurement_PeakToPeak, scope_trace_get_nth(0));

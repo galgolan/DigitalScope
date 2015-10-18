@@ -107,6 +107,29 @@ void on_checkCh2Visible_toggled(GtkToggleButton *togglebutton, gpointer user_dat
 	request_redraw();
 }
 
+G_MODULE_EXPORT
+void on_change_scaleMath(GtkSpinButton *spin_button, gpointer user_data)
+{
+	scope_trace_get_math()->scale = (float)gtk_spin_button_get_value(spin_button);
+	//update_statusbar();
+	request_redraw();
+}
+
+G_MODULE_EXPORT
+void on_math_source_changed(GtkComboBox *widget, gpointer user_data)
+{
+	int sourceChannel = gtk_combo_box_get_active(widget);
+	Scope* scope = scope_get();
+	scope->mathTraceDefinition.firstTrace = scope_trace_get_nth(sourceChannel);
+	request_redraw();
+}
+
+G_MODULE_EXPORT
+void on_change_offsetMath(GtkSpinButton *spin_button, gpointer user_data)
+{
+	scope_trace_get_math()->offset = -1 * (int)gtk_spin_button_get_value(spin_button);
+	request_redraw();
+}
 
 G_MODULE_EXPORT
 void on_change_scale1(GtkSpinButton *spin_button, gpointer user_data)

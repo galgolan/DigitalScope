@@ -15,6 +15,12 @@
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adjustmentOffsetMath">
+    <property name="lower">-100</property>
+    <property name="upper">100</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
   <object class="GtkAdjustment" id="adjustmentSampleRate">
     <property name="lower">1</property>
     <property name="upper">1000</property>
@@ -36,6 +42,13 @@
     <property name="step_increment">0.5</property>
     <property name="page_increment">0.5</property>
   </object>
+  <object class="GtkAdjustment" id="adjustmentScaleMath">
+    <property name="lower">0.10000000000000001</property>
+    <property name="upper">1000</property>
+    <property name="value">1</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
   <object class="GtkListStore" id="listMeasurements">
     <columns>
       <!-- column-name Measurement -->
@@ -44,6 +57,74 @@
       <column type="gchararray"/>
       <!-- column-name Value -->
       <column type="gfloat"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="liststoreMathSources">
+    <columns>
+      <!-- column-name id -->
+      <column type="gint"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+    </columns>
+    <data>
+      <row>
+        <col id="0">0</col>
+        <col id="1" translatable="yes">Channel1</col>
+      </row>
+      <row>
+        <col id="0">1</col>
+        <col id="1" translatable="yes">Channel2</col>
+      </row>
+    </data>
+  </object>
+  <object class="GtkListStore" id="liststoreMathTypes">
+    <columns>
+      <!-- column-name id -->
+      <column type="gint"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+    </columns>
+    <data>
+      <row>
+        <col id="0">0</col>
+        <col id="1" translatable="yes">DFT</col>
+      </row>
+    </data>
+  </object>
+  <object class="GtkListStore" id="liststoreTriggerModes">
+    <columns>
+      <!-- column-name id -->
+      <column type="gint"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+    </columns>
+    <data>
+      <row>
+        <col id="0">0</col>
+        <col id="1" translatable="yes">NONE</col>
+      </row>
+    </data>
+  </object>
+  <object class="GtkListStore" id="liststoreTriggerSources">
+    <columns>
+      <!-- column-name id -->
+      <column type="gint"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+    </columns>
+    <data>
+      <row>
+        <col id="0">0</col>
+        <col id="1" translatable="yes">CH1</col>
+      </row>
+    </data>
+  </object>
+  <object class="GtkListStore" id="liststoreTriggerTypes">
+    <columns>
+      <!-- column-name id -->
+      <column type="gint"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkWindow" id="window1">
@@ -689,21 +770,17 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkComboBox" id="combobox3">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                          </object>
-                          <packing>
-                            <property name="left_attach">1</property>
-                            <property name="top_attach">0</property>
-                            <property name="width">1</property>
-                            <property name="height">1</property>
-                          </packing>
-                        </child>
-                        <child>
                           <object class="GtkComboBox" id="combobox4">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="model">liststoreTriggerSources</property>
+                            <property name="active">0</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrenderertext7"/>
+                              <attributes>
+                                <attribute name="text">1</attribute>
+                              </attributes>
+                            </child>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -716,10 +793,37 @@
                           <object class="GtkComboBox" id="combobox5">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="model">liststoreTriggerTypes</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrenderertext8"/>
+                              <attributes>
+                                <attribute name="text">1</attribute>
+                              </attributes>
+                            </child>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
                             <property name="top_attach">2</property>
+                            <property name="width">1</property>
+                            <property name="height">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkComboBox" id="combobox3">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="model">liststoreTriggerModes</property>
+                            <property name="active">0</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrenderertext6"/>
+                              <attributes>
+                                <attribute name="text">1</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="top_attach">0</property>
                             <property name="width">1</property>
                             <property name="height">1</property>
                           </packing>
@@ -825,6 +929,15 @@
                       <object class="GtkComboBox" id="combobox1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="model">liststoreMathSources</property>
+                        <property name="active">0</property>
+                        <signal name="changed" handler="on_math_source_changed" swapped="no"/>
+                        <child>
+                          <object class="GtkCellRendererText" id="cellrenderertext4"/>
+                          <attributes>
+                            <attribute name="text">1</attribute>
+                          </attributes>
+                        </child>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -837,6 +950,14 @@
                       <object class="GtkComboBox" id="combobox2">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="model">liststoreMathTypes</property>
+                        <property name="active">0</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="cellrenderertext5"/>
+                          <attributes>
+                            <attribute name="markup">1</attribute>
+                          </attributes>
+                        </child>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -878,16 +999,17 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkSpinButton" id="ch2Scale1">
+                      <object class="GtkSpinButton" id="mathScale">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="invisible_char">●</property>
                         <property name="invisible_char_set">True</property>
                         <property name="progress_pulse_step">0</property>
-                        <property name="adjustment">adjustmentScale2</property>
+                        <property name="adjustment">adjustmentScaleMath</property>
                         <property name="digits">1</property>
                         <property name="numeric">True</property>
                         <property name="update_policy">if-valid</property>
+                        <signal name="value-changed" handler="on_change_scaleMath" object="drawingarea" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -897,14 +1019,15 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkSpinButton" id="ch2Offset1">
+                      <object class="GtkSpinButton" id="mathOffset">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="invisible_char">●</property>
                         <property name="invisible_char_set">True</property>
-                        <property name="adjustment">adjustmentOffset2</property>
+                        <property name="adjustment">adjustmentOffsetMath</property>
                         <property name="numeric">True</property>
                         <property name="update_policy">if-valid</property>
+                        <signal name="value-changed" handler="on_change_offsetMath" object="drawingarea" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>

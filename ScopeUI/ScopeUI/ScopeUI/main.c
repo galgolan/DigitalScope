@@ -4,6 +4,7 @@
 #include "common.h"
 #include "scope.h"
 #include "serial.h"
+#include "config.h"
 
 #define GET_GTK_WIDGET(name) GTK_WIDGET(gtk_builder_get_object(builder, name));
 #define GET_GTK_OBJECT(name) gtk_builder_get_object(builder, name);
@@ -21,21 +22,6 @@ void populate_ui(GtkBuilder* builder)
 	scopeUI.statusBar = GET_GTK_WIDGET("statusbar");
 	scopeUI.listMeasurements = (GtkListStore*)GET_GTK_OBJECT("listMeasurements");
 	//scopeUI.viewMeasurements = GET_GTK_OBJECT("treeview1");
-}
-
-GKeyFile* configuration_load()
-{
-	GKeyFile* keyFile = g_key_file_new();
-	GError* error = NULL;
-
-	if (!g_key_file_load_from_file(keyFile, "settings.ini", G_KEY_FILE_NONE, &error))
-	{
-		// TODO: handle error
-		g_debug("%s", error->message);
-		return NULL;
-	}
-
-	return keyFile;
 }
 
 int main(int argc, char *argv[])
@@ -70,14 +56,16 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	GKeyFile* keyfile = configuration_load();
+	config_open();
 	
 	populate_ui(builder);
-	screen_init(keyfile);
+	screen_init();
 	// TODO: set default values for controls
 	
 	g_object_unref(G_OBJECT(builder));
 	gtk_main();
+
+	config_close();
 
 	return 0;
 }
