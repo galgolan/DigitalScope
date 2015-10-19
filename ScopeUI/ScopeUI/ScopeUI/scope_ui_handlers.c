@@ -9,6 +9,23 @@
 
 #define LOW_FPS	15
 
+void populate_list_store(GtkListStore* listStore, GQueue* items, gboolean clear)
+{
+	if (clear == TRUE)
+		gtk_list_store_clear(listStore);
+
+	for (guint i = 0; i < g_queue_get_length(items); ++i)
+	{
+		char* item = g_queue_peek_nth(items, i);
+		GtkTreeIter iter;
+		gtk_list_store_append(listStore, &iter);
+		gtk_list_store_set(listStore, &iter,
+			0, i,
+			1, item,
+			-1);
+	}
+}
+
 void request_redraw()
 {
 	Scope* scope = scope_get();
@@ -50,20 +67,53 @@ void update_statusbar()
 	g_free(msg);
 }
 
+// return -1 if zero or more than one rows are selected
+gint tree_view_get_selected_index(GtkTreeView* treeView, GtkListStore* listStore)
+{
+	gint index = -1;
+	GtkTreeSelection* selection = gtk_tree_view_get_selection(treeView);
+	if (gtk_tree_selection_count_selected_rows(selection) != 1)
+		return index;
+
+	GtkTreeModel* model = GTK_TREE_MODEL(listStore);
+
+	GList* selectedRows = gtk_tree_selection_get_selected_rows(selection, &model);
+	GtkTreePath* path = (GtkTreePath*)g_list_nth_data(selectedRows, 0);
+	gint* indices = gtk_tree_path_get_indices(path);
+	if (indices == NULL)
+		return index;
+
+	index = indices[0];
+	
+	g_list_free_full(selectedRows, (GDestroyNotify)gtk_tree_path_free);
+
+	return index;
+}
+
+// get selected item and remove it from the TreeView and Scope's measurements list
+// we assume single selection
 G_MODULE_EXPORT
 void on_buttonRemoveMeasurement_clicked(GtkButton* button, gpointer user_data)
 {
 	Scope* scope = scope_get();
 	ScopeUI* ui = common_get_ui();
-
-	// get selected item and remove it from the TreeView and Scope's measurements list
-	// we assume single selection
-	GtkTreeSelection* selection = gtk_tree_view_get_selection(ui->viewMeasurements);
 	GtkTreeModel* model = GTK_TREE_MODEL(ui->listMeasurements);
+		
+	GtkTreeSelection* selection = gtk_tree_view_get_selection(ui->viewMeasurements);
+	if (gtk_tree_selection_count_selected_rows(selection) != 1)
+		return;
+	
+	// remove from scope
+	gint selectedId = tree_view_get_selected_index(ui->viewMeasurements, ui->listMeasurements);
+	g_queue_pop_nth(scope->measurements, selectedId);
+
+	// remove from UI
 	GtkTreeIter iter;
 	if (!gtk_tree_selection_get_selected(selection, &model, &iter))
-		return;	// nothing is selected
-
+	{
+		// TODO: handle error
+		return;
+	}
 	if (!gtk_list_store_remove(ui->listMeasurements, &iter))
 	{
 		// TODO: handle error
@@ -86,13 +136,17 @@ void on_buttonAddMeasurement_clicked(GtkButton* button, gpointer user_data)
 		return;	// user clicked cancel
 	
 	int traceId = gtk_combo_box_get_active(ui->addMeasurementSource);
+	if (traceId == -1)
+		return;
 	Trace* trace = scope_trace_get_nth(traceId);
 
 	GQueue* allMeas = measurement_get_all();
 	int measId = gtk_combo_box_get_active(ui->addMeasurementType);
+	if (measId == -1)
+		return;
 	Measurement* meas = g_queue_peek_nth(allMeas, measId);
 	scope_measurement_add(meas, trace);
-	screen_add_measurement(meas->name, trace->name, 0);
+	screen_add_measurement(meas->name, trace->name, 0, measId);
 }
 
 G_MODULE_EXPORT
@@ -236,4 +290,16 @@ gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data)
 	draw_cursors(widget, cr);
 
 	return FALSE;
+}
+
+G_MODULE_EXPORT
+void treeview_selection2_changed_cb(GtkTreeSelection *treeselection, gpointer user_data)
+{
+	ScopeUI* ui = common_get_ui();
+
+	gint selectedId = tree_view_get_selected_index(ui->treeviewTraces, ui->tracesList);
+	if (selectedId != -1)
+	{
+
+	}
 }

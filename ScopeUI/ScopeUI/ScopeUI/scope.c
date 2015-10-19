@@ -62,6 +62,11 @@ Trace* scope_trace_get_nth(int n)
 	return (Trace*)g_queue_peek_nth(scope.screen.traces, n);
 }
 
+guint scope_trace_get_length()
+{
+	return g_queue_get_length(scope.screen.traces);
+}
+
 MeasurementInstance* scope_measurement_get_nth(int n)
 {
 	return (MeasurementInstance*)g_queue_peek_nth(scope.measurements, n);
@@ -163,18 +168,29 @@ void populate_measurements_combo()
 	ScopeUI* ui = common_get_ui();
 
 	// populate available measurement types
-	gtk_list_store_clear(ui->measurementTypesList);
 	GQueue* meas = measurement_get_all();
+	GQueue* measNames = g_queue_new();
 	for (guint i = 0; i < g_queue_get_length(meas); ++i)
 	{
 		Measurement* m = g_queue_peek_nth(meas, i);
-		GtkTreeIter iter;
-		gtk_list_store_append(ui->measurementTypesList, &iter);
-		gtk_list_store_set(ui->measurementTypesList, &iter,
-			0, i,
-			1, m->name,
-			-1);
+		g_queue_push_tail(measNames, m->name);
 	}
+	populate_list_store(ui->measurementTypesList, measNames, TRUE);
+	g_queue_free(measNames);
+}
+
+void populate_traces_list()
+{
+	ScopeUI* ui = common_get_ui();
+
+	GQueue* traceNames = g_queue_new();
+	for (guint i = 0; i < scope_trace_get_length(); ++i)
+	{
+		Trace* t = scope_trace_get_nth(i);
+		g_queue_push_tail(traceNames, t->name);
+	}
+	populate_list_store(ui->tracesList, traceNames, TRUE);
+	g_queue_free(traceNames);
 }
 
 void screen_init()
@@ -230,10 +246,11 @@ void screen_init()
 	scope.mathTraceDefinition.secondTrace = scope_trace_get_nth(1);
 	mathTrace->visible = FALSE;
 	g_list_free(offsets);
-	// add default measurements
 
+	populate_traces_list();
+	
+	// init measurements
 	populate_measurements_combo();
-
 	scope.measurements = g_queue_new();
 
 	// create serial worker thread
@@ -443,7 +460,7 @@ void screen_clear_measurements()
 	gtk_list_store_clear(ui->listMeasurements);
 }
 
-void screen_add_measurement(const char* name, const char* source, double value)
+void screen_add_measurement(const char* name, const char* source, double value, guint id)
 {
 	ScopeUI* ui = common_get_ui();
 
@@ -454,5 +471,6 @@ void screen_add_measurement(const char* name, const char* source, double value)
 		0, name,
 		1, source,
 		2, value,
+		3, id
 		-1);
 }

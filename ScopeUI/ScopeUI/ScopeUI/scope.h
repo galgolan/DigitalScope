@@ -169,7 +169,7 @@ void screen_draw_traces(GtkWidget *widget, cairo_t *cr);
 
 void screen_fill_background(GtkWidget *widget, cairo_t *cr);
 
-void screen_add_measurement(const char* name, const char* source, double value);
+void screen_add_measurement(const char* name, const char* source, double value, guint id);
 
 void screen_clear_measurements();
 

@@ -5,6 +5,7 @@
 #include "scope.h"
 #include "serial.h"
 #include "config.h"
+#include "scope_ui_handlers.h"
 
 #define GET_GTK_WIDGET(name) GTK_WIDGET(gtk_builder_get_object(builder, name));
 #define GET_GTK_OBJECT(name) gtk_builder_get_object(builder, name);
@@ -26,6 +27,9 @@ void populate_ui(GtkBuilder* builder)
 	scopeUI.addMeasurementSource = (GtkComboBox*)GET_GTK_WIDGET("comboMeasurementSource");
 	scopeUI.addMeasurementType = (GtkComboBox*)GET_GTK_WIDGET("comboMeasurementType");
 	scopeUI.measurementTypesList = (GtkListStore*)GET_GTK_OBJECT("listMeasurementDefinitions");
+	
+	scopeUI.tracesList = (GtkListStore*)GET_GTK_OBJECT("liststoreTraces");
+	scopeUI.treeviewTraces = (GtkTreeView*)GET_GTK_OBJECT("treeviewTraces");
 }
 
 void controls_set_default_values(GtkBuilder* builder)
@@ -58,7 +62,7 @@ int main(int argc, char *argv[])
 
 	builder = gtk_builder_new();
 	gtk_builder_add_from_file(builder, "ui.xml", NULL);
-	
+
 	gtk_builder_connect_signals(builder, NULL);
 
 	window = GET_GTK_WIDGET("window1");
@@ -78,6 +82,7 @@ int main(int argc, char *argv[])
 	config_open();
 	
 	populate_ui(builder);
+
 	//controls_set_default_values(builder);
 	screen_init();
 	// TODO: set default values for controls

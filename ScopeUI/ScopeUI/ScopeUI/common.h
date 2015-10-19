@@ -16,6 +16,10 @@ typedef struct ScopeUI
 	GtkComboBox* addMeasurementSource;
 	GtkComboBox* addMeasurementType;
 	GtkListStore* measurementTypesList;
+
+	// tracelist
+	GtkListStore* tracesList;
+	GtkTreeView* treeviewTraces;
 } ScopeUI;
 
 ScopeUI* common_get_ui();
