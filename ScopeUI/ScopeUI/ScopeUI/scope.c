@@ -129,7 +129,7 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 		for (int i = 0; i < scope.bufferSize; ++i)
 		{
 			//ch2->buffer->data[i] = sin(0.2*n*T) * - 3 * sin(5e3 * n * T);
-			ch1->buffer->data[i] = (float)sin(100e3 * n * T) > 0 ? 1 : 0;	// square wave 100KHz
+			ch1->buffer->data[i] = (float)sin(100e3 * n * T) >= 0.0f ? 1.0f : 0.0f;	// square wave 100KHz
 			ch2->buffer->data[i] = 2 * (float)sin(200e3 * n * T + G_PI/4);	// cosine 200KHz
 
 			++n;
@@ -156,6 +156,25 @@ void cursors_init()
 	scope.cursors.x2.position = 100;
 	scope.cursors.y1.position = 100;
 	scope.cursors.y2.position = 100;
+}
+
+void populate_measurements_combo()
+{
+	ScopeUI* ui = common_get_ui();
+
+	// populate available measurement types
+	gtk_list_store_clear(ui->measurementTypesList);
+	GQueue* meas = measurement_get_all();
+	for (guint i = 0; i < g_queue_get_length(meas); ++i)
+	{
+		Measurement* m = g_queue_peek_nth(meas, i);
+		GtkTreeIter iter;
+		gtk_list_store_append(ui->measurementTypesList, &iter);
+		gtk_list_store_set(ui->measurementTypesList, &iter,
+			0, i,
+			1, m->name,
+			-1);
+	}
 }
 
 void screen_init()
@@ -212,11 +231,10 @@ void screen_init()
 	mathTrace->visible = FALSE;
 	g_list_free(offsets);
 	// add default measurements
+
+	populate_measurements_combo();
+
 	scope.measurements = g_queue_new();
-	scope_measurement_add(&Measurement_PeakToPeak, scope_trace_get_nth(0));
-	scope_measurement_add(&Measurement_PeakToPeak, scope_trace_get_nth(1));
-	scope_measurement_add(&Measurement_RMS, scope_trace_get_nth(0));
-	scope_measurement_add(&Measurement_RMS, scope_trace_get_nth(1));
 
 	// create serial worker thread
 	long serialThreadId;

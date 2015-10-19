@@ -21,7 +21,11 @@ void populate_ui(GtkBuilder* builder)
 	scopeUI.drawingArea = GET_GTK_WIDGET("drawingarea");
 	scopeUI.statusBar = GET_GTK_WIDGET("statusbar");
 	scopeUI.listMeasurements = (GtkListStore*)GET_GTK_OBJECT("listMeasurements");
-	//scopeUI.viewMeasurements = GET_GTK_OBJECT("treeview1");
+	scopeUI.viewMeasurements = (GtkTreeView*)GET_GTK_WIDGET("viewMeasurements");
+	scopeUI.addMeasurementDialog = (GtkDialog*)GET_GTK_WIDGET("dialogAddMeasurement");
+	scopeUI.addMeasurementSource = (GtkComboBox*)GET_GTK_WIDGET("comboMeasurementSource");
+	scopeUI.addMeasurementType = (GtkComboBox*)GET_GTK_WIDGET("comboMeasurementType");
+	scopeUI.measurementTypesList = (GtkListStore*)GET_GTK_OBJECT("listMeasurementDefinitions");
 }
 
 void controls_set_default_values(GtkBuilder* builder)

@@ -30,7 +30,7 @@ GList* config_get_int_list(const char* group, const char* key)
 	for (i = 0; i < count; ++i)
 	{
 		int value = valuesArray[i];
-		values = g_list_append(values, value);
+		values = g_list_append(values, GINT_TO_POINTER(value));
 	}
 
 	g_free(valuesArray);

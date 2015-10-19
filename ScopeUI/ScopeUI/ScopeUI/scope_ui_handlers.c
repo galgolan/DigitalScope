@@ -5,6 +5,7 @@
 #include "common.h"
 #include "scope.h"
 #include "scope_ui_handlers.h"
+#include "measurement.h"
 
 #define LOW_FPS	15
 
@@ -30,11 +31,6 @@ void force_redraw()
 	gdk_window_invalidate_rect(window, &rect, FALSE);
 }
 
-void update_measurements()
-{
-
-}
-
 void update_statusbar()
 {
 	// CH1: xv/div, CH2: yv/div, Time: 1ms/div
@@ -52,6 +48,51 @@ void update_statusbar()
 
 	guint remove = gtk_statusbar_push(GTK_STATUSBAR(ui->statusBar), context_id, msg);
 	g_free(msg);
+}
+
+G_MODULE_EXPORT
+void on_buttonRemoveMeasurement_clicked(GtkButton* button, gpointer user_data)
+{
+	Scope* scope = scope_get();
+	ScopeUI* ui = common_get_ui();
+
+	// get selected item and remove it from the TreeView and Scope's measurements list
+	// we assume single selection
+	GtkTreeSelection* selection = gtk_tree_view_get_selection(ui->viewMeasurements);
+	GtkTreeModel* model = GTK_TREE_MODEL(ui->listMeasurements);
+	GtkTreeIter iter;
+	if (!gtk_tree_selection_get_selected(selection, &model, &iter))
+		return;	// nothing is selected
+
+	if (!gtk_list_store_remove(ui->listMeasurements, &iter))
+	{
+		// TODO: handle error
+	}
+}
+
+G_MODULE_EXPORT
+void on_buttonAddMeasurement_clicked(GtkButton* button, gpointer user_data)
+{
+	Scope* scope = scope_get();
+	ScopeUI* ui = common_get_ui();
+
+	gtk_combo_box_set_active(ui->addMeasurementSource, -1);
+	gtk_combo_box_set_active(ui->addMeasurementType, -1);
+
+	GtkDialog* dlg = ui->addMeasurementDialog;
+	gint response = gtk_dialog_run(dlg);
+	gtk_widget_hide((GtkWidget*)dlg);
+	if (response == 0)
+		return;	// user clicked cancel
+	
+	int traceId = gtk_combo_box_get_active(ui->addMeasurementSource);
+	Trace* trace = scope_trace_get_nth(traceId);
+
+	GQueue* allMeas = measurement_get_all();
+	int measId = gtk_combo_box_get_active(ui->addMeasurementType);
+	Measurement* meas = g_queue_peek_nth(allMeas, measId);
+	scope_measurement_add(meas, trace);
+	screen_add_measurement(meas->name, trace->name, 0);
 }
 
 G_MODULE_EXPORT
@@ -172,7 +213,7 @@ G_MODULE_EXPORT
 void sampleRateSpin_value_changed_cb(GtkSpinButton *spin_button, gpointer user_data)
 {
 	Scope* scope = scope_get();
-	scope->screen.dt = 1e-3 / gtk_spin_button_get_value(spin_button);	// this is in KHz
+	scope->screen.dt = 1e-3f / (float)gtk_spin_button_get_value(spin_button);	// this is in KHz
 	request_redraw();
 	update_statusbar();
 }

@@ -21,60 +21,93 @@ Measurement Measurement_Maximum = { .name = "Maximum", .measure = measure_max };
 Measurement Measurement_PeakToPeak = { .name = "Vpp", .measure = measure_vpp };
 Measurement Measurement_RMS = { .name = "Vrms", .measure = measure_rms };
 
+GQueue* measurement_get_all()
+{
+	static gboolean ready = FALSE;
+	static GQueue* allMeasurements = NULL;
+
+	if (ready == FALSE)
+	{
+		allMeasurements = g_queue_new();
+
+		// build list
+		g_queue_push_tail(allMeasurements, &Measurement_Average);
+		g_queue_push_tail(allMeasurements, &Measurement_Minimum);
+		g_queue_push_tail(allMeasurements, &Measurement_Maximum);
+		g_queue_push_tail(allMeasurements, &Measurement_PeakToPeak);
+		g_queue_push_tail(allMeasurements, &Measurement_RMS);
+
+		ready = TRUE;
+	}
+
+	return allMeasurements;
+}
+
 typedef struct AddMeasurementMessage
 {
 	const MeasurementInstance* measurement;
 	double value;	
 } AddMeasurementMessage;
 
-gboolean clear_measurements_callback(gpointer data)
+gboolean update_measurement_callback(gpointer data)
 {
-	screen_clear_measurements();
+	ScopeUI* scopeUI = common_get_ui();
+	GQueue* msgs = (GQueue*)data;
+	GtkTreeIter iter;
+	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(scopeUI->listMeasurements), &iter);
+
+	for (guint i = 0; i < g_queue_get_length(msgs); ++i)
+	{
+		if (!gtk_list_store_iter_is_valid(scopeUI->listMeasurements, &iter))
+			break;
+
+		AddMeasurementMessage* msg = (AddMeasurementMessage*)g_queue_peek_nth(msgs, i);
+		gtk_list_store_set(scopeUI->listMeasurements, &iter,
+			2, msg->value,
+			-1);
+
+		if (!gtk_tree_model_iter_next(GTK_TREE_MODEL(scopeUI->listMeasurements), &iter))
+			break;
+	}
+
+	g_queue_free_full(msgs, free);
 
 	return G_SOURCE_REMOVE;
 }
 
-gboolean add_measurement_callback(gpointer data)
-{
-	AddMeasurementMessage* msg = (AddMeasurementMessage*)data;
-	screen_add_measurement(msg->measurement->measurement->name, msg->measurement->trace->name, msg->value);
-
-	free(msg);
-
-	return G_SOURCE_REMOVE;
-}
-
-void process_measurement(const MeasurementInstance* measurement)
+AddMeasurementMessage* process_measurement(const MeasurementInstance* measurement)
 {
 	SampleBuffer* data = measurement->trace->samples;
 	float result = measurement->measurement->measure(data);
 
 	// add results to UI
 	AddMeasurementMessage* msg = malloc(sizeof(AddMeasurementMessage));
-	// TODO: check mem allocation
 	msg->measurement = measurement;
 	msg->value = result;
 
-	guint source_id = gdk_threads_add_idle_full(G_PRIORITY_DEFAULT, add_measurement_callback, msg, NULL);
+	return msg;
 }
 
 DWORD WINAPI measurement_worker_thread(LPVOID param)
 {
 	Scope* scope = scope_get();
+	
 
 	while (TRUE)
 	{
-		// signal the UI to clear the list
-		guint source_id = gdk_threads_add_idle_full(G_PRIORITY_DEFAULT, clear_measurements_callback, NULL, NULL);
-
 		if (scope->display_mode == DISPLAY_MODE_WAVEFORM)
 		{
+			GQueue* msgs = g_queue_new();
+
 			// iterate over all measurements and update them
-			for (int i = 0; i < g_queue_get_length(scope->measurements); ++i)
+			for (guint i = 0; i < g_queue_get_length(scope->measurements); ++i)
 			{
 				MeasurementInstance* meas = scope_measurement_get_nth(i);
-				process_measurement(meas);
+				AddMeasurementMessage* msg = process_measurement(meas);
+				g_queue_push_tail(msgs, msg);
 			}
+
+			guint source_id = gdk_threads_add_idle_full(G_PRIORITY_DEFAULT, update_measurement_callback, msgs, NULL);
 		}
 
 		Sleep(300);

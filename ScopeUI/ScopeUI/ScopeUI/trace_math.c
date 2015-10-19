@@ -27,10 +27,12 @@ void math_update_trace()
 void math_trace_dft_amplitude(const SampleBuffer* first, const SampleBuffer* second, SampleBuffer* result)
 {
 	Scope* scope = scope_get();
-	int N = scope->bufferSize;
+	ScopeUI* ui = common_get_ui();
+	int width = gtk_widget_get_allocated_width(ui->drawingArea);
+	int N = MIN(width,scope->bufferSize);
 	int k,n;
 	const float* x = first->data;
-	float PI2N = G_PI * 2 / N;
+	double PI2N = G_PI * 2 / N;
 
 	for (k = 0; k<N; ++k)
 	{
@@ -51,8 +53,9 @@ void math_trace_difference(const SampleBuffer* first, const SampleBuffer* second
 {
 	int i;
 	Scope* scope = scope_get();
-
-	for (i = 0; i < scope->bufferSize; ++i)
+	ScopeUI* ui = common_get_ui();
+	int width = gtk_widget_get_allocated_width(ui->drawingArea);
+	for (i = 0; i < MIN(width,scope->bufferSize); ++i)
 	{
 		result->data[i] = first->data[i] - second->data[i];
 	}

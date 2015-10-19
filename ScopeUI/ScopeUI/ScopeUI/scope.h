@@ -183,6 +183,8 @@ void force_redraw();
 
 MeasurementInstance* scope_measurement_get_nth(int n);
 
+MeasurementInstance* scope_measurement_add(Measurement* measurement, Trace* source);
+
 AnalogChannel* scope_channel_get_nth(int n);
 
 Trace* scope_trace_get_nth(int n);
