@@ -477,7 +477,7 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="hexpand">True</property>
-            <property name="border_width">1</property>
+            <property name="spacing">3</property>
             <child>
               <object class="GtkBox" id="box2">
                 <property name="visible">True</property>
@@ -592,6 +592,7 @@
                   <object class="GtkSeparator" id="separator4">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="hexpand">True</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -706,8 +707,8 @@
                 </child>
               </object>
               <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
                 <property name="position">0</property>
               </packing>
             </child>
@@ -715,6 +716,7 @@
               <object class="GtkSeparator" id="separator1">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="vexpand">True</property>
                 <property name="orientation">vertical</property>
               </object>
               <packing>
@@ -1007,8 +1009,8 @@
                 </child>
               </object>
               <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
                 <property name="position">2</property>
               </packing>
             </child>
@@ -1016,6 +1018,7 @@
               <object class="GtkSeparator" id="separator2">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="vexpand">True</property>
                 <property name="orientation">vertical</property>
               </object>
               <packing>
@@ -1221,6 +1224,8 @@
                   <object class="GtkTreeView" id="treeviewTraces">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="margin_left">3</property>
+                    <property name="margin_right">3</property>
                     <property name="model">liststoreTraces</property>
                     <property name="headers_visible">False</property>
                     <property name="headers_clickable">False</property>
@@ -1250,7 +1255,7 @@
                 </child>
               </object>
               <packing>
-                <property name="expand">False</property>
+                <property name="expand">True</property>
                 <property name="fill">True</property>
                 <property name="position">4</property>
               </packing>
@@ -1259,6 +1264,7 @@
               <object class="GtkSeparator" id="separator3">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="vexpand">True</property>
                 <property name="orientation">vertical</property>
               </object>
               <packing>
@@ -1290,6 +1296,8 @@
                   <object class="GtkTreeView" id="viewMeasurements">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="margin_left">3</property>
+                    <property name="margin_right">3</property>
                     <property name="vscroll_policy">natural</property>
                     <property name="model">listMeasurements</property>
                     <property name="expander_column">Measurement</property>
@@ -1393,7 +1401,7 @@
             </child>
           </object>
           <packing>
-            <property name="expand">False</property>
+            <property name="expand">True</property>
             <property name="fill">True</property>
             <property name="position">2</property>
           </packing>
