@@ -22,6 +22,9 @@
     <ClCompile Include="config.c">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="drawing.c">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h">
@@ -46,6 +49,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="resource.h" />
+    <ClInclude Include="drawing.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ui.xml">

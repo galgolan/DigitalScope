@@ -16,6 +16,10 @@ RemoteSystemsTempFiles/*
 *.ko
 *.obj
 *.elf
+*.psess
+*.aps
+*.vspx
+*.opensdf
 
 # Precompiled Headers
 *.gch

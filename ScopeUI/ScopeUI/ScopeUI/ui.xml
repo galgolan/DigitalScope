@@ -209,8 +209,6 @@
       <column type="gchararray"/>
       <!-- column-name Value -->
       <column type="gfloat"/>
-      <!-- column-name Id -->
-      <column type="guint"/>
     </columns>
   </object>
   <object class="GtkListStore" id="liststoreMathSources">
@@ -244,14 +242,6 @@
         <col id="1" translatable="yes">DFT</col>
       </row>
     </data>
-  </object>
-  <object class="GtkListStore" id="liststoreTraces">
-    <columns>
-      <!-- column-name id -->
-      <column type="guint"/>
-      <!-- column-name name -->
-      <column type="gchararray"/>
-    </columns>
   </object>
   <object class="GtkListStore" id="liststoreTriggerModes">
     <columns>
@@ -463,6 +453,7 @@
             <property name="app_paintable">True</property>
             <property name="can_focus">False</property>
             <signal name="draw" handler="on_draw" swapped="no"/>
+            <signal name="size-allocate" handler="on_drawing_area_resize" swapped="no"/>
           </object>
           <packing>
             <property name="expand">True</property>
@@ -477,7 +468,7 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="hexpand">True</property>
-            <property name="spacing">3</property>
+            <property name="border_width">1</property>
             <child>
               <object class="GtkBox" id="box2">
                 <property name="visible">True</property>
@@ -592,7 +583,6 @@
                   <object class="GtkSeparator" id="separator4">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="hexpand">True</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -707,8 +697,8 @@
                 </child>
               </object>
               <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">0</property>
               </packing>
             </child>
@@ -716,7 +706,6 @@
               <object class="GtkSeparator" id="separator1">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="vexpand">True</property>
                 <property name="orientation">vertical</property>
               </object>
               <packing>
@@ -1009,8 +998,8 @@
                 </child>
               </object>
               <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">2</property>
               </packing>
             </child>
@@ -1018,7 +1007,6 @@
               <object class="GtkSeparator" id="separator2">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="vexpand">True</property>
                 <property name="orientation">vertical</property>
               </object>
               <packing>
@@ -1221,41 +1209,11 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkTreeView" id="treeviewTraces">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="margin_left">3</property>
-                    <property name="margin_right">3</property>
-                    <property name="model">liststoreTraces</property>
-                    <property name="headers_visible">False</property>
-                    <property name="headers_clickable">False</property>
-                    <child internal-child="selection">
-                      <object class="GtkTreeSelection" id="treeview-selection2">
-                        <signal name="changed" handler="treeview_selection2_changed_cb" swapped="no"/>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn" id="treeviewcolumn1">
-                        <property name="title" translatable="yes">column</property>
-                        <child>
-                          <object class="GtkCellRendererText" id="cellrenderertext11"/>
-                          <attributes>
-                            <attribute name="text">1</attribute>
-                          </attributes>
-                        </child>
-                      </object>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="padding">1</property>
-                    <property name="position">3</property>
-                  </packing>
+                  <placeholder/>
                 </child>
               </object>
               <packing>
-                <property name="expand">True</property>
+                <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">4</property>
               </packing>
@@ -1264,7 +1222,6 @@
               <object class="GtkSeparator" id="separator3">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="vexpand">True</property>
                 <property name="orientation">vertical</property>
               </object>
               <packing>
@@ -1296,13 +1253,12 @@
                   <object class="GtkTreeView" id="viewMeasurements">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="margin_left">3</property>
-                    <property name="margin_right">3</property>
                     <property name="vscroll_policy">natural</property>
                     <property name="model">listMeasurements</property>
                     <property name="expander_column">Measurement</property>
                     <property name="enable_search">False</property>
                     <property name="search_column">0</property>
+                    <property name="rubber_banding">True</property>
                     <property name="enable_grid_lines">both</property>
                     <child internal-child="selection">
                       <object class="GtkTreeSelection" id="treeview-selection"/>
@@ -1401,7 +1357,7 @@
             </child>
           </object>
           <packing>
-            <property name="expand">True</property>
+            <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">2</property>
           </packing>

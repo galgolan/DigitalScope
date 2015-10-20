@@ -6,8 +6,7 @@
 #include "scope.h"
 #include "scope_ui_handlers.h"
 #include "measurement.h"
-
-#define LOW_FPS	15
+#include "drawing.h"
 
 void populate_list_store(GtkListStore* listStore, GQueue* items, gboolean clear)
 {
@@ -24,28 +23,6 @@ void populate_list_store(GtkListStore* listStore, GQueue* items, gboolean clear)
 			1, item,
 			-1);
 	}
-}
-
-void request_redraw()
-{
-	Scope* scope = scope_get();
-	if ((scope->screen.fps < LOW_FPS) || (scope->state == SCOPE_STATE_PAUSED))
-		force_redraw();
-}
-
-void force_redraw()
-{
-	ScopeUI* ui = common_get_ui();
-	GdkWindow* window = gtk_widget_get_window(ui->drawingArea);
-
-	// TODO: what about persistency (not clearing the display) ?
-
-	GdkRectangle rect;
-	rect.x = 0;
-	rect.y = 0;
-	rect.width = gtk_widget_get_allocated_width(ui->drawingArea);
-	rect.height = gtk_widget_get_allocated_height(ui->drawingArea);
-	gdk_window_invalidate_rect(window, &rect, FALSE);
 }
 
 void update_statusbar()
@@ -153,7 +130,7 @@ G_MODULE_EXPORT
 void checkMathVisible_toggled(GtkToggleButton* btn, gpointer user_data)
 {
 	scope_trace_get_math()->visible = gtk_toggle_button_get_active(btn);
-	request_redraw();
+	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
@@ -161,7 +138,7 @@ void cursorsButton_toggle(GtkToggleButton* btn, gpointer user_data)
 {
 	Scope* scope = scope_get();
 	scope->cursors.visible = gtk_toggle_button_get_active(btn);
-	request_redraw();
+	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
@@ -169,7 +146,7 @@ void on_displayModeButton_toggled(GtkToggleButton* displayModeButton, gpointer u
 {
 	Scope* scope = scope_get();
 	scope->display_mode = gtk_toggle_button_get_active(displayModeButton);
-	request_redraw();
+	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
@@ -177,7 +154,7 @@ void runButton_toggled(GtkToggleButton* runButton, gpointer user_data)
 {
 	Scope* scope = scope_get();
 	scope->state = gtk_toggle_button_get_active(runButton);
-	force_redraw();	// make sure the display is most updated as possible
+	drawing_redraw();	// make sure the display is most updated as possible
 }
 
 // TODO: add finalize and remove timeout callback source
@@ -192,14 +169,14 @@ G_MODULE_EXPORT
 void on_checkCh1Visible_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 {
 	scope_trace_get_nth(0)->visible = gtk_toggle_button_get_active(togglebutton);
-	request_redraw();
+	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
 void on_checkCh2Visible_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 {
 	scope_trace_get_nth(1)->visible = gtk_toggle_button_get_active(togglebutton);
-	request_redraw();
+	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
@@ -207,7 +184,7 @@ void on_change_scaleMath(GtkSpinButton *spin_button, gpointer user_data)
 {
 	scope_trace_get_math()->scale = (float)gtk_spin_button_get_value(spin_button);
 	//update_statusbar();
-	request_redraw();
+	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
@@ -216,14 +193,14 @@ void on_math_source_changed(GtkComboBox *widget, gpointer user_data)
 	int sourceChannel = gtk_combo_box_get_active(widget);
 	Scope* scope = scope_get();
 	scope->mathTraceDefinition.firstTrace = scope_trace_get_nth(sourceChannel);
-	request_redraw();
+	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
 void on_change_offsetMath(GtkSpinButton *spin_button, gpointer user_data)
 {
 	scope_trace_get_math()->offset = -1 * (int)gtk_spin_button_get_value(spin_button);
-	request_redraw();
+	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
@@ -231,14 +208,14 @@ void on_change_scale1(GtkSpinButton *spin_button, gpointer user_data)
 {
 	scope_trace_get_nth(0)->scale = (float)gtk_spin_button_get_value(spin_button);
 	update_statusbar();
-	request_redraw();
+	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
 void on_change_offset1(GtkSpinButton *spin_button, gpointer user_data)
 {
 	scope_trace_get_nth(0)->offset = -1 * (int)gtk_spin_button_get_value(spin_button);
-	request_redraw();
+	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
@@ -246,20 +223,19 @@ void on_change_scale2(GtkSpinButton *spin_button, gpointer user_data)
 {
 	scope_trace_get_nth(1)->scale = (float)gtk_spin_button_get_value(spin_button);
 	update_statusbar();
-	request_redraw();
+	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
 void on_change_offset2(GtkSpinButton *spin_button, gpointer user_data)
 {
 	scope_trace_get_nth(1)->offset = -1 * (int)gtk_spin_button_get_value(spin_button);
-	request_redraw();
+	drawing_request_redraw();
 }
 
 gboolean timeout_callback(gpointer data)
 {
-	force_redraw();
-
+	drawing_request_redraw();
 	return G_SOURCE_REMOVE;
 }
 
@@ -268,7 +244,7 @@ void sampleRateSpin_value_changed_cb(GtkSpinButton *spin_button, gpointer user_d
 {
 	Scope* scope = scope_get();
 	scope->screen.dt = 1e-3f / (float)gtk_spin_button_get_value(spin_button);	// this is in KHz
-	request_redraw();
+	drawing_request_redraw();
 	update_statusbar();
 }
 
@@ -276,19 +252,7 @@ void sampleRateSpin_value_changed_cb(GtkSpinButton *spin_button, gpointer user_d
 G_MODULE_EXPORT
 gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data)
 {
-	gint w = 0;
-	guint width, height;
-	Scope* scope = scope_get();
-
-	screen_fill_background(widget, cr);
-	screen_draw_grid(widget, cr);
-
-	width = gtk_widget_get_allocated_width(widget);
-	height = gtk_widget_get_allocated_height(widget);
-
-	screen_draw_traces(widget, cr);
-	draw_cursors(widget, cr);
-
+	drawing_copy_from_buffer(cr);
 	return FALSE;
 }
 
@@ -300,6 +264,12 @@ void treeview_selection2_changed_cb(GtkTreeSelection *treeselection, gpointer us
 	gint selectedId = tree_view_get_selected_index(ui->treeviewTraces, ui->tracesList);
 	if (selectedId != -1)
 	{
-
+		// TODO: update selected trace in Scope
 	}
+}
+
+G_MODULE_EXPORT
+void on_drawing_area_resize(GtkWidget *widget, GdkRectangle *allocation, gpointer user_data)
+{
+	drawing_resize(allocation->width, allocation->height);
 }
