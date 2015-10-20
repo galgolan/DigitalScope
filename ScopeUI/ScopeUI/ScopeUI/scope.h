@@ -157,29 +157,19 @@ typedef struct Scope
 	int bufferSize;		// TODO: remove (and use SampleBuffer.size instead)
 } Scope;
 
-void trace_draw(const Trace* trace, GtkWidget *widget, cairo_t *cr);
+
 
 void screen_init();
 
 Scope* scope_get();
 
-void screen_draw_grid(GtkWidget *widget, cairo_t *cr);
 
-void screen_draw_traces(GtkWidget *widget, cairo_t *cr);
-
-void screen_fill_background(GtkWidget *widget, cairo_t *cr);
 
 void screen_add_measurement(const char* name, const char* source, double value, guint id);
 
 void screen_clear_measurements();
 
-void draw_cursors(GtkWidget *widget, cairo_t *cr);
 
-// redraws the screen immediately if the FPS is low. Ignores the redraw if the FPS is high.
-void request_redraw();
-
-// forces a redraw of the scope screen
-void force_redraw();
 
 MeasurementInstance* scope_measurement_get_nth(int n);
 

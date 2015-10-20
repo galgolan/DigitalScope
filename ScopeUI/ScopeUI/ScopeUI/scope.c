@@ -187,7 +187,7 @@ void populate_traces_list()
 	for (guint i = 0; i < scope_trace_get_length(); ++i)
 	{
 		Trace* t = scope_trace_get_nth(i);
-		g_queue_push_tail(traceNames, t->name);
+		g_queue_push_tail(traceNames, (gpointer)t->name);
 	}
 	populate_list_store(ui->tracesList, traceNames, TRUE);
 	g_queue_free(traceNames);

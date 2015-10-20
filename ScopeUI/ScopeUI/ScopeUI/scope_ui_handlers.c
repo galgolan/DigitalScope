@@ -235,7 +235,7 @@ void on_change_offset2(GtkSpinButton *spin_button, gpointer user_data)
 
 gboolean timeout_callback(gpointer data)
 {
-	drawing_request_redraw();
+	drawing_redraw();
 	return G_SOURCE_REMOVE;
 }
 
@@ -271,5 +271,5 @@ void treeview_selection2_changed_cb(GtkTreeSelection *treeselection, gpointer us
 G_MODULE_EXPORT
 void on_drawing_area_resize(GtkWidget *widget, GdkRectangle *allocation, gpointer user_data)
 {
-	drawing_resize(allocation->width, allocation->height);
+	drawing_request_redraw();
 }

@@ -452,6 +452,9 @@
             <property name="visible">True</property>
             <property name="app_paintable">True</property>
             <property name="can_focus">False</property>
+            <property name="double_buffered">False</property>
+            <property name="margin_left">3</property>
+            <property name="margin_right">3</property>
             <signal name="draw" handler="on_draw" swapped="no"/>
             <signal name="size-allocate" handler="on_drawing_area_resize" swapped="no"/>
           </object>

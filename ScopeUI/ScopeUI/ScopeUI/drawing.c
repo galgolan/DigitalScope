@@ -9,27 +9,11 @@ static cairo_t*	drawing_context = NULL;
 
 void drawing_resize(int width, int height)
 {
-	cairo_destroy(drawing_context);
-	drawing_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
-	drawing_context = cairo_create(drawing_surface);
-}
-
-void drawing_buffer_init()
-{
-	static gboolean first = TRUE;
-	if (first == FALSE)
-		return;
-
-	ScopeUI* ui = common_get_ui();
-
-	// prepare surface for drawing
-	int width = gtk_widget_get_allocated_width(ui->drawingArea);
-	int  height = gtk_widget_get_allocated_height(ui->drawingArea);
+	if (drawing_context != NULL)
+		cairo_destroy(drawing_context);
 
 	drawing_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
 	drawing_context = cairo_create(drawing_surface);
-
-	first = FALSE;
 }
 
 int drawing_get_width()
@@ -39,7 +23,26 @@ int drawing_get_width()
 
 int drawing_get_height()
 {
-	int height = cairo_image_surface_get_height(cairo_get_target(drawing_context));
+	return cairo_image_surface_get_height(cairo_get_target(drawing_context));
+}
+
+void drawing_buffer_init()
+{
+	static gboolean first = TRUE;
+	ScopeUI* ui = common_get_ui();
+	int window_width = gtk_widget_get_allocated_width(ui->drawingArea);
+	int window_height = gtk_widget_get_allocated_height(ui->drawingArea);
+
+	if ((first == TRUE)
+		|| (window_width != drawing_get_width())
+		|| (window_height != drawing_get_height)
+		)
+	{
+		// prepare surface for drawing
+		drawing_resize(window_width, window_height);
+	}
+
+	first = FALSE;
 }
 
 
@@ -262,6 +265,8 @@ void screen_draw_traces()
 // draws to the internal buffer
 void drawing_update_buffer()
 {
+	ScopeUI* ui = common_get_ui();
+
 	drawing_buffer_init();
 
 	screen_fill_background();
