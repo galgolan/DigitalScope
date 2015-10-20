@@ -35,7 +35,7 @@ void drawing_buffer_init()
 
 	if ((first == TRUE)
 		|| (window_width != drawing_get_width())
-		|| (window_height != drawing_get_height)
+		|| (window_height != drawing_get_height())
 		)
 	{
 		// prepare surface for drawing
