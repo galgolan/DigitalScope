@@ -3,9 +3,9 @@
 
 #include <Windows.h>
 
-#include "common.h"
 #include "scope.h"
 #include "measurement.h"
+#include "scope_ui_handlers.h"
 
 // measurement prototypes
 float measure_avg(SampleBuffer* samples);

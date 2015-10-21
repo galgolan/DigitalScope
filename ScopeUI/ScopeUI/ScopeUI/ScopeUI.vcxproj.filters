@@ -27,9 +27,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="common.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="scope.h">
       <Filter>Headers</Filter>
     </ClInclude>

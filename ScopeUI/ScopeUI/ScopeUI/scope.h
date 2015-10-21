@@ -2,11 +2,8 @@
 #define _SCREEN_H_
 
 #include <stdbool.h>
-
+#include <gtk-3.0\gtk\gtk.h>
 #include <glib-2.0\glib.h>
-
-//#define BUFFER_SIZE	2048		// TODO: match this to the Scope's buffer ?
-//#define SCOPE_NUM_ANALOG_CHANNELS	2
 
 typedef struct SampleBuffer
 {
@@ -101,6 +98,7 @@ typedef struct Screen
 typedef struct AnalogChannel
 {
 	bool enabled;
+	int probeRatio;
 	SampleBuffer* buffer;
 } AnalogChannel;
 

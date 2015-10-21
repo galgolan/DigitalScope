@@ -2,25 +2,64 @@
 #include <math.h>
 #include <string.h>
 
-#include "common.h"
 #include "scope.h"
 #include "scope_ui_handlers.h"
 #include "measurement.h"
 #include "drawing.h"
 
+static ScopeUI scopeUI;
+
+ScopeUI* common_get_ui()
+{
+	return &scopeUI;
+}
+
+void populate_ui(GtkBuilder* builder)
+{
+	scopeUI.drawingArea = GET_GTK_WIDGET("drawingarea");
+	scopeUI.statusBar = GET_GTK_WIDGET("statusbar");
+	scopeUI.listMeasurements = (GtkListStore*)GET_GTK_OBJECT("listMeasurements");
+	scopeUI.viewMeasurements = (GtkTreeView*)GET_GTK_WIDGET("viewMeasurements");
+	scopeUI.addMeasurementDialog = (GtkDialog*)GET_GTK_WIDGET("dialogAddMeasurement");
+	scopeUI.addMeasurementSource = (GtkComboBox*)GET_GTK_WIDGET("comboMeasurementSource");
+	scopeUI.addMeasurementType = (GtkComboBox*)GET_GTK_WIDGET("comboMeasurementType");
+	scopeUI.measurementTypesList = (GtkListStore*)GET_GTK_OBJECT("listMeasurementDefinitions");
+
+	scopeUI.tracesList = (GtkListStore*)GET_GTK_OBJECT("liststoreTraces");
+	scopeUI.treeviewTraces = (GtkTreeView*)GET_GTK_OBJECT("treeviewTraces");
+
+	scopeUI.liststoreProbeRatio = (GtkListStore*)GET_GTK_OBJECT("liststoreProbeRatio");
+	scopeUI.comboChannel1Probe = (GtkComboBox*)GET_GTK_OBJECT("comboChannel1Probe");
+	scopeUI.comboChannel2Probe = (GtkComboBox*)GET_GTK_OBJECT("comboChannel2Probe");
+}
+
 void populate_list_store(GtkListStore* listStore, GQueue* items, gboolean clear)
+{
+	GQueue* values = g_queue_new();
+	for (guint i = 0; i < g_queue_get_length(items); ++i)
+	{
+		g_queue_push_tail(values, GINT_TO_POINTER(i));
+	}
+
+	populate_list_store_values_int(listStore, items, values, clear);
+	g_queue_free(values);
+}
+
+void populate_list_store_values_int(GtkListStore* listStore, GQueue* names, GQueue* values, gboolean clear)
 {
 	if (clear == TRUE)
 		gtk_list_store_clear(listStore);
 
-	for (guint i = 0; i < g_queue_get_length(items); ++i)
+	for (guint i = 0; i < g_queue_get_length(names); ++i)
 	{
-		char* item = g_queue_peek_nth(items, i);
+		char* name = g_queue_peek_nth(names, i);
+		int value = g_queue_peek_nth(values, i);
+
 		GtkTreeIter iter;
 		gtk_list_store_append(listStore, &iter);
 		gtk_list_store_set(listStore, &iter,
-			0, i,
-			1, item,
+			0, value,
+			1, name,
 			-1);
 	}
 }
@@ -193,6 +232,38 @@ void on_math_source_changed(GtkComboBox *widget, gpointer user_data)
 	int sourceChannel = gtk_combo_box_get_active(widget);
 	Scope* scope = scope_get();
 	scope->mathTraceDefinition.firstTrace = scope_trace_get_nth(sourceChannel);
+	drawing_request_redraw();
+}
+
+G_MODULE_EXPORT
+void on_comboChannel1Probe_changed(GtkComboBox *widget, gpointer user_data)
+{
+	GtkTreeIter iter;
+	guint ratio;
+	gtk_combo_box_get_active_iter(widget, &iter);
+	gtk_tree_model_get(scopeUI.liststoreProbeRatio, &iter,
+		0, &ratio);
+
+	Scope* scope = scope_get();
+	AnalogChannel* ch = g_queue_peek_nth(scope->channels, 0);
+	ch->probeRatio = ratio;
+	
+	drawing_request_redraw();
+}
+
+G_MODULE_EXPORT
+void on_comboChannel2Probe_changed(GtkComboBox *widget, gpointer user_data)
+{
+	GtkTreeIter iter;
+	guint ratio;
+	gtk_combo_box_get_active_iter(widget, &iter);
+	gtk_tree_model_get(scopeUI.liststoreProbeRatio, &iter,
+		0, &ratio);
+
+	Scope* scope = scope_get();
+	AnalogChannel* ch = g_queue_peek_nth(scope->channels, 1);
+	ch->probeRatio = ratio;
+
 	drawing_request_redraw();
 }
 

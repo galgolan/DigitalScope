@@ -7,7 +7,6 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "common.h"
 #include "scope.h"
 #include "measurement.h"
 #include "trace_math.h"
@@ -32,6 +31,7 @@ AnalogChannel* scope_channel_add_new()
 
 	channel->buffer = sample_buffer_create(scope.bufferSize);
 	channel->enabled = TRUE;
+	channel->probeRatio = 1;
 
 	return channel;
 }
@@ -163,6 +163,38 @@ void cursors_init()
 	scope.cursors.y2.position = 200;
 }
 
+void populate_probe_list_store()
+{
+	ScopeUI* ui = common_get_ui();
+
+	GList* ratios = config_get_int_list("hardware", "probeRatios");
+	GList* it = ratios;
+	
+	GQueue* names = g_queue_new();
+	GQueue* values = g_queue_new();
+
+	for (guint i = 0; i < g_list_length(ratios); ++i)
+	{
+		int value = it->data;
+		char* name = malloc(sizeof(char) * 10);
+		sprintf(name, "1:%d", value);
+
+		g_queue_push_tail(values, value);		
+		g_queue_push_tail(names, name);
+
+		it = it->next;
+	}
+
+	populate_list_store_values_int(ui->liststoreProbeRatio, names, values, TRUE);
+
+	g_list_free(names);
+	g_list_free(values);
+	g_list_free(ratios);
+
+	gtk_combo_box_set_active(ui->comboChannel1Probe, 0);
+	gtk_combo_box_set_active(ui->comboChannel2Probe, 0);
+}
+
 void populate_measurements_combo()
 {
 	ScopeUI* ui = common_get_ui();
@@ -218,6 +250,8 @@ void screen_init()
 	int numChannels = config_get_int("hardware", "channels");
 	for (int i = 0; i < numChannels; ++i)
 		scope_channel_add_new();
+	
+	populate_probe_list_store();
 
 	// create traces for the analog channels
 	scope.screen.traces = g_queue_new();
@@ -275,8 +309,6 @@ Scope* scope_get()
 {
 	return &scope;
 }
-
-
 
 void screen_clear_measurements()
 {

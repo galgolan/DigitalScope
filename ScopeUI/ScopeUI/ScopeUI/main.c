@@ -1,36 +1,10 @@
 #include <gtk-3.0\gtk\gtk.h>
 #include <glib-2.0\glib.h>
 
-#include "common.h"
 #include "scope.h"
 #include "serial.h"
 #include "config.h"
 #include "scope_ui_handlers.h"
-
-#define GET_GTK_WIDGET(name) GTK_WIDGET(gtk_builder_get_object(builder, name));
-#define GET_GTK_OBJECT(name) gtk_builder_get_object(builder, name);
-
-static ScopeUI scopeUI;
-
-ScopeUI* common_get_ui()
-{
-	return &scopeUI;
-}
-
-void populate_ui(GtkBuilder* builder)
-{
-	scopeUI.drawingArea = GET_GTK_WIDGET("drawingarea");
-	scopeUI.statusBar = GET_GTK_WIDGET("statusbar");
-	scopeUI.listMeasurements = (GtkListStore*)GET_GTK_OBJECT("listMeasurements");
-	scopeUI.viewMeasurements = (GtkTreeView*)GET_GTK_WIDGET("viewMeasurements");
-	scopeUI.addMeasurementDialog = (GtkDialog*)GET_GTK_WIDGET("dialogAddMeasurement");
-	scopeUI.addMeasurementSource = (GtkComboBox*)GET_GTK_WIDGET("comboMeasurementSource");
-	scopeUI.addMeasurementType = (GtkComboBox*)GET_GTK_WIDGET("comboMeasurementType");
-	scopeUI.measurementTypesList = (GtkListStore*)GET_GTK_OBJECT("listMeasurementDefinitions");
-	
-	scopeUI.tracesList = (GtkListStore*)GET_GTK_OBJECT("liststoreTraces");
-	scopeUI.treeviewTraces = (GtkTreeView*)GET_GTK_OBJECT("treeviewTraces");
-}
 
 void controls_set_default_values(GtkBuilder* builder)
 {

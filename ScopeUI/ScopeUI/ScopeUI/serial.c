@@ -2,7 +2,6 @@
 #include <Windows.h>
 #include <stdio.h>
 
-#include "common.h"
 #include "serial.h"
 
 // Declare variables and structures

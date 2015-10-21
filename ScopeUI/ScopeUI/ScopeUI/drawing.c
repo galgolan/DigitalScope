@@ -1,6 +1,6 @@
-#include "common.h"
 #include "scope.h"
 #include "drawing.h"
+#include "scope_ui_handlers.h"
 
 #define LOW_FPS	15
 

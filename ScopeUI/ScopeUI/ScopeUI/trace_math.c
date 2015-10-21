@@ -1,8 +1,8 @@
 #include <math.h>
 
-#include "common.h"
 #include "scope.h"
 #include "trace_math.h"
+#include "scope_ui_handlers.h"
 
 void math_trace_difference(const SampleBuffer* first, const SampleBuffer* second, SampleBuffer* result);
 void math_trace_dft_amplitude(const SampleBuffer* first, const SampleBuffer* second, SampleBuffer* result);

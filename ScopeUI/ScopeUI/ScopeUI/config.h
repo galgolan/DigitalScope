@@ -3,8 +3,6 @@
 
 #include <glib-2.0\glib.h>
 
-#include "common.h"
-
 void config_open();
 
 // caller is responsible for freeing the list returned
