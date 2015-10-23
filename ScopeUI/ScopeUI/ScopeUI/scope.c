@@ -12,6 +12,7 @@
 #include "trace_math.h"
 #include "scope_ui_handlers.h"
 #include "config.h"
+#include "serial.h"
 
 static Scope scope;
 
@@ -111,12 +112,17 @@ void redraw_if_needed()
 
 DWORD WINAPI serial_worker_thread(LPVOID param)
 {
-	// TODO: open serial port
+	if (serial_open() == FALSE)
+	{
+		return 1;
+	}
 
 	unsigned long long n = 0;	// sample counter for simulating signals
 
 	AnalogChannel* ch1 = scope_channel_get_nth(0);
 	AnalogChannel* ch2 = scope_channel_get_nth(1);
+
+	char buffer[1024];
 
 	while (TRUE)
 	{
@@ -127,6 +133,8 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 			Sleep(100);
 			continue;
 		}
+
+		int bytesRead = serial_read(buffer, 1024);
 
 		Sleep(10);	// throttle down to simulate serial port
 
@@ -146,7 +154,7 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 		redraw_if_needed();
 	}
 
-	// TODO: close serial port
+	return serial_close();
 }
 
 void cursors_init()
@@ -175,11 +183,11 @@ void populate_probe_list_store()
 
 	for (guint i = 0; i < g_list_length(ratios); ++i)
 	{
-		int value = it->data;
+		int value = GPOINTER_TO_INT(it->data);
 		char* name = malloc(sizeof(char) * 10);
 		sprintf(name, "1:%d", value);
 
-		g_queue_push_tail(values, value);		
+		g_queue_push_tail(values, GINT_TO_POINTER(value));		
 		g_queue_push_tail(names, name);
 
 		it = it->next;
@@ -187,8 +195,8 @@ void populate_probe_list_store()
 
 	populate_list_store_values_int(ui->liststoreProbeRatio, names, values, TRUE);
 
-	g_list_free(names);
-	g_list_free(values);
+	g_queue_free(names);
+	g_queue_free(values);
 	g_list_free(ratios);
 
 	gtk_combo_box_set_active(ui->comboChannel1Probe, 0);
