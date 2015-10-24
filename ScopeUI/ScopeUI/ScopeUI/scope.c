@@ -6,6 +6,8 @@
 #include <Windows.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "scope.h"
 #include "measurement.h"
@@ -119,13 +121,21 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 
 	unsigned long long n = 0;	// sample counter for simulating signals
 
+	static int pos = 0;
+
 	AnalogChannel* ch1 = scope_channel_get_nth(0);
 	AnalogChannel* ch2 = scope_channel_get_nth(1);
+	const char sof = ':';
+	const char eof = ';';
+	const char delim = ',';
+	int bufferSize = 10 * 32;
+	char* token;
 
-	char buffer[1024];
-
+	char* buffer = (char*)malloc(sizeof(char) * scope.bufferSize);
+	
 	while (TRUE)
 	{
+		
 		float T = scope.screen.dt;		// create local copy of sample time
 
 		if (scope.state == SCOPE_STATE_PAUSED)
@@ -134,19 +144,55 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 			continue;
 		}
 
-		int bytesRead = serial_read(buffer, 1024);
+		int bytesRead = serial_read(buffer, bufferSize);
+		if (bytesRead == -1)
+		{
+			// error
+			return 1;
+		}
 
-		Sleep(10);	// throttle down to simulate serial port
+		token = strtok(buffer, &sof);
+		while (token != NULL)
+		{
+			if (token[strlen(token) - 1] != eof)
+			{
+				// TODO: no end of frame, wait for more
+				break;
+			}
+
+			// token contains: (ch1,ch2)
+			char* i = (char*)strchr(token, ',');
+			if (i == NULL)
+			{
+				// frame is bad
+				break;
+			}
+
+			*i = '\0';	// split the string
+			float d1 = (float)atof(token);
+			float d2 = (float)atof(i + 1);
+
+			ch1->buffer->data[pos] = d1;
+			ch2->buffer->data[pos] = d2;
+
+			++pos;
+			if (pos >= 763)
+				pos = 0;
+			
+			token = strtok(NULL, &sof);
+		}
+
+		//Sleep(10);	// throttle down to simulate serial port
 
 		// fill channels with samples
-		for (int i = 0; i < scope.bufferSize; ++i)
-		{
-			//ch2->buffer->data[i] = sin(0.2*n*T) * - 3 * sin(5e3 * n * T);
-			ch1->buffer->data[i] = (float)sin(100e3 * n * T) >= 0.0f ? 1.0f : 0.0f;	// square wave 100KHz
-			ch2->buffer->data[i] = 2 * (float)sin(200e3 * n * T + G_PI/4);	// cosine 200KHz
+		//for (int i = 0; i < scope.bufferSize; ++i)
+		//{
+		//	//ch2->buffer->data[i] = sin(0.2*n*T) * - 3 * sin(5e3 * n * T);
+		//	ch1->buffer->data[i] = (float)sin(100e3 * n * T) >= 0.0f ? 1.0f : 0.0f;	// square wave 100KHz
+		//	ch2->buffer->data[i] = 2 * (float)sin(200e3 * n * T + G_PI/4);	// cosine 200KHz
 
-			++n;
-		}
+		//	++n;
+		//}
 
 		math_update_trace();	// TODO: move to other thread
 
@@ -154,6 +200,7 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 		redraw_if_needed();
 	}
 
+	free(buffer);
 	return serial_close();
 }
 

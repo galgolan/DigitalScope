@@ -6,7 +6,7 @@
 #include "config.h"
 
 #define SERIAL_CONFIG_GROUP	"serial"
-#define SERIAL_READ_TIMEOUT_MS	500
+#define SERIAL_READ_TIMEOUT_MS	100
 
 // Declare variables and structures
 static HANDLE hSerial = INVALID_HANDLE_VALUE;
@@ -16,11 +16,11 @@ static COMMTIMEOUTS timeouts = { 0 };
 int serial_config_get_parity()
 {
 	char* paritySetting = config_get_string(SERIAL_CONFIG_GROUP, "parity");
-	if (strcmp(paritySetting, "none"))	return NOPARITY;
-	else if (strcmp(paritySetting, "odd"))	return ODDPARITY;
-	else if (strcmp(paritySetting, "even"))	return EVENPARITY;
-	else if (strcmp(paritySetting, "mark"))	return ODDPARITY;
-	else if (strcmp(paritySetting, "space"))	return SPACEPARITY;
+	if (!strcmp(paritySetting, "none"))	return NOPARITY;
+	else if (!strcmp(paritySetting, "odd"))	return ODDPARITY;
+	else if (!strcmp(paritySetting, "even"))	return EVENPARITY;
+	else if (!strcmp(paritySetting, "mark"))	return ODDPARITY;
+	else if (!strcmp(paritySetting, "space"))	return SPACEPARITY;
 	else return -1;
 }
 
@@ -171,16 +171,16 @@ int serial_read(char* buffer, int size)
 	osReader.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
 	if (osReader.hEvent == NULL)
-		return 0;	// error creating event
+		return -1;	// error creating event
 
-	// Issue read operation.
+	// Issue read operation
 	if (!ReadFile(hSerial, buffer, size, &dwRead, &osReader))
 	{
 		if (GetLastError() != ERROR_IO_PENDING)     // read not delayed?
 		{
 			// Error in communications; report it.
 			CloseHandle(osReader.hEvent);
-			return 0;
+			return -1;
 		}
 		else
 		{
@@ -191,7 +191,7 @@ int serial_read(char* buffer, int size)
 				if (!GetOverlappedResult(hSerial, &osReader, &dwRead, FALSE))
 				{
 					CloseHandle(osReader.hEvent);
-					return 0;	// error
+					return -1;	// error
 				}
 				else
 				{
@@ -199,10 +199,15 @@ int serial_read(char* buffer, int size)
 					return dwRead;	// success overlapped
 				}
 			}
+			else if (dwRes == WAIT_TIMEOUT)
+			{
+				// buffer not yet ready
+				return 0;
+			}
 			else
 			{
 				CloseHandle(osReader.hEvent);
-				return 0;	//error in overlapped struct event handle
+				return -1;	//error in overlapped struct event handle
 			}
 		}
 	}
