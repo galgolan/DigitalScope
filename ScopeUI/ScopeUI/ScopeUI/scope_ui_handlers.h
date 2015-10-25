@@ -28,6 +28,10 @@ typedef struct ScopeUI
 	GtkListStore* liststoreProbeRatio;
 	GtkComboBox* comboChannel1Probe;
 	GtkComboBox* comboChannel2Probe;
+
+	// cursors
+	GtkListStore* liststoreCursorValues;
+	GtkTreeView* treeviewCursorValues;
 } ScopeUI;
 
 ScopeUI* common_get_ui();
@@ -41,5 +45,7 @@ void update_statusbar();
 void populate_list_store(GtkListStore* listStore, GQueue* items, gboolean clear);
 
 void populate_list_store_values_int(GtkListStore* listStore, GQueue* names, GQueue* values, gboolean clear);
+
+void populate_list_store_index_string_string(GtkListStore* listStore, GQueue* strings1, GQueue* strings2, gboolean clear);
 
 #endif

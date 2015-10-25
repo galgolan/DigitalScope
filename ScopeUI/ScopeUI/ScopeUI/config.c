@@ -19,6 +19,11 @@ void config_open()
 	}
 }
 
+gboolean config_get_bool(const char* group, const char* key)
+{
+	return g_key_file_get_boolean(keyfile, group, key, &error);
+}
+
 GList* config_get_int_list(const char* group, const char* key)
 {
 	int count,i;

@@ -12,6 +12,8 @@ char* config_get_string(const char* group, const char* key);
 
 int config_get_int(const char* group, const char* key);
 
+gboolean config_get_bool(const char* group, const char* key);
+
 void config_close();
 
 GList* config_get_keys(const char* group);

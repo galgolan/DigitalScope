@@ -22,6 +22,7 @@ typedef enum CursorType
 typedef struct Cursor
 {
 	CursorType type;
+	char* name;
 	int position;
 } Cursor;
 
@@ -95,7 +96,6 @@ typedef struct Screen
 
 	int width;
 	int height;
-	int pos;
 } Screen;
 
 // describes an analog channel
@@ -156,7 +156,8 @@ typedef struct Scope
 	Cursors cursors;
 	DisplayMode display_mode;
 	MathTraceInstance mathTraceDefinition;
-	int bufferSize;		// TODO: remove (and use SampleBuffer.size instead)
+	int bufferSize;
+	int posInBuffer;
 } Scope;
 
 

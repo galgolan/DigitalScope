@@ -7,6 +7,17 @@
 static cairo_surface_t* drawing_surface = NULL;
 static cairo_t*	drawing_context = NULL;
 
+int drawing_get_width()
+{
+	return cairo_image_surface_get_width(cairo_get_target(drawing_context));
+}
+
+int drawing_get_height()
+{
+	return cairo_image_surface_get_height(cairo_get_target(drawing_context));
+}
+
+
 void screen_draw_horizontal_line(int y, cairo_pattern_t* pattern, double stroke_width)
 {
 	int width = drawing_get_width();
@@ -38,16 +49,6 @@ void drawing_resize(int width, int height)
 
 	drawing_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
 	drawing_context = cairo_create(drawing_surface);
-}
-
-int drawing_get_width()
-{
-	return cairo_image_surface_get_width(cairo_get_target(drawing_context));
-}
-
-int drawing_get_height()
-{
-	return cairo_image_surface_get_height(cairo_get_target(drawing_context));
 }
 
 void drawing_buffer_init()

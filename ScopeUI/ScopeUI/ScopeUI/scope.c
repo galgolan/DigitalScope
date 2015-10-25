@@ -112,12 +112,90 @@ void redraw_if_needed()
 	}
 }
 
+void serial_worker_demo(AnalogChannel* ch1, AnalogChannel* ch2, float T)
+{
+	Sleep(10);	// throttle down to simulate serial port
+
+	// fill channels with samples
+	for (int i = 0; i < scope.bufferSize; ++i)
+	{
+		int n = scope.posInBuffer;
+		//ch2->buffer->data[i] = ch2->probeRatio * sin(0.2*n*T) * - 3 * sin(5e3 * n * T);
+		ch1->buffer->data[i] = ch1->probeRatio * (float)sin(100e3 * n * T) >= 0.0f ? 1.0f : 0.0f;	// square wave 100KHz
+		ch2->buffer->data[i] = ch2->probeRatio * 2 * (float)sin(200e3 * n * T + G_PI/4);	// cosine 200KHz
+
+		scope_screen_next_pos();
+	}
+}
+
+float convert_sample(char* encodedSample)
+{
+	return (float)atof(encodedSample);
+}
+
+void serial_worker_read(char* buffer, int bufferSize, AnalogChannel* ch1, AnalogChannel* ch2)
+{
+	const char sof = ':';
+	const char eof = ';';
+	const char delim = ',';
+
+	char* token;
+
+	int bytesRead = serial_read(buffer, bufferSize);
+	if (bytesRead == -1)
+	{
+		// error
+		return;
+	}
+
+	//static char last_buffer[16];
+	//bool last_buffer_waiting = FALSE;
+
+	token = strtok(buffer, &sof);
+	while (token != NULL)
+	{
+		if (token[strlen(token) - 1] != eof)
+		{
+			// TODO: no end of frame, wait for more
+			//strcpy(last_buffer, token);
+			token = strtok(NULL, &sof);			
+			continue;
+		}
+
+		// token contains: (ch1,ch2)
+		char* i = (char*)strchr(token, ',');
+		if (i == NULL)
+		{
+			// frame is bad
+			//fprintf(stderr, "bad frame");
+			token = strtok(NULL, &sof);
+			continue;
+		}
+
+		*i = '\0';	// split the string
+		token[strlen(token) - 1] = '\0';
+		char* ch1Encoded = token;
+		char* ch2Encoded = i + 1;
+		float d1 = ch1->probeRatio * convert_sample(ch1Encoded);
+		float d2 = ch2->probeRatio * convert_sample(ch2Encoded);
+
+		// TODO: this needs to work with buffer size, and not screen size
+		ch1->buffer->data[scope.posInBuffer] = d1;
+		ch2->buffer->data[scope.posInBuffer] = d2;
+
+		scope_screen_next_pos();
+
+		token = strtok(NULL, &sof);
+	}
+}
+
 DWORD WINAPI serial_worker_thread(LPVOID param)
 {
-	if (serial_open() == FALSE)
-	{
-		return 1;
-	}
+	gboolean demoMode = config_get_bool("test", "demo");
+
+	if (!demoMode)
+		if (serial_open() == FALSE)
+			return 1;
 
 	unsigned long long n = 0;	// sample counter for simulating signals
 
@@ -125,13 +203,9 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 
 	AnalogChannel* ch1 = scope_channel_get_nth(0);
 	AnalogChannel* ch2 = scope_channel_get_nth(1);
-	const char sof = ':';
-	const char eof = ';';
-	const char delim = ',';
-	int bufferSize = 10 * 32;
-	char* token;
 
-	char* buffer = (char*)malloc(sizeof(char) * scope.bufferSize);
+	int bufferSize = 10 * 5;
+	char* buffer = (char*)malloc(sizeof(char) * bufferSize);
 	
 	while (TRUE)
 	{
@@ -144,53 +218,10 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 			continue;
 		}
 
-		int bytesRead = serial_read(buffer, bufferSize);
-		if (bytesRead == -1)
-		{
-			// error
-			return 1;
-		}
-
-		token = strtok(buffer, &sof);
-		while (token != NULL)
-		{
-			if (token[strlen(token) - 1] != eof)
-			{
-				// TODO: no end of frame, wait for more
-				break;
-			}
-
-			// token contains: (ch1,ch2)
-			char* i = (char*)strchr(token, ',');
-			if (i == NULL)
-			{
-				// frame is bad
-				break;
-			}
-
-			*i = '\0';	// split the string
-			float d1 = ch1->probeRatio * (float)atof(token);
-			float d2 = ch2->probeRatio * (float)atof(i + 1);
-
-			ch1->buffer->data[scope.screen.pos] = d1;
-			ch2->buffer->data[scope.screen.pos] = d2;
-
-			scope_screen_next_pos();
-
-			token = strtok(NULL, &sof);
-		}
-
-		//Sleep(10);	// throttle down to simulate serial port
-
-		// fill channels with samples
-		//for (int i = 0; i < scope.bufferSize; ++i)
-		//{
-		//	//ch2->buffer->data[i] = ch2->probeRatio * sin(0.2*n*T) * - 3 * sin(5e3 * n * T);
-		//	ch1->buffer->data[i] = ch1->probeRatio * (float)sin(100e3 * n * T) >= 0.0f ? 1.0f : 0.0f;	// square wave 100KHz
-		//	ch2->buffer->data[i] = ch2->probeRatio * 2 * (float)sin(200e3 * n * T + G_PI/4);	// cosine 200KHz
-
-		//	++n;
-		//}
+		if (demoMode)
+			serial_worker_demo(ch1, ch2, T);
+		else
+			serial_worker_read(buffer, bufferSize, ch1, ch2);
 
 		math_update_trace();	// TODO: move to other thread
 
@@ -199,21 +230,47 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 	}
 
 	free(buffer);
+
+	if (demoMode)
+		return 0;
+
 	return serial_close();
+}
+
+void populate_cursors_list()
+{
+	ScopeUI* ui = common_get_ui();
+	GQueue* cursors = g_queue_new();
+	GQueue* values = g_queue_new();
+	g_queue_push_tail(cursors, scope.cursors.x1.name);
+	g_queue_push_tail(cursors, scope.cursors.x2.name);
+	g_queue_push_tail(cursors, scope.cursors.y1.name);
+	g_queue_push_tail(cursors, scope.cursors.y2.name);
+	//g_queue_push_tail(cursors, "dx");
+	//g_queue_push_tail(cursors, "dy");
+	for (guint i = 0; i < g_queue_get_length(cursors); ++i)
+		g_queue_push_tail(values, "0[v]");
+
+	populate_list_store_index_string_string(ui->liststoreCursorValues, cursors, values, TRUE);
+
+	g_queue_free(cursors);
+	g_queue_free(values);
 }
 
 void cursors_init()
 {
 	scope.cursors.visible = FALSE;
-	scope.cursors.x1.type = CURSOR_TYPE_HORIZONTAL;
-	scope.cursors.x2.type = CURSOR_TYPE_HORIZONTAL;
-	scope.cursors.y1.type = CURSOR_TYPE_VERTICAL;
-	scope.cursors.y2.type = CURSOR_TYPE_VERTICAL;
 
-	scope.cursors.x1.position = 100;
-	scope.cursors.x2.position = 200;
-	scope.cursors.y1.position = 100;
-	scope.cursors.y2.position = 200;
+	Cursor x1 = { .type = CURSOR_TYPE_HORIZONTAL, .name = "x1", .position = 100 };
+	scope.cursors.x1 = x1;
+	Cursor x2 = { .type = CURSOR_TYPE_HORIZONTAL, .name = "x2", .position = 200 };
+	scope.cursors.x2 = x2;
+	Cursor y1 = { .type = CURSOR_TYPE_VERTICAL, .name = "y1", .position = 100 };
+	scope.cursors.y1 = y1;
+	Cursor y2 = { .type = CURSOR_TYPE_VERTICAL, .name = "y2", .position = 200 };
+	scope.cursors.y2 = y2;
+	
+	populate_cursors_list();
 }
 
 void populate_probe_list_store()
@@ -386,7 +443,7 @@ void screen_add_measurement(const char* name, const char* source, double value, 
 
 void scope_screen_next_pos()
 {
-	scope.screen.pos++;
-	if (scope.screen.pos > scope.screen.width)
-		scope.screen.pos = 0;
+	scope.posInBuffer++;
+	if (scope.posInBuffer > scope.bufferSize)
+		scope.posInBuffer = 0;
 }

@@ -123,7 +123,7 @@ float measure_avg(SampleBuffer* samples)
 	
 	for (i = 0; i < samples->size; ++i)
 	{
-		avg += samples->data[i] / samples->size;
+		avg += samples->data[i] / (float)samples->size;
 	}
 
 	return avg;
