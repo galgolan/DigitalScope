@@ -121,7 +121,7 @@ void serial_worker_demo(AnalogChannel* ch1, AnalogChannel* ch2, float T)
 	{
 		int n = scope.posInBuffer;
 		//ch2->buffer->data[i] = ch2->probeRatio * sin(0.2*n*T) * - 3 * sin(5e3 * n * T);
-		ch1->buffer->data[i] = ch1->probeRatio * (float)sin(100e3 * n * T) >= 0.0f ? 1.0f : 0.0f;	// square wave 100KHz
+		ch1->buffer->data[i] = (float)sin(100e3 * n * T) >= 0.0f ? ch1->probeRatio : 0.0f;	// square wave 100KHz
 		ch2->buffer->data[i] = ch2->probeRatio * 2 * (float)sin(200e3 * n * T + G_PI/4);	// cosine 200KHz
 
 		scope_screen_next_pos();
