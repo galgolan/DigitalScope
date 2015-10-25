@@ -342,5 +342,8 @@ void treeview_selection2_changed_cb(GtkTreeSelection *treeselection, gpointer us
 G_MODULE_EXPORT
 void on_drawing_area_resize(GtkWidget *widget, GdkRectangle *allocation, gpointer user_data)
 {
+	Scope* scope = scope_get();
+	scope->screen.width = allocation->width;
+	scope->screen.height = allocation->height;
 	drawing_request_redraw();
 }

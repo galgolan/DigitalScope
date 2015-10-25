@@ -172,12 +172,10 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 			float d1 = (float)atof(token);
 			float d2 = (float)atof(i + 1);
 
-			ch1->buffer->data[pos] = d1;
-			ch2->buffer->data[pos] = d2;
+			ch1->buffer->data[scope.screen.pos] = d1;
+			ch2->buffer->data[scope.screen.pos] = d2;
 
-			++pos;
-			if (pos >= 763)
-				pos = 0;
+			scope_screen_next_pos();
 			
 			token = strtok(NULL, &sof);
 		}
@@ -384,4 +382,11 @@ void screen_add_measurement(const char* name, const char* source, double value, 
 		2, value,
 		3, id
 		-1);
+}
+
+void scope_screen_next_pos()
+{
+	scope.screen.pos++;
+	if (scope.screen.pos > scope.screen.width)
+		scope.screen.pos = 0;
 }

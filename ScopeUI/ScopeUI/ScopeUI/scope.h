@@ -92,6 +92,10 @@ typedef struct Screen
 
 	GQueue* traces;	// contains Trace*
 	short fps;
+
+	int width;
+	int height;
+	int pos;
 } Screen;
 
 // describes an analog channel
@@ -178,5 +182,8 @@ AnalogChannel* scope_channel_get_nth(int n);
 Trace* scope_trace_get_nth(int n);
 
 Trace* scope_trace_get_math();
+
+// moves the trace to the next position
+void scope_screen_next_pos();
 
 #endif
