@@ -53,7 +53,7 @@ void populate_list_store_values_int(GtkListStore* listStore, GQueue* names, GQue
 	for (guint i = 0; i < g_queue_get_length(names); ++i)
 	{
 		char* name = g_queue_peek_nth(names, i);
-		int value = g_queue_peek_nth(values, i);
+		int value = GPOINTER_TO_INT(g_queue_peek_nth(values, i));
 
 		GtkTreeIter iter;
 		gtk_list_store_append(listStore, &iter);
@@ -241,7 +241,7 @@ void on_comboChannel1Probe_changed(GtkComboBox *widget, gpointer user_data)
 	GtkTreeIter iter;
 	guint ratio;
 	gtk_combo_box_get_active_iter(widget, &iter);
-	gtk_tree_model_get(scopeUI.liststoreProbeRatio, &iter,
+	gtk_tree_model_get(GTK_TREE_MODEL(scopeUI.liststoreProbeRatio), &iter,
 		0, &ratio);
 
 	Scope* scope = scope_get();
@@ -257,7 +257,7 @@ void on_comboChannel2Probe_changed(GtkComboBox *widget, gpointer user_data)
 	GtkTreeIter iter;
 	guint ratio;
 	gtk_combo_box_get_active_iter(widget, &iter);
-	gtk_tree_model_get(scopeUI.liststoreProbeRatio, &iter,
+	gtk_tree_model_get(GTK_TREE_MODEL(scopeUI.liststoreProbeRatio), &iter,
 		0, &ratio);
 
 	Scope* scope = scope_get();
@@ -342,5 +342,8 @@ void treeview_selection2_changed_cb(GtkTreeSelection *treeselection, gpointer us
 G_MODULE_EXPORT
 void on_drawing_area_resize(GtkWidget *widget, GdkRectangle *allocation, gpointer user_data)
 {
+	Scope* scope = scope_get();
+	scope->screen.width = allocation->width;
+	scope->screen.height = allocation->height;
 	drawing_request_redraw();
 }

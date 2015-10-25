@@ -12,11 +12,13 @@ typedef struct SerialPortSettings
 	int parity;	
 } SerialPortSettings;
 
-bool serial_open(SerialPortSettings settings);
+bool serial_open();
 
-bool serial_write(char* data, int bytes_to_send);
+bool serial_write(char * buffer, int size);
 
-bool serial_read(char* buffer, int size);
+// reads data from the port into a pre-allocated buffer
+// returns the number of bytes read
+int serial_read(char* buffer, int size);
 
 bool serial_close();
 

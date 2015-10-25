@@ -6,12 +6,15 @@
 #include <Windows.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "scope.h"
 #include "measurement.h"
 #include "trace_math.h"
 #include "scope_ui_handlers.h"
 #include "config.h"
+#include "serial.h"
 
 static Scope scope;
 
@@ -111,15 +114,28 @@ void redraw_if_needed()
 
 DWORD WINAPI serial_worker_thread(LPVOID param)
 {
-	// TODO: open serial port
+	if (serial_open() == FALSE)
+	{
+		return 1;
+	}
 
 	unsigned long long n = 0;	// sample counter for simulating signals
 
+	static int pos = 0;
+
 	AnalogChannel* ch1 = scope_channel_get_nth(0);
 	AnalogChannel* ch2 = scope_channel_get_nth(1);
+	const char sof = ':';
+	const char eof = ';';
+	const char delim = ',';
+	int bufferSize = 10 * 32;
+	char* token;
 
+	char* buffer = (char*)malloc(sizeof(char) * scope.bufferSize);
+	
 	while (TRUE)
 	{
+		
 		float T = scope.screen.dt;		// create local copy of sample time
 
 		if (scope.state == SCOPE_STATE_PAUSED)
@@ -128,17 +144,53 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 			continue;
 		}
 
-		Sleep(10);	// throttle down to simulate serial port
+		int bytesRead = serial_read(buffer, bufferSize);
+		if (bytesRead == -1)
+		{
+			// error
+			return 1;
+		}
+
+		token = strtok(buffer, &sof);
+		while (token != NULL)
+		{
+			if (token[strlen(token) - 1] != eof)
+			{
+				// TODO: no end of frame, wait for more
+				break;
+			}
+
+			// token contains: (ch1,ch2)
+			char* i = (char*)strchr(token, ',');
+			if (i == NULL)
+			{
+				// frame is bad
+				break;
+			}
+
+			*i = '\0';	// split the string
+			float d1 = ch1->probeRatio * (float)atof(token);
+			float d2 = ch2->probeRatio * (float)atof(i + 1);
+
+			ch1->buffer->data[scope.screen.pos] = d1;
+			ch2->buffer->data[scope.screen.pos] = d2;
+
+			scope_screen_next_pos();
+
+			token = strtok(NULL, &sof);
+		}
+
+		//Sleep(10);	// throttle down to simulate serial port
 
 		// fill channels with samples
-		for (int i = 0; i < scope.bufferSize; ++i)
-		{
-			//ch2->buffer->data[i] = sin(0.2*n*T) * - 3 * sin(5e3 * n * T);
-			ch1->buffer->data[i] = ch1->probeRatio * (float)sin(100e3 * n * T) >= 0.0f ? 1.0f : 0.0f;	// square wave 100KHz
-			ch2->buffer->data[i] = ch2->probeRatio * 2 * (float)sin(200e3 * n * T + G_PI/4);	// cosine 200KHz
+		//for (int i = 0; i < scope.bufferSize; ++i)
+		//{
+		//	//ch2->buffer->data[i] = ch2->probeRatio * sin(0.2*n*T) * - 3 * sin(5e3 * n * T);
+		//	ch1->buffer->data[i] = ch1->probeRatio * (float)sin(100e3 * n * T) >= 0.0f ? 1.0f : 0.0f;	// square wave 100KHz
+		//	ch2->buffer->data[i] = ch2->probeRatio * 2 * (float)sin(200e3 * n * T + G_PI/4);	// cosine 200KHz
 
-			++n;
-		}
+		//	++n;
+		//}
 
 		math_update_trace();	// TODO: move to other thread
 
@@ -146,7 +198,8 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 		redraw_if_needed();
 	}
 
-	// TODO: close serial port
+	free(buffer);
+	return serial_close();
 }
 
 void cursors_init()
@@ -175,11 +228,11 @@ void populate_probe_list_store()
 
 	for (guint i = 0; i < g_list_length(ratios); ++i)
 	{
-		int value = it->data;
+		int value = GPOINTER_TO_INT(it->data);
 		char* name = malloc(sizeof(char) * 10);
 		sprintf(name, "1:%d", value);
 
-		g_queue_push_tail(values, value);		
+		g_queue_push_tail(values, GINT_TO_POINTER(value));		
 		g_queue_push_tail(names, name);
 
 		it = it->next;
@@ -187,8 +240,8 @@ void populate_probe_list_store()
 
 	populate_list_store_values_int(ui->liststoreProbeRatio, names, values, TRUE);
 
-	g_list_free(names);
-	g_list_free(values);
+	g_queue_free(names);
+	g_queue_free(values);
 	g_list_free(ratios);
 
 	gtk_combo_box_set_active(ui->comboChannel1Probe, 0);
@@ -329,4 +382,11 @@ void screen_add_measurement(const char* name, const char* source, double value, 
 		2, value,
 		3, id
 		-1);
+}
+
+void scope_screen_next_pos()
+{
+	scope.screen.pos++;
+	if (scope.screen.pos > scope.screen.width)
+		scope.screen.pos = 0;
 }
