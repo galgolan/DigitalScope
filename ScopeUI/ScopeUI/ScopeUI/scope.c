@@ -134,8 +134,8 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 		for (int i = 0; i < scope.bufferSize; ++i)
 		{
 			//ch2->buffer->data[i] = sin(0.2*n*T) * - 3 * sin(5e3 * n * T);
-			ch1->buffer->data[i] = (float)sin(100e3 * n * T) >= 0.0f ? 1.0f : 0.0f;	// square wave 100KHz
-			ch2->buffer->data[i] = 2 * (float)sin(200e3 * n * T + G_PI/4);	// cosine 200KHz
+			ch1->buffer->data[i] = ch1->probeRatio * (float)sin(100e3 * n * T) >= 0.0f ? 1.0f : 0.0f;	// square wave 100KHz
+			ch2->buffer->data[i] = ch2->probeRatio * 2 * (float)sin(200e3 * n * T + G_PI/4);	// cosine 200KHz
 
 			++n;
 		}

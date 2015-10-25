@@ -173,7 +173,7 @@ void checkMathVisible_toggled(GtkToggleButton* btn, gpointer user_data)
 }
 
 G_MODULE_EXPORT
-void cursorsButton_toggle(GtkToggleButton* btn, gpointer user_data)
+void on_checkbuttonCursorsVisible_toggled(GtkCheckButton* btn, gpointer user_data)
 {
 	Scope* scope = scope_get();
 	scope->cursors.visible = gtk_toggle_button_get_active(btn);

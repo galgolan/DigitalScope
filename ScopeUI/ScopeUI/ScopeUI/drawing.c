@@ -7,6 +7,30 @@
 static cairo_surface_t* drawing_surface = NULL;
 static cairo_t*	drawing_context = NULL;
 
+void screen_draw_horizontal_line(int y, cairo_pattern_t* pattern, double stroke_width)
+{
+	int width = drawing_get_width();
+
+	cairo_set_source(drawing_context, pattern);
+	cairo_set_line_width(drawing_context, stroke_width);
+
+	cairo_move_to(drawing_context, 0, y);
+	cairo_line_to(drawing_context, width, y);
+	cairo_stroke(drawing_context);
+}
+
+void screen_draw_vertical_line(int x, cairo_pattern_t* pattern, double stroke_width)
+{
+	int height = drawing_get_height();
+
+	cairo_set_source(drawing_context, pattern);
+	cairo_set_line_width(drawing_context, stroke_width);
+
+	cairo_move_to(drawing_context, x, 0);
+	cairo_line_to(drawing_context, x, height);
+	cairo_stroke(drawing_context);
+}
+
 void drawing_resize(int width, int height)
 {
 	if (drawing_context != NULL)
@@ -104,46 +128,18 @@ void draw_ground_marker(const Trace* trace)
 	cairo_fill(drawing_context);
 }
 
-void draw_cursor(const Cursor* cursor)
-{
-	cairo_pattern_t* cursorPattern = cairo_pattern_create_rgb(1, 1, 1);	// TODO: read from css
-	int width = drawing_get_width();
-	int height = drawing_get_height();
-
-	double src_x, src_y, dst_x, dst_y;
-
-	if (cursor->type == CURSOR_TYPE_HORIZONTAL)
-	{
-		src_x = cursor->position;
-		src_y = 0;
-		dst_x = src_x;
-		dst_y = height;
-	}
-	else
-	{
-		src_x = 0;
-		src_y = cursor->position;
-		dst_x = width;
-		dst_y = src_y;
-	}
-
-	cairo_move_to(drawing_context, src_x, src_y);
-	cairo_line_to(drawing_context, dst_x, dst_y);
-	cairo_set_source(drawing_context, cursorPattern);
-	cairo_set_line_width(drawing_context, 1);	// TODO: use style
-	cairo_stroke(drawing_context);
-}
-
 void draw_cursors()
 {
 	Scope* scope = scope_get();
 	if (scope->cursors.visible == FALSE)
 		return;
 
-	draw_cursor(&scope->cursors.x1);
-	draw_cursor(&scope->cursors.x2);
-	draw_cursor(&scope->cursors.y1);
-	draw_cursor(&scope->cursors.y2);
+	cairo_pattern_t* cursorPattern = cairo_pattern_create_rgb(1, 1, 1);	// TODO: read from css
+
+	screen_draw_horizontal_line(scope->cursors.y1.position, cursorPattern, 1);
+	screen_draw_horizontal_line(scope->cursors.y2.position, cursorPattern, 1);
+	screen_draw_vertical_line(scope->cursors.x1.position, cursorPattern, 1);
+	screen_draw_vertical_line(scope->cursors.x2.position, cursorPattern, 1);
 }
 
 void screen_draw_grid()
@@ -154,26 +150,18 @@ void screen_draw_grid()
 
 	int i;
 
-	// set grid line style
-	cairo_set_source(drawing_context, scope->screen.grid.linePattern);
-	cairo_set_line_width(drawing_context, scope->screen.grid.stroke_width);
-
 	// horizontal lines
 	for (i = 0; i < scope->screen.grid.horizontal; ++i)
 	{
 		int y = i * height / scope->screen.grid.horizontal;
-		cairo_move_to(drawing_context, 0, y);
-		cairo_line_to(drawing_context, width, y);
-		cairo_stroke(drawing_context);
+		screen_draw_horizontal_line(y, scope->screen.grid.linePattern, scope->screen.grid.stroke_width);		
 	}
 
 	// vertical lines
 	for (i = 0; i < scope->screen.grid.vertical; ++i)
 	{
 		int x = i * width / scope->screen.grid.vertical;
-		cairo_line_to(drawing_context, x, 0);
-		cairo_line_to(drawing_context, x, height);
-		cairo_stroke(drawing_context);
+		screen_draw_vertical_line(x, scope->screen.grid.linePattern, scope->screen.grid.stroke_width);
 	}
 }
 
