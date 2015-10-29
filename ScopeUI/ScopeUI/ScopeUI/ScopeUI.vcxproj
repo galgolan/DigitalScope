@@ -92,6 +92,7 @@
     <ClCompile Include="drawing.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="measurement.c" />
+    <ClCompile Include="protocol.c" />
     <ClCompile Include="scope_ui_handlers.c" />
     <ClCompile Include="scope.c" />
     <ClCompile Include="serial.c" />
@@ -114,6 +115,7 @@
     <ClInclude Include="config.h" />
     <ClInclude Include="drawing.h" />
     <ClInclude Include="measurement.h" />
+    <ClInclude Include="protocol.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="scope.h" />
     <ClInclude Include="scope_ui_handlers.h" />

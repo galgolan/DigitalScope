@@ -25,6 +25,9 @@
     <ClCompile Include="drawing.c">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="protocol.c">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scope.h">
@@ -47,6 +50,9 @@
     </ClInclude>
     <ClInclude Include="resource.h" />
     <ClInclude Include="drawing.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="protocol.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>
