@@ -21,7 +21,6 @@
 #include "driverlib/comp.h"
 #include "driverlib/interrupt.h"
 
-#include "stdbool.h"
 #include "common.h"
 #include "adc.h"
 #include "uart.h"

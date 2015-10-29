@@ -19,7 +19,6 @@
 
 #include "driverlib/interrupt.h"
 
-#include "stdbool.h"
 #include "common.h"
 
 #include "config.h"

@@ -23,13 +23,12 @@
 // utilities
 #include "utils/uartstdio.h"
 
-#include "stdbool.h"
-
 #include "spi.h"
 #include "calc.h"
 #include "adc.h"
 #include "uart.h"
 #include "config.h"
+#include "probecomp.h"
 
 #ifdef DEBUG
 void
@@ -83,11 +82,13 @@ void setup()
 	// TODO: if g_ui32SysClock == 0 error
 	SysCtlDelay(1000);
 
-	configUART(g_ui32SysClock);
+	//configUART(g_ui32SysClock);
 
-	configAdc(config->trigger);
-	configSPI();
-	configureAnalogFrontend(config);
+	//configAdc(config->trigger);
+	//configSPI();
+	//configureAnalogFrontend();
+
+	configProbeCompensation();
 }
 
 void waitUntilReady()
