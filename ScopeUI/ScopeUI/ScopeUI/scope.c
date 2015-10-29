@@ -15,8 +15,58 @@
 #include "scope_ui_handlers.h"
 #include "config.h"
 #include "serial.h"
+#include "../../../common/common.h"
+#include "protocol.h"
 
 static Scope scope;
+
+bool scope_build_and_send_config()
+{
+	TriggerConfig trigCfg = TRIGGER_CFG_MODE_NONE;
+	switch (scope.trigger.mode)
+	{
+	case TRIGGER_MODE_NONE:
+		trigCfg |= TRIGGER_CFG_MODE_NONE;
+		break;
+	case TRIGGER_MODE_SINGLE:
+		trigCfg |= TRIGGER_CFG_MODE_SINGLE;
+		break;
+	case TRIGGER_MODE_AUTO:
+		trigCfg |= TRIGGER_CFG_MODE_AUTO;
+		break;		
+	}
+
+	switch (scope.trigger.source)
+	{
+	case TRIGGER_SOURCE_CH1:
+		trigCfg |= TRIGGER_CFG_SRC_CH1;
+		break;
+	case TRIGGER_SOURCE_CH2:
+		trigCfg |= TRIGGER_CFG_SRC_CH2;
+		break;
+	}
+
+	switch (scope.trigger.type)
+	{
+	case TRIGGER_TYPE_RAISING:
+		trigCfg |= TRIGGER_CFG_TYPE_RAISING;
+		break;
+	case TRIGGER_TYPE_FALLING:
+		trigCfg |= TRIGGER_CFG_TYPE_FALLING;
+		break;
+	case TRIGGER_TYPE_BOTH:
+		trigCfg |= TRIGGER_CFG_TYPE_BOTH;
+		break;
+	}
+
+	AnalogChannel* ch1 = scope_channel_get_nth(0);
+	AnalogChannel* ch2 = scope_channel_get_nth(1);
+	Trace* traceCh1 = scope_trace_get_nth(0);
+	Trace* traceCh2 = scope_trace_get_nth(1);
+
+	ConfigMsg msg = common_create_config(trigCfg, scope.trigger.level, traceCh1->scale, traceCh1->offset, traceCh2->scale, traceCh2->offset, 1 / scope.screen.dt);
+	return protocol_send_config(&msg);
+}
 
 SampleBuffer* sample_buffer_create(int size)
 {

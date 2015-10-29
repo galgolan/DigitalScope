@@ -108,9 +108,9 @@ typedef struct AnalogChannel
 
 typedef enum TriggerMode
 {
-	TRIGGER_FREERUNNING,
-	TRIGGER_SINGLE,
-	TRIGGER_AUTO
+	TRIGGER_MODE_NONE,
+	TRIGGER_MODE_SINGLE,
+	TRIGGER_MODE_AUTO
 } TriggerMode;
 
 typedef enum TriggerSource
@@ -161,18 +161,15 @@ typedef struct Scope
 } Scope;
 
 
-
 void screen_init();
 
 Scope* scope_get();
-
-
 
 void screen_add_measurement(const char* name, const char* source, double value, guint id);
 
 void screen_clear_measurements();
 
-
+bool scope_build_and_send_config();
 
 MeasurementInstance* scope_measurement_get_nth(int n);
 

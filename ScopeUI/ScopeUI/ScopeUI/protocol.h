@@ -35,6 +35,8 @@ int		4	checksum
 
 bool protocol_send_config(const ConfigMsg* msg);
 
+void handle_receive_date(char* buffer, int size);
+
 float* protocol_read_samples(int* numSamplesPerChannel, int triggerIndex);
 
 ConfigMsg common_create_config(TriggerConfig trigger, float triggerLevel, byte ch1Gain, float ch1Offset, byte ch2Gain, float ch2Offset, float sampleRate);

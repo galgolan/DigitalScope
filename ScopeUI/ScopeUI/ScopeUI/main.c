@@ -6,6 +6,14 @@
 #include "config.h"
 #include "scope_ui_handlers.h"
 
+bool testHandleBuffer()
+{
+	char buffer[128];
+	sprintf(buffer, "%04x", 0.5f);
+	char* b1 = ".............:TRIG:12341234:";
+	handle_receive_date(b1, strlen(b1));
+}
+
 void controls_set_default_values(GtkBuilder* builder)
 {
 	GList* keys = config_get_keys("controls");
@@ -23,6 +31,9 @@ void controls_set_default_values(GtkBuilder* builder)
 
 int main(int argc, char *argv[])
 {
+	testHandleBuffer();
+
+	return;
 	GtkBuilder      *builder;
 	GtkWidget       *window;
 	
