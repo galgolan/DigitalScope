@@ -170,14 +170,18 @@ void serial_frame_handler(float* samples, int count, bool trigger)
 {
 	if (trigger)
 	{
+		if (scope.posInBuffer != scope.bufferSize - 1)
+		{
+			// TODO: report pre-mature trigger, probably firmware buffer size too small.
+		}
 		scope.posInBuffer = 0;
 	}
 	else if (count == 2)
 	{
 		AnalogChannel* ch1 = scope_channel_get_nth(0);
 		AnalogChannel* ch2 = scope_channel_get_nth(1);
-		ch1->buffer->data[scope.posInBuffer] = samples[0];
-		ch2->buffer->data[scope.posInBuffer] = samples[1];
+		ch1->buffer->data[scope.posInBuffer] = ch1->probeRatio * samples[0];
+		ch2->buffer->data[scope.posInBuffer] = ch2->probeRatio * samples[1];
 		scope_screen_next_pos();
 	}
 	else
