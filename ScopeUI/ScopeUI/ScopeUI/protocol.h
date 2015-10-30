@@ -13,7 +13,7 @@ SoftwareBuffer > MaxFrame=8
 
 Where FRAME can be:
 	TRIG - to signal the UI to move the scope positition to start of screen
-	1234567812345678 - 64-bits of data: 32-bit float for ch1 & 32-bit float for ch2.
+	1234567812345678 - 64-bits of data: 32-bit float for ch1 & 32-bit float for ch2 (bytes are in ASCII HEX little-endian)
 
 CONFIGURATION (UI->SCOPE)
 
@@ -44,9 +44,11 @@ typedef struct ReceiveStats
 typedef void(*pPosIncreaseFunc)();
 typedef int(*pPosGetFunc)();
 
+typedef void(*pHandleFrame)(float* samples, int count, bool trigger);
+
 bool protocol_send_config(const ConfigMsg* msg);
 
-void handle_receive_date(char* buffer, int size, float* samples0, float* samples1, pPosIncreaseFunc posIncFunc, pPosGetFunc posGetFunc);
+void handle_receive_date(char* buffer, int size, float* samples0, float* samples1, pHandleFrame frameHandler);
 
 float* protocol_read_samples(int* numSamplesPerChannel, int triggerIndex);
 

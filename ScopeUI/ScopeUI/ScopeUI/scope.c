@@ -144,26 +144,6 @@ MeasurementInstance* scope_measurement_add(Measurement* measurement, Trace* sour
 	return instance;
 }
 
-// signal screen redraw if enough time has passed
-void redraw_if_needed()
-{
-	static DWORD lastDrawTs = 0;
-	float refreshMs = 1 / (float)scope.screen.fps * 1000;	// the number of milliseconds to wait between redrawing the screen
-
-	// signal screen redraw if enough time has passed	
-	DWORD elapsedMs = GetTickCount() - lastDrawTs;
-	if (elapsedMs > refreshMs)
-	{
-		guint source_id = gdk_threads_add_idle_full(G_PRIORITY_DEFAULT_IDLE, timeout_callback, NULL, NULL);
-		lastDrawTs = GetTickCount();
-	}
-	else
-	{
-		// this can create a 10% error in fps, we are fine with this
-		//Sleep((DWORD)refreshMs / 10);
-	}
-}
-
 void serial_worker_demo(AnalogChannel* ch1, AnalogChannel* ch2, float T)
 {
 	Sleep(10);	// throttle down to simulate serial port
@@ -185,6 +165,27 @@ int get_pos_in_buffer()
 	return scope.posInBuffer;
 }
 
+// handles new frames from the serial port
+void serial_frame_handler(float* samples, int count, bool trigger)
+{
+	if (trigger)
+	{
+		scope.posInBuffer = 0;
+	}
+	else if (count == 2)
+	{
+		AnalogChannel* ch1 = scope_channel_get_nth(0);
+		AnalogChannel* ch2 = scope_channel_get_nth(1);
+		ch1->buffer->data[scope.posInBuffer] = samples[0];
+		ch2->buffer->data[scope.posInBuffer] = samples[1];
+		scope_screen_next_pos();
+	}
+	else
+	{
+		// handle error
+	}
+}
+
 void serial_worker_read(char* buffer, int bufferSize, AnalogChannel* ch1, AnalogChannel* ch2)
 {
 	int bytesRead = serial_read(buffer, bufferSize);
@@ -194,7 +195,7 @@ void serial_worker_read(char* buffer, int bufferSize, AnalogChannel* ch1, Analog
 		return;
 	}
 
-	handle_receive_date(buffer, bytesRead, ch1->buffer->data, ch2->buffer->data, scope_screen_next_pos, get_pos_in_buffer);
+	handle_receive_date(buffer, bytesRead, ch1->buffer->data, ch2->buffer->data, serial_frame_handler);
 }
 
 DWORD WINAPI serial_worker_thread(LPVOID param)

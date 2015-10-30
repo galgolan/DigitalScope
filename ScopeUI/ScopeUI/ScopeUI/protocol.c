@@ -101,7 +101,7 @@ bool copyBytes(char* dst, char* src, int count, int* pos)
 	return TRUE;
 }
 
-void handle_receive_date(char* buffer, int size, float* samples0, float* samples1, pPosIncreaseFunc posIncFunc, pPosGetFunc posGetFunc)
+void handle_receive_date(char* buffer, int size, float* samples0, float* samples1, pHandleFrame frameHandler)
 {
 	static State state = STATE_WAITING_SOF;
 	
@@ -123,7 +123,7 @@ void handle_receive_date(char* buffer, int size, float* samples0, float* samples
 			// frame is starting, change state
 			state = STATE_WAITING_EOF;
 			int garbageBytes = sof - buffer;
-			handle_receive_date(sof+1, size - garbageBytes-1, samples0, samples1, posIncFunc, posGetFunc);
+			handle_receive_date(sof+1, size - garbageBytes-1, samples0, samples1, frameHandler);
 		}
 	}
 	break;
@@ -164,15 +164,12 @@ void handle_receive_date(char* buffer, int size, float* samples0, float* samples
 
 				if (result.frameType == FRAME_TYPE_TRIGGER)
 				{
-					// TODO: implement
 					++receiveStats.triggers;
+					frameHandler(NULL, 0, TRUE);
 				}
 				else if (result.frameType == FRAME_TYPE_DATA)
 				{
-					int posInSamples = posGetFunc();
-					samples0[posInSamples] = result.samples[0];
-					samples1[posInSamples] = result.samples[1];
-					posIncFunc();
+					frameHandler(result.samples, 2, FALSE);
 				}
 				else // FRAME_TYPE_MALFORMED
 				{
@@ -182,7 +179,7 @@ void handle_receive_date(char* buffer, int size, float* samples0, float* samples
 
 				pos = 0;
 				state = STATE_WAITING_SOF;
-				handle_receive_date(buffer + bytesToCopy, size - bytesToCopy, samples0, samples1, posIncFunc, posGetFunc);
+				handle_receive_date(buffer + bytesToCopy, size - bytesToCopy, samples0, samples1, frameHandler);
 			}
 		}
 	}
