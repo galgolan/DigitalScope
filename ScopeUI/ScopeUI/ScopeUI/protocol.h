@@ -33,9 +33,20 @@ int		4	checksum
 
 #include "..\..\..\common\common.h"
 
+typedef struct ReceiveStats
+{
+	unsigned long long samples;
+	unsigned long long triggers;
+	unsigned long long malformed;
+	unsigned long long bad;
+} ReceiveStats;
+
+typedef void(*pPosIncreaseFunc)();
+typedef int(*pPosGetFunc)();
+
 bool protocol_send_config(const ConfigMsg* msg);
 
-void handle_receive_date(char* buffer, int size);
+void handle_receive_date(char* buffer, int size, float* samples0, float* samples1, pPosIncreaseFunc posIncFunc, pPosGetFunc posGetFunc);
 
 float* protocol_read_samples(int* numSamplesPerChannel, int triggerIndex);
 

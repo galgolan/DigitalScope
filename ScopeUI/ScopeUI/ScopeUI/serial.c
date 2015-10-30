@@ -102,7 +102,7 @@ bool serial_open()
 	return TRUE;
 }
 
-bool serial_write(char * buffer, int size)
+bool serial_write(const char * buffer, int size)
 {
 	OVERLAPPED osWrite = { 0 };
 	DWORD dwWritten;

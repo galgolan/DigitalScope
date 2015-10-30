@@ -296,7 +296,7 @@ void on_comboChannel2Probe_changed(GtkComboBox *widget, gpointer user_data)
 G_MODULE_EXPORT
 void on_change_offsetMath(GtkSpinButton *spin_button, gpointer user_data)
 {
-	scope_trace_get_math()->offset = -1 * (int)gtk_spin_button_get_value(spin_button);
+	scope_trace_get_math()->offset = -1.0f * (int)gtk_spin_button_get_value(spin_button);
 	drawing_request_redraw();
 }
 
@@ -311,7 +311,7 @@ void on_change_scale1(GtkSpinButton *spin_button, gpointer user_data)
 G_MODULE_EXPORT
 void on_change_offset1(GtkSpinButton *spin_button, gpointer user_data)
 {
-	scope_trace_get_nth(0)->offset = -1 * (int)gtk_spin_button_get_value(spin_button);
+	scope_trace_get_nth(0)->offset = -1.0f * (int)gtk_spin_button_get_value(spin_button);
 	drawing_request_redraw();
 }
 
@@ -326,7 +326,7 @@ void on_change_scale2(GtkSpinButton *spin_button, gpointer user_data)
 G_MODULE_EXPORT
 void on_change_offset2(GtkSpinButton *spin_button, gpointer user_data)
 {
-	scope_trace_get_nth(1)->offset = -1 * (int)gtk_spin_button_get_value(spin_button);
+	scope_trace_get_nth(1)->offset = -1.0f * (int)gtk_spin_button_get_value(spin_button);
 	drawing_request_redraw();
 }
 

@@ -14,7 +14,7 @@ typedef struct SerialPortSettings
 
 bool serial_open();
 
-bool serial_write(char * buffer, int size);
+bool serial_write(const char * buffer, int size);
 
 // reads data from the port into a pre-allocated buffer
 // returns the number of bytes read

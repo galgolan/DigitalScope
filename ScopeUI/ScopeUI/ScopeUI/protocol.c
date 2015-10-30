@@ -1,7 +1,10 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <stdbool.h>
 #include <string.h>
 #include <glib-2.0\glib.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "..\..\..\common\common.h"
 #include "serial.h"
@@ -14,11 +17,27 @@ typedef enum State
 	STATE_WAITING_EOF
 } State;
 
+typedef enum FrameType
+{
+	FRAME_TYPE_TRIGGER,
+	FRAME_TYPE_DATA,
+	FRAME_TYPE_MALFORMED
+} FrameType;
+
+typedef struct ParseResult
+{
+	FrameType frameType;
+	float samples[2];
+} ParseResult;
+
+static ReceiveStats receiveStats = { .samples = 0, .triggers = 0, .malformed = 0, .bad = 0 };
+
 int calc_padding_size(int msgSize)
 {
 	int fifo = config_get_int("serial", "fifo");
 	int totalSize = fifo * (msgSize / fifo + (msgSize % fifo == 0 ? 0 : 1));
 	int padding = totalSize - msgSize;
+	return padding;
 }
 
 bool protocol_send_config(const ConfigMsg* msg)
@@ -36,34 +55,39 @@ bool protocol_send_config(const ConfigMsg* msg)
 	return TRUE;
 }
 
-void parse_frame(char* frame, int size)
+ParseResult parse_frame(char* frame, int size)
 {
-	bool trig = FALSE;
+	ParseResult result;
 
 	if (strncmp(frame, TRIGGER_FRAME, size) == 0)
 	{
 		// its a trigger frame
-		trig = TRUE;
+		result.frameType = FRAME_TYPE_TRIGGER;
 	}
 	else
 	{
-		// its a data frame
-		char ch1Encoded[9];
-		char ch2Encoded[9];
-
-		strncpy(ch1Encoded, frame, 8);
-		strncpy(ch2Encoded, frame + 8, 8);
-
-		ch1Encoded[8] = '\0';
-		ch2Encoded[8] = '\0';
-
-		char* end;
-		float ch1 = strtof(ch1Encoded, &end);
-		float ch2 = strtof(ch2Encoded, &end);
+		if (size != 16)
+		{
+			// bad frame
+			result.frameType = FRAME_TYPE_MALFORMED;
+		}
+		else
+		{
+			result.frameType = FRAME_TYPE_DATA;
+			_snscanf(frame, 16, "%08X%08X", &result.samples[0], &result.samples[1]);
+		}
 	}
+
+	return result;
 }
 
-void handle_receive_date(char* buffer, int size)
+void copyBytes(char* dst, char* src, int count, int* pos)
+{
+	memcpy(dst + *pos, src, count);
+	*pos = *pos + count;
+}
+
+void handle_receive_date(char* buffer, int size, float* samples0, float* samples1, pPosIncreaseFunc posIncFunc, pPosGetFunc posGetFunc)
 {
 	static State state = STATE_WAITING_SOF;
 	
@@ -85,7 +109,7 @@ void handle_receive_date(char* buffer, int size)
 			// frame is starting, change state
 			state = STATE_WAITING_EOF;
 			int garbageBytes = sof - buffer;
-			handle_receive_date(sof+1, size - garbageBytes-1);
+			handle_receive_date(sof+1, size - garbageBytes-1, samples0, samples1, posIncFunc, posGetFunc);
 		}
 	}
 	break;
@@ -97,27 +121,48 @@ void handle_receive_date(char* buffer, int size)
 		if (eof == NULL)
 		{
 			// buffer does not contain EOF, accumulate all
-			strncpy(frameBuffer + pos, buffer, size);
-			pos += size;
+			copyBytes(frameBuffer, buffer, size, &pos);
 			if (pos >= MAX_FRAME_SIZE)
 			{
 				// this is bad
+				pos = 0;
+				++receiveStats.bad;
 			}
 		}
 		else
 		{
 			// found EOF, accumulate until EOF
 			int bytesToCopy = eof - buffer;
-			strncpy(frameBuffer + pos, buffer, bytesToCopy);
-			pos += bytesToCopy;
+			copyBytes(frameBuffer, buffer, bytesToCopy, &pos);
 			if (pos >= MAX_FRAME_SIZE)
 			{
 				// this is bad
+				pos = 0;
+				++receiveStats.bad;
 			}
-			parse_frame(frameBuffer, pos);
+			ParseResult result = parse_frame(frameBuffer, pos);
+			
+			if (result.frameType == FRAME_TYPE_TRIGGER)
+			{
+				// TODO: implement
+				++receiveStats.triggers;
+			}
+			else if(result.frameType == FRAME_TYPE_DATA)
+			{
+				int posInSamples = posGetFunc();
+				samples0[posInSamples] = result.samples[0];
+				samples1[posInSamples] = result.samples[1];
+				posIncFunc();
+			}
+			else // FRAME_TYPE_MALFORMED
+			{
+				// bad frame, ignore
+				++receiveStats.malformed;
+			}
+
 			pos = 0;
 			state = STATE_WAITING_SOF;
-			handle_receive_date(buffer + bytesToCopy, size - bytesToCopy);
+			handle_receive_date(buffer + bytesToCopy, size - bytesToCopy, samples0, samples1, posIncFunc, posGetFunc);
 		}
 	}
 	break;	
@@ -126,7 +171,7 @@ void handle_receive_date(char* buffer, int size)
 
 float* protocol_read_samples(int* numSamplesPerChannel, int triggerIndex)
 {
-
+	return NULL;
 }
 
 uint64 calc_checksum(const ConfigMsg* msg)

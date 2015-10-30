@@ -1,17 +1,40 @@
 #include <gtk-3.0\gtk\gtk.h>
 #include <glib-2.0\glib.h>
+#include <string.h>
 
 #include "scope.h"
 #include "serial.h"
 #include "config.h"
 #include "scope_ui_handlers.h"
+#include "protocol.h"
+
+static int pos = 0;
+
+int getPos()
+{
+	return pos;
+}
+
+void incPos()
+{
+	pos++;
+	if (pos >= 200)
+		pos = 0;
+}
 
 bool testHandleBuffer()
 {
-	char buffer[128];
-	sprintf(buffer, "%04x", 0.5f);
-	char* b1 = ".............:TRIG:12341234:";
-	handle_receive_date(b1, strlen(b1));
+	float samples1[256];
+	float samples2[256];
+	int pos = 0;
+
+	char* b1 = ".............:TRIG:00000000B92EFE3F:0000803FB5CCFFBF:3000000FABEC33E:00000000A1B2ADBF:00000000FC351F3F:0000803F9DF6EFBE";
+	handle_receive_date(b1, strlen(b1), samples1, samples2, incPos, getPos);
+	char* b2 = ":3F0000003F";
+	handle_receive_date(b2, strlen(b2), samples1, samples2, incPos, getPos);
+	char* b3 = "19999A:";
+	handle_receive_date(b3, strlen(b3), samples1, samples2, incPos, getPos);
+	return (pos == 5);
 }
 
 void controls_set_default_values(GtkBuilder* builder)
@@ -31,9 +54,9 @@ void controls_set_default_values(GtkBuilder* builder)
 
 int main(int argc, char *argv[])
 {
-	testHandleBuffer();
+	//testHandleBuffer();
+	//return;
 
-	return;
 	GtkBuilder      *builder;
 	GtkWidget       *window;
 	

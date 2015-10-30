@@ -64,7 +64,7 @@ bool scope_build_and_send_config()
 	Trace* traceCh1 = scope_trace_get_nth(0);
 	Trace* traceCh2 = scope_trace_get_nth(1);
 
-	ConfigMsg msg = common_create_config(trigCfg, scope.trigger.level, traceCh1->scale, traceCh1->offset, traceCh2->scale, traceCh2->offset, 1 / scope.screen.dt);
+	ConfigMsg msg = common_create_config(trigCfg, scope.trigger.level, (byte)traceCh1->scale, traceCh1->offset, (byte)traceCh2->scale, traceCh2->offset, (float)1 / scope.screen.dt);
 	return protocol_send_config(&msg);
 }
 
@@ -94,7 +94,7 @@ AnalogChannel* scope_channel_get_nth(int n)
 	return (AnalogChannel*)g_queue_peek_nth(scope.channels, n);
 }
 
-Trace* scope_trace_add_new(cairo_pattern_t* pattern, SampleBuffer* samples, const char* name, int offset)
+Trace* scope_trace_add_new(cairo_pattern_t* pattern, SampleBuffer* samples, const char* name, float offset)
 {
 	Trace* trace = (Trace*)malloc(sizeof(Trace));
 	g_queue_push_tail(scope.screen.traces, trace);
@@ -183,14 +183,13 @@ float convert_sample(char* encodedSample)
 	return (float)atof(encodedSample);
 }
 
+int get_pos_in_buffer()
+{
+	return scope.posInBuffer;
+}
+
 void serial_worker_read(char* buffer, int bufferSize, AnalogChannel* ch1, AnalogChannel* ch2)
 {
-	const char sof = ':';
-	const char eof = ';';
-	const char delim = ',';
-
-	char* token;
-
 	int bytesRead = serial_read(buffer, bufferSize);
 	if (bytesRead == -1)
 	{
@@ -198,45 +197,8 @@ void serial_worker_read(char* buffer, int bufferSize, AnalogChannel* ch1, Analog
 		return;
 	}
 
-	//static char last_buffer[16];
-	//bool last_buffer_waiting = FALSE;
-
-	token = strtok(buffer, &sof);
-	while (token != NULL)
-	{
-		if (token[strlen(token) - 1] != eof)
-		{
-			// TODO: no end of frame, wait for more
-			//strcpy(last_buffer, token);
-			token = strtok(NULL, &sof);			
-			continue;
-		}
-
-		// token contains: (ch1,ch2)
-		char* i = (char*)strchr(token, ',');
-		if (i == NULL)
-		{
-			// frame is bad
-			//fprintf(stderr, "bad frame");
-			token = strtok(NULL, &sof);
-			continue;
-		}
-
-		*i = '\0';	// split the string
-		token[strlen(token) - 1] = '\0';
-		char* ch1Encoded = token;
-		char* ch2Encoded = i + 1;
-		float d1 = ch1->probeRatio * convert_sample(ch1Encoded);
-		float d2 = ch2->probeRatio * convert_sample(ch2Encoded);
-
-		// TODO: this needs to work with buffer size, and not screen size
-		ch1->buffer->data[scope.posInBuffer] = d1;
-		ch2->buffer->data[scope.posInBuffer] = d2;
-
-		scope_screen_next_pos();
-
-		token = strtok(NULL, &sof);
-	}
+	handle_receive_date(buffer, bytesRead, ch1->buffer->data, ch2->buffer->data, scope_screen_next_pos, get_pos_in_buffer);
+	//scope_screen_next_pos();
 }
 
 DWORD WINAPI serial_worker_thread(LPVOID param)
@@ -428,13 +390,13 @@ void screen_init()
 		// generate trace name
 		char* traceName = (char*)malloc(sizeof(char) * 10);
 		sprintf(traceName, "CH%d", i+1);
-		int offset = offsetIt == NULL ? 0 : GPOINTER_TO_INT(offsetIt->data);
+		float offset = offsetIt == NULL ? 0.0f : (float)GPOINTER_TO_INT(offsetIt->data);
 		scope_trace_add_new(tracePatterns[i], scope_channel_get_nth(i)->buffer, traceName, offset);
 		offsetIt = offsetIt->next;
 	}
 	
 	// create the math trace
-	Trace* mathTrace = scope_trace_add_new(tracePatterns[numChannels], sample_buffer_create(scope.bufferSize), "Math", GPOINTER_TO_INT(offsetIt->data));
+	Trace* mathTrace = scope_trace_add_new(tracePatterns[numChannels], sample_buffer_create(scope.bufferSize), "Math", (float)GPOINTER_TO_INT(offsetIt->data));
 	scope.mathTraceDefinition.mathTrace = &MathTrace_Dft_Amplitude;
 	scope.mathTraceDefinition.firstTrace = scope_trace_get_nth(0);
 	scope.mathTraceDefinition.secondTrace = scope_trace_get_nth(1);

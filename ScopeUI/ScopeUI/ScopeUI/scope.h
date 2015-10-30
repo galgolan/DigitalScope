@@ -55,7 +55,7 @@ typedef struct Trace
 	cairo_pattern_t* pattern;
 	SampleBuffer* samples;
 	float trace_width;
-	int offset;
+	float offset;
 	bool visible;
 	float scale;
 	const char* name;
