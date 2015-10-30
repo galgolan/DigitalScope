@@ -19,9 +19,8 @@
 
 #include "driverlib/interrupt.h"
 
-#include "common.h"
-
 #include "config.h"
+#include "scope_common.h"
 
 static ScopeConfig config;
 

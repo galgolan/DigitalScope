@@ -82,11 +82,11 @@ void setup()
 	// TODO: if g_ui32SysClock == 0 error
 	SysCtlDelay(1000);
 
-	//configUART(g_ui32SysClock);
+	configUART(g_ui32SysClock);
 
-	//configAdc(config->trigger);
-	//configSPI();
-	//configureAnalogFrontend();
+	configAdc(config->trigger);
+	configSPI();
+	configureAnalogFrontend();
 
 	configProbeCompensation();
 }
@@ -123,9 +123,11 @@ void createConfig()
 	ScopeConfig* config = getConfig();
 
 	// configure trigger
-	config->trigger.level = COMP_REF_1_65V;
-	config->trigger.type = TRIG_RISING;
-	config->trigger.mode = TRIG_MODE_SINGLE;
+	//config->trigger.level = COMP_REF_1_65V;
+	//config->trigger.type = TRIG_RISING;
+	//config->trigger.mode = TRIG_MODE_SINGLE;
+
+	config->trigger.mode = TRIG_MODE_FREE_RUNNING;
 
 	// configure ch1
 	config->channels[0].active = true;
@@ -133,7 +135,7 @@ void createConfig()
 
 	// configure ch2
 	config->channels[1].active = true;
-	config->channels[1].gain = PGA_GAIN_10;
+	config->channels[1].gain = PGA_GAIN_1;
 }
 
 /*
@@ -152,7 +154,8 @@ int main(void)
 	{
 		waitUntilReady();
 		//outputDebug(samples_ch1[0], samples_ch2[0]);
-		outputDebugMany(samples_ch1, samples_ch2, BUFFER_SIZE);
+		//outputDebugMany(samples_ch1, samples_ch2, BUFFER_SIZE);
+		outputData(samples_ch1[0], samples_ch2[0]);
 		reArmTrigger();
 /*
 		sampleAdc(samples);

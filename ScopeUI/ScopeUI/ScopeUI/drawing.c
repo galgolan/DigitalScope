@@ -82,15 +82,6 @@ void drawing_copy_from_buffer(cairo_t* dest)
 	cairo_paint(dest);
 }
 
-// fires a draw event if needed
-void drawing_request_redraw()
-{
-	Scope* scope = scope_get();
-	// TODO: implement a dirty flag
-	if ((scope->screen.fps < LOW_FPS) || (scope->state == SCOPE_STATE_PAUSED))
-		drawing_redraw();
-}
-
 // fires a draw event
 void drawing_redraw()
 {

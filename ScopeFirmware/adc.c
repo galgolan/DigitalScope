@@ -21,11 +21,11 @@
 #include "driverlib/comp.h"
 #include "driverlib/interrupt.h"
 
-#include "common.h"
 #include "adc.h"
 #include "uart.h"
 #include "calc.h"
 #include "config.h"
+#include "scope_common.h"
 
 //#include "driverlib/rom.h"
 //#include "driverlib/rom_map.h"

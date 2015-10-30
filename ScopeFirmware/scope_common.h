@@ -5,12 +5,12 @@
  *      Author: t-galgo
  */
 
-#ifndef COMMON_H_
-#define COMMON_H_
+#ifndef SCOPE_COMMON_H_
+#define SCOPE_COMMON_H_
 
 #include <stdint.h>
 
 #define HIGH	1
 #define LOW		0
 
-#endif /* COMMON_H_ */
+#endif /* SCOPE_COMMON_H_ */

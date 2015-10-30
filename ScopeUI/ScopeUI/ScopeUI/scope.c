@@ -347,7 +347,7 @@ void screen_init()
 {
 	GError* error = NULL;
 
-	scope.bufferSize = config_get_int("config", "bufferSize");
+	scope.bufferSize = config_get_int("hardware", "bufferSize");
 
 	scope.state = SCOPE_STATE_RUNNING;
 	scope.display_mode = DISPLAY_MODE_WAVEFORM;

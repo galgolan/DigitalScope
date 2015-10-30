@@ -9,8 +9,8 @@
 #include "driverlib/sysctl.h"
 
 #include "driverlib/ssi.h"
-#include "common.h"
 #include "spi.h"
+#include "scope_common.h"
 
 #define PGA1_SS_PORT	GPIO_PORTP_BASE
 #define PGA2_SS_PORT	GPIO_PORTN_BASE

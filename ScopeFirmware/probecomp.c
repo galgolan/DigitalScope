@@ -21,8 +21,8 @@
 #include "driverlib/gpio.h"
 #include "driverlib/interrupt.h"
 
-#include "common.h"
 #include "probecomp.h"
+#include "scope_common.h"
 
 #define PROBE_COMP_PORT	GPIO_PORTM_BASE
 #define PROBE_COMP_PIN	GPIO_PIN_5
@@ -49,7 +49,7 @@ void configProbeCompensation()
 	// configure 1KHz timer periodic
 	//TimerClockSourceSet(TIMER0_BASE, TIMER_CLOCK_SYSTEM);
 	//uint32_t timer_value = getTimerValue(PROBE_COMP_FREQ);
-	uint32_t timer_value = 1200000;
+	uint32_t timer_value = 120000;
 	TimerLoadSet(TIMER0_BASE, TIMER_A, timer_value);
 
 	// enable Timer0A interrupt

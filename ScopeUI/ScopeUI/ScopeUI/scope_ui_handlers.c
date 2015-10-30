@@ -192,7 +192,6 @@ G_MODULE_EXPORT
 void checkMathVisible_toggled(GtkToggleButton* btn, gpointer user_data)
 {
 	scope_trace_get_math()->visible = gtk_toggle_button_get_active(btn);
-	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
@@ -200,7 +199,6 @@ void on_checkbuttonCursorsVisible_toggled(GtkCheckButton* btn, gpointer user_dat
 {
 	Scope* scope = scope_get();
 	scope->cursors.visible = gtk_toggle_button_get_active((GtkToggleButton*)btn);
-	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
@@ -208,7 +206,6 @@ void on_displayModeButton_toggled(GtkToggleButton* displayModeButton, gpointer u
 {
 	Scope* scope = scope_get();
 	scope->display_mode = gtk_toggle_button_get_active(displayModeButton);
-	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
@@ -232,14 +229,12 @@ G_MODULE_EXPORT
 void on_checkCh1Visible_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 {
 	scope_trace_get_nth(0)->visible = gtk_toggle_button_get_active(togglebutton);
-	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
 void on_checkCh2Visible_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 {
 	scope_trace_get_nth(1)->visible = gtk_toggle_button_get_active(togglebutton);
-	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
@@ -247,7 +242,6 @@ void on_change_scaleMath(GtkSpinButton *spin_button, gpointer user_data)
 {
 	scope_trace_get_math()->scale = (float)gtk_spin_button_get_value(spin_button);
 	//update_statusbar();
-	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
@@ -256,7 +250,6 @@ void on_math_source_changed(GtkComboBox *widget, gpointer user_data)
 	int sourceChannel = gtk_combo_box_get_active(widget);
 	Scope* scope = scope_get();
 	scope->mathTraceDefinition.firstTrace = scope_trace_get_nth(sourceChannel);
-	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
@@ -272,8 +265,6 @@ void on_comboChannel1Probe_changed(GtkComboBox *widget, gpointer user_data)
 	Scope* scope = scope_get();
 	AnalogChannel* ch = g_queue_peek_nth(scope->channels, 0);
 	ch->probeRatio = ratio;
-	
-	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
@@ -289,15 +280,12 @@ void on_comboChannel2Probe_changed(GtkComboBox *widget, gpointer user_data)
 	Scope* scope = scope_get();
 	AnalogChannel* ch = g_queue_peek_nth(scope->channels, 1);
 	ch->probeRatio = ratio;
-
-	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
 void on_change_offsetMath(GtkSpinButton *spin_button, gpointer user_data)
 {
 	scope_trace_get_math()->offset = -1.0f * (int)gtk_spin_button_get_value(spin_button);
-	drawing_request_redraw();
 }
 
 G_MODULE_EXPORT
@@ -305,14 +293,14 @@ void on_change_scale1(GtkSpinButton *spin_button, gpointer user_data)
 {
 	scope_trace_get_nth(0)->scale = (float)gtk_spin_button_get_value(spin_button);
 	update_statusbar();
-	drawing_request_redraw();
+	scope_build_and_send_config();
 }
 
 G_MODULE_EXPORT
 void on_change_offset1(GtkSpinButton *spin_button, gpointer user_data)
 {
 	scope_trace_get_nth(0)->offset = -1.0f * (int)gtk_spin_button_get_value(spin_button);
-	drawing_request_redraw();
+	scope_build_and_send_config();
 }
 
 G_MODULE_EXPORT
@@ -320,14 +308,14 @@ void on_change_scale2(GtkSpinButton *spin_button, gpointer user_data)
 {
 	scope_trace_get_nth(1)->scale = (float)gtk_spin_button_get_value(spin_button);
 	update_statusbar();
-	drawing_request_redraw();
+	scope_build_and_send_config();
 }
 
 G_MODULE_EXPORT
 void on_change_offset2(GtkSpinButton *spin_button, gpointer user_data)
 {
 	scope_trace_get_nth(1)->offset = -1.0f * (int)gtk_spin_button_get_value(spin_button);
-	drawing_request_redraw();
+	scope_build_and_send_config();
 }
 
 gboolean timeout_callback(gpointer data)
@@ -341,8 +329,8 @@ void sampleRateSpin_value_changed_cb(GtkSpinButton *spin_button, gpointer user_d
 {
 	Scope* scope = scope_get();
 	scope->screen.dt = 1e-3f / (float)gtk_spin_button_get_value(spin_button);	// this is in KHz
-	drawing_request_redraw();
 	update_statusbar();
+	scope_build_and_send_config();
 }
 
 // main draw function
@@ -371,5 +359,4 @@ void on_drawing_area_resize(GtkWidget *widget, GdkRectangle *allocation, gpointe
 	Scope* scope = scope_get();
 	scope->screen.width = allocation->width;
 	scope->screen.height = allocation->height;
-	drawing_request_redraw();
 }

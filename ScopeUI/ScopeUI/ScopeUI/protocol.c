@@ -47,10 +47,13 @@ bool protocol_send_config(const ConfigMsg* msg)
 		return FALSE;
 
 	int paddingSize = calc_padding_size(sizeof(*msg));
-	// send padding
-	char* padding = (char*)malloc(paddingSize);
-	if (!serial_write(padding, paddingSize))
-		return FALSE;
+	if (paddingSize > 0)
+	{
+		// send padding
+		char* padding = (char*)malloc(paddingSize);
+		if (!serial_write(padding, paddingSize))
+			return FALSE;
+	}
 
 	return TRUE;
 }
@@ -79,7 +82,7 @@ ParseResult parse_frame(char* frame, int size)
 		else
 		{
 			result.frameType = FRAME_TYPE_DATA;
-			_snscanf(frame, 16, "%08X%08X", &result.samples[0], &result.samples[1]);
+			_snscanf(frame, 16, "%08X%08X", &result.samples[0], &result.samples[1]);	// TODO: change to more efficient function
 		}
 	}
 
@@ -92,7 +95,6 @@ bool copyBytes(char* dst, char* src, int count, int* pos)
 	{
 		return FALSE;
 	}
-	//memcpy(dst + *pos, src, count);
 	for (int i = 0; i < count; ++i)
 	{
 		dst[*pos + i] = src[i];

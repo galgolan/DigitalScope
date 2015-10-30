@@ -34,3 +34,4 @@ typedef enum TriggerConfig
 } TriggerConfig;
 
 #endif
+
