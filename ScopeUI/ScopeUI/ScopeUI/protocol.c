@@ -58,6 +58,11 @@ bool protocol_send_config(const ConfigMsg* msg)
 ParseResult parse_frame(char* frame, int size)
 {
 	ParseResult result;
+	if (size < 4)
+	{
+		result.frameType = FRAME_TYPE_MALFORMED;
+		return result;
+	}
 
 	if (strncmp(frame, TRIGGER_FRAME, size) == 0)
 	{

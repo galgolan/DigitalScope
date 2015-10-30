@@ -2,7 +2,7 @@
 
 #include "scope.h"
 #include "trace_math.h"
-#include "scope_ui_handlers.h"
+//#include "scope_ui_handlers.h"
 
 void math_trace_difference(const SampleBuffer* first, const SampleBuffer* second, SampleBuffer* result);
 void math_trace_dft_amplitude(const SampleBuffer* first, const SampleBuffer* second, SampleBuffer* result);
@@ -27,8 +27,9 @@ void math_update_trace()
 void math_trace_dft_amplitude(const SampleBuffer* first, const SampleBuffer* second, SampleBuffer* result)
 {
 	Scope* scope = scope_get();
-	ScopeUI* ui = common_get_ui();
-	int width = gtk_widget_get_allocated_width(ui->drawingArea);
+	//ScopeUI* ui = common_get_ui();
+	//int width = gtk_widget_get_allocated_width((GtkWidget*)ui->drawingArea);
+	int width = scope->screen.width;
 	int N = MIN(width,scope->bufferSize);
 	int k,n;
 	const float* x = first->data;
@@ -53,8 +54,9 @@ void math_trace_difference(const SampleBuffer* first, const SampleBuffer* second
 {
 	int i;
 	Scope* scope = scope_get();
-	ScopeUI* ui = common_get_ui();
-	int width = gtk_widget_get_allocated_width(ui->drawingArea);
+	//ScopeUI* ui = common_get_ui();
+	int width = scope->screen.width;
+	//int width = gtk_widget_get_allocated_width((GtkWidget*)ui->drawingArea);
 	for (i = 0; i < MIN(width,scope->bufferSize); ++i)
 	{
 		result->data[i] = first->data[i] - second->data[i];

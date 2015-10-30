@@ -55,8 +55,8 @@ void drawing_buffer_init()
 {
 	static gboolean first = TRUE;
 	ScopeUI* ui = common_get_ui();
-	int window_width = gtk_widget_get_allocated_width(ui->drawingArea);
-	int window_height = gtk_widget_get_allocated_height(ui->drawingArea);
+	int window_width = gtk_widget_get_allocated_width((GtkWidget*)ui->drawingArea);
+	int window_height = gtk_widget_get_allocated_height((GtkWidget*)ui->drawingArea);
 
 	if ((first == TRUE)
 		|| (window_width != drawing_get_width())
@@ -90,14 +90,17 @@ void drawing_request_redraw()
 // fires a draw event
 void drawing_redraw()
 {
+	Scope* scope = scope_get();
 	ScopeUI* ui = common_get_ui();
-	GdkWindow* window = gtk_widget_get_window(ui->drawingArea);
+	GdkWindow* window = gtk_widget_get_window((GtkWidget*)ui->drawingArea);
 
 	GdkRectangle rect;
 	rect.x = 0;
 	rect.y = 0;
-	rect.width = gtk_widget_get_allocated_width(ui->drawingArea);
-	rect.height = gtk_widget_get_allocated_height(ui->drawingArea);
+	//rect.width = gtk_widget_get_allocated_width((GtkWidget*)ui->drawingArea);
+	//rect.height = gtk_widget_get_allocated_height((GtkWidget*)ui->drawingArea);
+	rect.width = scope->screen.width;
+	rect.height = scope->screen.height;
 	drawing_update_buffer();
 	gdk_window_invalidate_rect(window, &rect, FALSE);
 }

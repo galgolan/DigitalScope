@@ -16,13 +16,13 @@ ScopeUI* common_get_ui()
 
 void populate_ui(GtkBuilder* builder)
 {
-	scopeUI.drawingArea = GET_GTK_WIDGET("drawingarea");
-	scopeUI.statusBar = GET_GTK_WIDGET("statusbar");
+	scopeUI.drawingArea = (GtkDrawingArea*)GET_GTK_OBJECT("drawingarea");
+	scopeUI.statusBar = (GtkStatusbar*)GET_GTK_OBJECT("statusbar");
 	scopeUI.listMeasurements = (GtkListStore*)GET_GTK_OBJECT("listMeasurements");
-	scopeUI.viewMeasurements = (GtkTreeView*)GET_GTK_WIDGET("viewMeasurements");
-	scopeUI.addMeasurementDialog = (GtkDialog*)GET_GTK_WIDGET("dialogAddMeasurement");
-	scopeUI.addMeasurementSource = (GtkComboBox*)GET_GTK_WIDGET("comboMeasurementSource");
-	scopeUI.addMeasurementType = (GtkComboBox*)GET_GTK_WIDGET("comboMeasurementType");
+	scopeUI.viewMeasurements = (GtkTreeView*)GET_GTK_OBJECT("viewMeasurements");
+	scopeUI.addMeasurementDialog = (GtkDialog*)GET_GTK_OBJECT("dialogAddMeasurement");
+	scopeUI.addMeasurementSource = (GtkComboBox*)GET_GTK_OBJECT("comboMeasurementSource");
+	scopeUI.addMeasurementType = (GtkComboBox*)GET_GTK_OBJECT("comboMeasurementType");
 	scopeUI.measurementTypesList = (GtkListStore*)GET_GTK_OBJECT("listMeasurementDefinitions");
 
 	scopeUI.tracesList = (GtkListStore*)GET_GTK_OBJECT("liststoreTraces");

@@ -152,13 +152,13 @@ void redraw_if_needed()
 	DWORD elapsedMs = GetTickCount() - lastDrawTs;
 	if (elapsedMs > refreshMs)
 	{
-		guint source_id = gdk_threads_add_idle_full(G_PRIORITY_DEFAULT, timeout_callback, NULL, NULL);
+		guint source_id = gdk_threads_add_idle_full(G_PRIORITY_DEFAULT_IDLE, timeout_callback, NULL, NULL);
 		lastDrawTs = GetTickCount();
 	}
 	else
 	{
 		// this can create a 10% error in fps, we are fine with this
-		Sleep((DWORD)refreshMs / 10);
+		//Sleep((DWORD)refreshMs / 10);
 	}
 }
 
@@ -198,7 +198,6 @@ void serial_worker_read(char* buffer, int bufferSize, AnalogChannel* ch1, Analog
 	}
 
 	handle_receive_date(buffer, bytesRead, ch1->buffer->data, ch2->buffer->data, scope_screen_next_pos, get_pos_in_buffer);
-	//scope_screen_next_pos();
 }
 
 DWORD WINAPI serial_worker_thread(LPVOID param)

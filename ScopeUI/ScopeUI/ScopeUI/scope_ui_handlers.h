@@ -9,8 +9,8 @@
 
 typedef struct ScopeUI
 {
-	GtkWidget* drawingArea;
-	GtkWidget* statusBar;
+	GtkDrawingArea* drawingArea;
+	GtkStatusbar* statusBar;
 
 	GtkListStore* listMeasurements;
 	GtkTreeView* viewMeasurements;

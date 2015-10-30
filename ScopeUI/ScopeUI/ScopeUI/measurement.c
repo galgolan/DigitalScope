@@ -54,7 +54,8 @@ gboolean update_measurement_callback(gpointer data)
 	ScopeUI* scopeUI = common_get_ui();
 	GQueue* msgs = (GQueue*)data;
 	GtkTreeIter iter;
-	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(scopeUI->listMeasurements), &iter);
+	GtkTreeModel* model = GTK_TREE_MODEL(scopeUI->listMeasurements);
+	gtk_tree_model_get_iter_first(model, &iter);
 
 	for (guint i = 0; i < g_queue_get_length(msgs); ++i)
 	{
@@ -66,7 +67,7 @@ gboolean update_measurement_callback(gpointer data)
 			2, msg->value,
 			-1);
 
-		if (!gtk_tree_model_iter_next(GTK_TREE_MODEL(scopeUI->listMeasurements), &iter))
+		if (!gtk_tree_model_iter_next(model, &iter))
 			break;
 	}
 
@@ -92,7 +93,6 @@ DWORD WINAPI measurement_worker_thread(LPVOID param)
 {
 	Scope* scope = scope_get();
 	
-
 	while (TRUE)
 	{
 		if (scope->display_mode == DISPLAY_MODE_WAVEFORM)
