@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "drawing.h"
 #include "scope.h"
 #include "measurement.h"
 #include "trace_math.h"
@@ -17,6 +18,7 @@
 #include "serial.h"
 #include "../../../common/common.h"
 #include "protocol.h"
+#include "threads.h"
 
 static Scope scope;
 
@@ -142,7 +144,7 @@ MeasurementInstance* scope_measurement_add(Measurement* measurement, Trace* sour
 	return instance;
 }
 
-// signal screen redraw if enough time has passed	
+// signal screen redraw if enough time has passed
 void redraw_if_needed()
 {
 	static DWORD lastDrawTs = 0;
@@ -176,11 +178,6 @@ void serial_worker_demo(AnalogChannel* ch1, AnalogChannel* ch2, float T)
 
 		scope_screen_next_pos();
 	}
-}
-
-float convert_sample(char* encodedSample)
-{
-	return (float)atof(encodedSample);
 }
 
 int get_pos_in_buffer()
@@ -233,11 +230,6 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 			serial_worker_demo(ch1, ch2, T);
 		else
 			serial_worker_read(buffer, bufferSize, ch1, ch2);
-
-		math_update_trace();	// TODO: move to other thread
-
-		// signal screen redraw if enough time has passed	
-		redraw_if_needed();
 	}
 
 	free(buffer);
@@ -399,6 +391,7 @@ void screen_init()
 	scope.mathTraceDefinition.mathTrace = &MathTrace_Dft_Amplitude;
 	scope.mathTraceDefinition.firstTrace = scope_trace_get_nth(0);
 	scope.mathTraceDefinition.secondTrace = scope_trace_get_nth(1);
+	// TODO: populate math list
 	mathTrace->visible = FALSE;
 	g_list_free(offsets);
 
@@ -414,6 +407,7 @@ void screen_init()
 	if (hSerialThread == INVALID_HANDLE_VALUE)
 	{
 		// TODO: handle error
+		int a = 5;
 	}
 
 	long measurementThreadId;
@@ -421,6 +415,22 @@ void screen_init()
 	if (hMeasurementThread == INVALID_HANDLE_VALUE)
 	{
 		// TODO: handle error
+		int a = 5;
+	}
+
+	long mathThreadId;
+	HANDLE hMathThread = CreateThread(NULL, 0, math_worker_thread, NULL, 0, &mathThreadId);
+	if (hMathThread == INVALID_HANDLE_VALUE)
+	{
+		// TODO: handle error
+		int a = 5;
+	}
+
+	HANDLE hDrawingThread = CreateThreadSimple(drawing_worker_thread, NULL);
+	if (hDrawingThread == INVALID_HANDLE_VALUE)
+	{
+		// TODO: handle error
+		int a = 5;
 	}
 
 	update_statusbar();
@@ -454,7 +464,14 @@ void screen_add_measurement(const char* name, const char* source, double value, 
 
 void scope_screen_next_pos()
 {
-	scope.posInBuffer++;
-	if (scope.posInBuffer > scope.bufferSize)
+	// we implement the code this way to be thread safe
+	if (scope.posInBuffer + 1 < scope.bufferSize)
+	{
+		// can increase
+		++scope.posInBuffer;
+	}
+	else
+	{
 		scope.posInBuffer = 0;
+	}
 }

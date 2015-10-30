@@ -97,6 +97,7 @@
     <ClCompile Include="scope_ui_handlers.c" />
     <ClCompile Include="scope.c" />
     <ClCompile Include="serial.c" />
+    <ClCompile Include="threads.c" />
     <ClCompile Include="trace_math.c" />
   </ItemGroup>
   <ItemGroup>
@@ -121,6 +122,7 @@
     <ClInclude Include="scope.h" />
     <ClInclude Include="scope_ui_handlers.h" />
     <ClInclude Include="serial.h" />
+    <ClInclude Include="threads.h" />
     <ClInclude Include="trace_math.h" />
   </ItemGroup>
   <ItemGroup>

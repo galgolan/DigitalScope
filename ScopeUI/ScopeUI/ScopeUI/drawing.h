@@ -5,6 +5,8 @@
 
 void drawing_resize(int width, int height);
 
+DWORD WINAPI drawing_worker_thread(LPVOID param);
+
 // paints the dest context from the buffer
 void drawing_copy_from_buffer(cairo_t* dest);
 

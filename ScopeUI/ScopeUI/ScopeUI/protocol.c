@@ -86,10 +86,19 @@ ParseResult parse_frame(char* frame, int size)
 	return result;
 }
 
-void copyBytes(char* dst, char* src, int count, int* pos)
+bool copyBytes(char* dst, char* src, int count, int* pos)
 {
-	memcpy(dst + *pos, src, count);
+	if (count + *pos >= MAX_FRAME_SIZE-1)
+	{
+		return FALSE;
+	}
+	//memcpy(dst + *pos, src, count);
+	for (int i = 0; i < count; ++i)
+	{
+		dst[*pos + i] = src[i];
+	}
 	*pos = *pos + count;
+	return TRUE;
 }
 
 void handle_receive_date(char* buffer, int size, float* samples0, float* samples1, pPosIncreaseFunc posIncFunc, pPosGetFunc posGetFunc)
@@ -126,7 +135,7 @@ void handle_receive_date(char* buffer, int size, float* samples0, float* samples
 		if (eof == NULL)
 		{
 			// buffer does not contain EOF, accumulate all
-			copyBytes(frameBuffer, buffer, size, &pos);
+			bool copied = copyBytes(frameBuffer, buffer, size, &pos);
 			if (pos >= MAX_FRAME_SIZE)
 			{
 				// this is bad
@@ -138,36 +147,43 @@ void handle_receive_date(char* buffer, int size, float* samples0, float* samples
 		{
 			// found EOF, accumulate until EOF
 			int bytesToCopy = eof - buffer;
-			copyBytes(frameBuffer, buffer, bytesToCopy, &pos);
+			bool copied = copyBytes(frameBuffer, buffer, bytesToCopy, &pos);
 			if (pos >= MAX_FRAME_SIZE)
 			{
 				// this is bad
 				pos = 0;
 				++receiveStats.bad;
 			}
-			ParseResult result = parse_frame(frameBuffer, pos);
-			
-			if (result.frameType == FRAME_TYPE_TRIGGER)
+			if (!copied)
 			{
-				// TODO: implement
-				++receiveStats.triggers;
+				receiveStats.bad++;
 			}
-			else if(result.frameType == FRAME_TYPE_DATA)
+			else
 			{
-				int posInSamples = posGetFunc();
-				samples0[posInSamples] = result.samples[0];
-				samples1[posInSamples] = result.samples[1];
-				posIncFunc();
-			}
-			else // FRAME_TYPE_MALFORMED
-			{
-				// bad frame, ignore
-				++receiveStats.malformed;
-			}
+				ParseResult result = parse_frame(frameBuffer, pos);
 
-			pos = 0;
-			state = STATE_WAITING_SOF;
-			handle_receive_date(buffer + bytesToCopy, size - bytesToCopy, samples0, samples1, posIncFunc, posGetFunc);
+				if (result.frameType == FRAME_TYPE_TRIGGER)
+				{
+					// TODO: implement
+					++receiveStats.triggers;
+				}
+				else if (result.frameType == FRAME_TYPE_DATA)
+				{
+					int posInSamples = posGetFunc();
+					samples0[posInSamples] = result.samples[0];
+					samples1[posInSamples] = result.samples[1];
+					posIncFunc();
+				}
+				else // FRAME_TYPE_MALFORMED
+				{
+					// bad frame, ignore
+					++receiveStats.malformed;
+				}
+
+				pos = 0;
+				state = STATE_WAITING_SOF;
+				handle_receive_date(buffer + bytesToCopy, size - bytesToCopy, samples0, samples1, posIncFunc, posGetFunc);
+			}
 		}
 	}
 	break;	

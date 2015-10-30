@@ -1,6 +1,9 @@
+#include <Windows.h>
+
 #include "scope.h"
 #include "drawing.h"
 #include "scope_ui_handlers.h"
+#include "config.h"
 
 #define LOW_FPS	15
 
@@ -54,9 +57,10 @@ void drawing_resize(int width, int height)
 void drawing_buffer_init()
 {
 	static gboolean first = TRUE;
-	ScopeUI* ui = common_get_ui();
-	int window_width = gtk_widget_get_allocated_width((GtkWidget*)ui->drawingArea);
-	int window_height = gtk_widget_get_allocated_height((GtkWidget*)ui->drawingArea);
+	//ScopeUI* ui = common_get_ui();
+	Scope* scope = scope_get();
+	int window_width = scope->screen.width;
+	int window_height = scope->screen.height;
 
 	if ((first == TRUE)
 		|| (window_width != drawing_get_width())
@@ -101,7 +105,7 @@ void drawing_redraw()
 	//rect.height = gtk_widget_get_allocated_height((GtkWidget*)ui->drawingArea);
 	rect.width = scope->screen.width;
 	rect.height = scope->screen.height;
-	drawing_update_buffer();
+	//drawing_update_buffer();
 	gdk_window_invalidate_rect(window, &rect, FALSE);
 }
 
@@ -257,7 +261,7 @@ void screen_draw_traces()
 // draws to the internal buffer
 void drawing_update_buffer()
 {
-	ScopeUI* ui = common_get_ui();
+	//ScopeUI* ui = common_get_ui();
 
 	drawing_buffer_init();
 
@@ -268,4 +272,17 @@ void drawing_update_buffer()
 	draw_cursors();
 
 	cairo_surface_flush(drawing_surface);
+}
+
+DWORD WINAPI drawing_worker_thread(LPVOID param)
+{
+	Scope* scope = scope_get();
+	DWORD drawingInterval = 1.0f / scope->screen.fps * 1000;
+
+	while (TRUE)
+	{
+		drawing_update_buffer();
+		guint sourceId = gdk_threads_add_idle_full(G_PRIORITY_DEFAULT_IDLE, timeout_callback, NULL, NULL);
+		Sleep(drawingInterval);
+	}
 }
