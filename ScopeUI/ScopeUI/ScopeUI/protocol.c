@@ -95,6 +95,14 @@ bool copyBytes(char* dst, char* src, int count, int* pos)
 	{
 		return FALSE;
 	}
+	if (*pos < 0)
+	{
+		return FALSE;
+	}
+	if (count < 0)
+	{
+		return FALSE;
+	}
 	for (int i = 0; i < count; ++i)
 	{
 		dst[*pos + i] = src[i];
@@ -109,6 +117,12 @@ void handle_receive_date(char* buffer, int size, float* samples0, float* samples
 	
 	static char frameBuffer[MAX_FRAME_SIZE];	// holds frames while they are being re-constructed
 	static int pos = 0;							// position in frameBuffer
+
+	if (size == 0)
+		return;
+
+	if (size < 0)
+		return;
 
 	switch (state)
 	{
@@ -181,7 +195,11 @@ void handle_receive_date(char* buffer, int size, float* samples0, float* samples
 
 				pos = 0;
 				state = STATE_WAITING_SOF;
-				handle_receive_date(buffer + bytesToCopy, size - bytesToCopy, samples0, samples1, frameHandler);
+				if (size - bytesToCopy > 0)
+				{
+					// some bytes are left
+					handle_receive_date(buffer + bytesToCopy, size - bytesToCopy, samples0, samples1, frameHandler);
+				}
 			}
 		}
 	}

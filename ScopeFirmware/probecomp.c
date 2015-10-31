@@ -24,52 +24,34 @@
 #include "probecomp.h"
 #include "scope_common.h"
 
-#define PROBE_COMP_PORT	GPIO_PORTM_BASE
-#define PROBE_COMP_PIN	GPIO_PIN_5
-
-#define PROBE_COMP_FREQ	1
-
 volatile uint8_t value = HIGH;
-
-uint32_t getTimerValue(uint32_t hertz)
-{
-	return 120000000 / hertz;
-}
 
 void configProbeCompensation()
 {
 	// set a digital pin to output
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOM);
-	GPIOPinTypeGPIOOutput(PROBE_COMP_PORT, PROBE_COMP_PIN);
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOL);
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
+	GPIOPinTypeGPIOOutput(GPIO_PORTL_BASE, GPIO_PIN_3);
+	GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_0);
 
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
-	SysCtlDelay(1000);
 	TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
 
 	// configure 1KHz timer periodic
-	//TimerClockSourceSet(TIMER0_BASE, TIMER_CLOCK_SYSTEM);
-	//uint32_t timer_value = getTimerValue(PROBE_COMP_FREQ);
-	uint32_t timer_value = 120000;
+	unsigned long timer_value = (SysCtlClockGet() / 1) - 1;
 	TimerLoadSet(TIMER0_BASE, TIMER_A, timer_value);
-
-	// enable Timer0A interrupt
-	IntEnable(INT_TIMER0A);  // Enable Timer 1A Interrupt
-	TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);	// enable timer A timeout
+	TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
+	IntEnable(INT_TIMER0A);
 	TimerEnable(TIMER0_BASE, TIMER_A);
-	TimerLoadSet(TIMER0_BASE, TIMER_A, timer_value);
-	// write
-	//GPIOPinWrite(PROBE_COMP_PORT, PROBE_COMP_PIN, 1);
 }
 
 void probeCompISR(void)
 {
 	// clear status
-	//uint32_t status = TimerIntStatus(TIMER0_BASE, FALSE);
-	//TimerIntClear(TIMER0_BASE, TIMER_A);
+	uint32_t status = TimerIntStatus(TIMER0_BASE, false);
+	TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
 
 	value = !value;
-	GPIOPinWrite(PROBE_COMP_PORT, PROBE_COMP_PIN, value);
-
-	// restore status
-	//TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
+	GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0, value);
+	GPIOPinWrite(GPIO_PORTL_BASE, GPIO_PIN_3, value);
 }

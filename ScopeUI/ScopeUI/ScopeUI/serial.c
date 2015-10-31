@@ -123,7 +123,7 @@ bool serial_write(const char * buffer, int size)
 		if (GetLastError() != ERROR_IO_PENDING)
 		{
 			// WriteFile failed, but isn't delayed. Report error and abort.
-			fRes = FALSE;
+			return FALSE;
 		}
 		else
 		{
@@ -232,6 +232,5 @@ bool serial_close()
 		return FALSE;
 	}
 	hSerial = INVALID_HANDLE_VALUE;
-	fprintf(stderr, "OK\n");
 	return TRUE;
 }

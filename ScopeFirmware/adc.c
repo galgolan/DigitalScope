@@ -121,7 +121,7 @@ void configAdc()
 	ADCIntEnable(ADC0_BASE, 0);
 	if(trigger.mode != TRIG_MODE_FREE_RUNNING)
 		IntEnable(INT_ADC0SS0);
-	IntMasterEnable();
+	//IntMasterEnable();
 }
 
 void triggerAdc()
@@ -131,7 +131,7 @@ void triggerAdc()
 	ADCProcessorTrigger(ADC0_BASE, 0);
 }
 
-void sampleAdc(uint32_t* samples)
+int sampleAdc(uint32_t* samples)
 {
 	triggerAdc();
 
@@ -141,7 +141,8 @@ void sampleAdc(uint32_t* samples)
 	}
 
 	// Read the value from the ADC.
-	ADCSequenceDataGet(ADC0_BASE, 0, samples);
+	int numSamples = ADCSequenceDataGet(ADC0_BASE, 0, samples);
+	return numSamples;
 }
 
 void AdcISR(void)

@@ -144,8 +144,9 @@ MeasurementInstance* scope_measurement_add(Measurement* measurement, Trace* sour
 	return instance;
 }
 
-void serial_worker_demo(AnalogChannel* ch1, AnalogChannel* ch2, float T)
+void serial_worker_demo(AnalogChannel* ch1, AnalogChannel* ch2)
 {
+	float T = scope.screen.dt;		// create local copy of sample time
 	Sleep(10);	// throttle down to simulate serial port
 
 	// fill channels with samples
@@ -190,25 +191,23 @@ void serial_frame_handler(float* samples, int count, bool trigger)
 	}
 }
 
-void serial_worker_read(char* buffer, int bufferSize, AnalogChannel* ch1, AnalogChannel* ch2)
+// returns TRUE if read was success, FALSE if not
+bool serial_worker_read(char* buffer, int bufferSize, AnalogChannel* ch1, AnalogChannel* ch2)
 {
 	int bytesRead = serial_read(buffer, bufferSize);
 	if (bytesRead == -1)
 	{
-		// error
-		return;
+		// scope disconnected
+		return FALSE;
 	}
 
 	handle_receive_date(buffer, bytesRead, ch1->buffer->data, ch2->buffer->data, serial_frame_handler);
+	return TRUE;
 }
 
 DWORD WINAPI serial_worker_thread(LPVOID param)
 {
 	gboolean demoMode = config_get_bool("test", "demo");
-
-	if (!demoMode)
-		if (serial_open() == FALSE)
-			return 1;
 
 	unsigned long long n = 0;	// sample counter for simulating signals
 
@@ -220,11 +219,8 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 	int bufferSize = 10 * 5;
 	char* buffer = (char*)malloc(sizeof(char) * bufferSize);
 	
-	while (TRUE)
+	while (!scope.shuttingDown)
 	{
-		
-		float T = scope.screen.dt;		// create local copy of sample time
-
 		if (scope.state == SCOPE_STATE_PAUSED)
 		{
 			Sleep(100);
@@ -232,17 +228,27 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 		}
 
 		if (demoMode)
-			serial_worker_demo(ch1, ch2, T);
+			serial_worker_demo(ch1, ch2);
 		else
-			serial_worker_read(buffer, bufferSize, ch1, ch2);
+		{
+			bool result = serial_worker_read(buffer, bufferSize, ch1, ch2);
+			if (!result)
+			{
+				while (!serial_open())
+				{
+					// wait for serial port to become available
+					Sleep(1000);
+				}
+			}
+		}
 	}
 
 	free(buffer);
 
 	if (demoMode)
 		return 0;
-
-	return serial_close();
+	else
+		return serial_close();
 }
 
 void populate_cursors_list()
@@ -348,7 +354,7 @@ void screen_init()
 	GError* error = NULL;
 
 	scope.bufferSize = config_get_int("hardware", "bufferSize");
-
+	scope.shuttingDown = FALSE;
 	scope.state = SCOPE_STATE_RUNNING;
 	scope.display_mode = DISPLAY_MODE_WAVEFORM;
 	cursors_init();

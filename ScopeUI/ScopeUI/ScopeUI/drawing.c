@@ -252,8 +252,6 @@ void screen_draw_traces()
 // draws to the internal buffer
 void drawing_update_buffer()
 {
-	//ScopeUI* ui = common_get_ui();
-
 	drawing_buffer_init();
 
 	screen_fill_background();
@@ -270,10 +268,12 @@ DWORD WINAPI drawing_worker_thread(LPVOID param)
 	Scope* scope = scope_get();
 	DWORD drawingInterval = 1.0f / scope->screen.fps * 1000;
 
-	while (TRUE)
+	while (!scope->shuttingDown)
 	{
 		drawing_update_buffer();
 		guint sourceId = gdk_threads_add_idle_full(G_PRIORITY_DEFAULT_IDLE, timeout_callback, NULL, NULL);
 		Sleep(drawingInterval);
 	}
+
+	return 0;
 }

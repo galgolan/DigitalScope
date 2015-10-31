@@ -108,22 +108,22 @@ typedef struct AnalogChannel
 
 typedef enum TriggerMode
 {
-	TRIGGER_MODE_NONE,
-	TRIGGER_MODE_SINGLE,
-	TRIGGER_MODE_AUTO
+	TRIGGER_MODE_NONE = 0,
+	TRIGGER_MODE_SINGLE = 1,
+	TRIGGER_MODE_AUTO = 2
 } TriggerMode;
 
 typedef enum TriggerSource
 {
-	TRIGGER_SOURCE_CH1,
-	TRIGGER_SOURCE_CH2
+	TRIGGER_SOURCE_CH1 = 0,
+	TRIGGER_SOURCE_CH2 = 1
 } TriggerSource;
 
 typedef enum TriggerType
 {
-	TRIGGER_TYPE_RAISING,
-	TRIGGER_TYPE_FALLING,
-	TRIGGER_TYPE_BOTH
+	TRIGGER_TYPE_RAISING = 0,
+	TRIGGER_TYPE_FALLING = 1,
+	TRIGGER_TYPE_BOTH = 2
 } TriggerType;
 
 typedef struct Trigger
@@ -149,7 +149,7 @@ typedef enum DisplayMode
 typedef struct Scope
 {
 	Screen screen;
-	GQueue* channels;	// contains AnalogChannel*
+	GQueue* channels;		// contains AnalogChannel*
 	Trigger trigger;
 	GQueue* measurements;	// contains MeasurementInstance*
 	ScopeState state;	
@@ -158,6 +158,8 @@ typedef struct Scope
 	MathTraceInstance mathTraceDefinition;
 	int bufferSize;
 	int posInBuffer;
+
+	bool shuttingDown;	// signals all the threads to terminate gracefully
 } Scope;
 
 

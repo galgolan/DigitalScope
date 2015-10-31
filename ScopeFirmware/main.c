@@ -83,12 +83,10 @@ void setup()
 	SysCtlDelay(1000);
 
 	configUART(g_ui32SysClock);
-
 	configAdc(config->trigger);
 	configSPI();
 	configureAnalogFrontend();
-
-	//configProbeCompensation();
+	configProbeCompensation();
 }
 
 void waitUntilReady()
@@ -124,11 +122,11 @@ void createConfig()
 
 	// configure trigger
 	config->trigger.level = COMP_REF_1_65V;
-	config->trigger.type = TRIG_RISING;
+	config->trigger.type = TRIG_BOTH;
 	config->trigger.mode = TRIG_MODE_AUTO;
 	config->trigger.source = TRIG_SRC_CH2;
 
-	config->trigger.mode = TRIG_MODE_FREE_RUNNING;
+	//config->trigger.mode = TRIG_MODE_FREE_RUNNING;
 
 	// configure ch1
 	config->channels[0].active = true;
@@ -137,6 +135,29 @@ void createConfig()
 	// configure ch2
 	config->channels[1].active = true;
 	config->channels[1].gain = PGA_GAIN_1;
+}
+
+void freerunning()
+{
+	uint32_t samples[2];
+	int numSamples = sampleAdc(samples);
+	double ch1 = calcCh1Input(samples[0]);
+	double ch2 = calcCh2Input(samples[1]);
+	outputData(ch1, ch2);
+}
+
+void triggered()
+{
+	int i;
+	waitUntilReady();
+	//outputDebug(samples_ch1[0], samples_ch2[0]);
+	//outputDebugMany(samples_ch1, samples_ch2, BUFFER_SIZE);
+	outputTrigger();
+	for(i=0;i<BUFFER_SIZE;++i)
+	{
+		outputData(samples_ch1[i], samples_ch2[i]);
+	}
+	reArmTrigger();
 }
 
 /*
@@ -149,20 +170,12 @@ int main(void)
 	SysCtlDelay(1000000);
 	setup();
 	SysCtlDelay(1000);
+	IntMasterEnable();
 
-	uint32_t samples[2];
 	while(1)
 	{
-		//waitUntilReady();
-		//outputDebug(samples_ch1[0], samples_ch2[0]);
-		//outputDebugMany(samples_ch1, samples_ch2, BUFFER_SIZE);
-		//outputData(samples_ch1[0], samples_ch2[0]);
-		//reArmTrigger();
-
-		sampleAdc(samples);
-		double ch1 = calcCh1Input(samples[0]);
-		double ch2 = calcCh2Input(samples[1]);
-		outputData(ch1, ch2);
+		triggered();
+		//freerunning();
 	}
 
 	return 0;

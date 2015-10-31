@@ -93,7 +93,7 @@ DWORD WINAPI measurement_worker_thread(LPVOID param)
 {
 	Scope* scope = scope_get();
 	
-	while (TRUE)
+	while (!scope->shuttingDown)
 	{
 		if (scope->display_mode == DISPLAY_MODE_WAVEFORM)
 		{
@@ -112,6 +112,8 @@ DWORD WINAPI measurement_worker_thread(LPVOID param)
 
 		Sleep(300);
 	}
+
+	return 0;
 }
 
 // ********** calculation funtions *********************

@@ -65,7 +65,7 @@ void serialFloatPrint(char* buff, float f)
 
 void outputTrigger()
 {
-	UARTprintf(":%s:", TRIGGER_FRAME);
+	UARTprintf(":::::TRIG:TRIG:TRIG:TRIG:TRIG:TRIG:");
 }
 
 void outputData(float ch1, float ch2)
@@ -147,7 +147,7 @@ void outputDebug(double vin1, double vin2)
 volatile uint8_t buffer[64];
 volatile uint8_t buffer_index = 0;
 
-uint8_t translateGain(byte gainValue)
+int8_t translateGain(byte gainValue)
 {
 	//1;2;4;5;8;10;16;32
 	switch(gainValue)
@@ -169,7 +169,7 @@ uint8_t translateGain(byte gainValue)
 	case 32:
 		return PGA_GAIN_32;
 	default:
-		return PGA_GAIN_1;
+		return -1;		// invalid gain which should be ignored
 	}
 }
 
@@ -209,8 +209,12 @@ void updateConfig(ConfigMsg* msg)
 {
 	ScopeConfig* config = getConfig();
 
-	config->channels[0].gain = translateGain(msg->ch1_gain);
-	config->channels[1].gain = translateGain(msg->ch2_gain);
+	int8_t gain1 =translateGain(msg->ch1_gain);
+	int8_t gain2 =translateGain(msg->ch2_gain);
+	if(gain1 != -1)
+		config->channels[0].gain = gain1;
+	if(gain2 != -1)
+		config->channels[1].gain = gain2;
 	// TODO: add offsets for each channel
 	// TODO: add sample rate
 	if(msg->trigger & TRIGGER_CFG_MODE_NONE)

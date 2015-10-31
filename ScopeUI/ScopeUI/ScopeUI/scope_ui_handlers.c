@@ -14,6 +14,18 @@ ScopeUI* common_get_ui()
 	return &scopeUI;
 }
 
+guint combobox_get_active_id(GtkComboBox* widget, GtkListStore* liststore)
+{
+	GtkTreeIter iter;
+	guint id;
+	gtk_combo_box_get_active_iter(widget, &iter);
+	GtkTreeModel* model = GTK_TREE_MODEL(liststore);
+	gtk_tree_model_get(model, &iter,
+		0, &id);
+
+	return id;
+}
+
 void populate_ui(GtkBuilder* builder)
 {
 	scopeUI.drawingArea = (GtkDrawingArea*)GET_GTK_OBJECT("drawingarea");
@@ -221,7 +233,10 @@ void runButton_toggled(GtkToggleButton* runButton, gpointer user_data)
 G_MODULE_EXPORT
 void on_window1_destroy(GtkWidget *object, gpointer user_data)
 {
-	// TODO: perform gracefull shutdown
+	Scope* scope = scope_get();
+	scope->shuttingDown = TRUE;
+	// TODO: wait for all the threads
+	Sleep(1000);
 	gtk_main_quit();
 }
 
@@ -359,4 +374,40 @@ void on_drawing_area_resize(GtkWidget *widget, GdkRectangle *allocation, gpointe
 	Scope* scope = scope_get();
 	scope->screen.width = allocation->width;
 	scope->screen.height = allocation->height;
+}
+
+G_MODULE_EXPORT
+void on_spinbuttonTriggerLevel_value_changed(GtkSpinButton *spin_button, gpointer user_data)
+{
+	Scope* scope = scope_get();
+	scope->trigger.level = (float)gtk_spin_button_get_value(spin_button);
+	scope_build_and_send_config();
+}
+
+G_MODULE_EXPORT
+void on_comboboxTriggerMode_changed(GtkComboBox *widget, gpointer user_data)
+{
+	Scope* scope = scope_get();
+	guint activeItem = combobox_get_active_id(widget, (GtkListStore*)user_data);
+	scope->trigger.mode = (TriggerMode)activeItem;
+	scope_build_and_send_config();
+}
+
+G_MODULE_EXPORT
+void on_comboboxTriggerSource_changed(GtkComboBox *widget, gpointer user_data)
+{
+	Scope* scope = scope_get();
+	guint activeItem = combobox_get_active_id(widget, (GtkListStore*)user_data);
+	scope->trigger.source = (TriggerSource)activeItem;
+	scope_build_and_send_config();
+	scope_build_and_send_config();
+}
+
+G_MODULE_EXPORT
+void on_comboboxTriggerType_changed(GtkComboBox *widget, gpointer user_data)
+{
+	Scope* scope = scope_get();
+	guint activeItem = combobox_get_active_id(widget, (GtkListStore*)user_data);
+	scope->trigger.type = (TriggerType)activeItem;
+	scope_build_and_send_config();
 }

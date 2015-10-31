@@ -27,12 +27,13 @@ void math_update_trace()
 DWORD WINAPI math_worker_thread(LPVOID param)
 {
 	int mathRefreshIntervalMs = config_get_int("display", "math_refresh");
-
-	while (TRUE)
+	Scope* scope = scope_get();
+	while (!scope->shuttingDown)
 	{
 		math_update_trace();
 		Sleep(mathRefreshIntervalMs);
 	}
+	return 0;
 }
 
 // second can be null
