@@ -29,12 +29,18 @@ typedef enum TriggerMode
 	TRIG_MODE_FREE_RUNNING
 } TriggerMode;
 
+typedef enum TriggerSource
+{
+	TRIG_SRC_CH1,
+	TRIG_SRC_CH2
+} TriggerSource;
+
 typedef struct Trigger
 {
 	TriggerType type;
 	uint32_t level;
 	TriggerMode mode;
-	// TODO: source. currently ch2
+	TriggerSource source;
 } Trigger;
 
 typedef struct ChannelConfig

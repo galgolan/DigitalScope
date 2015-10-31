@@ -13,6 +13,7 @@ typedef struct ConfigMsg
 {
 	uint64 preamble;
 	byte trigger;		// bitfield: TriggerConfig
+	float triggerLevel;
 	byte ch1_gain;
 	float ch1_offset;
 	byte ch2_gain;

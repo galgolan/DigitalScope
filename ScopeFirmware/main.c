@@ -88,7 +88,7 @@ void setup()
 	configSPI();
 	configureAnalogFrontend();
 
-	configProbeCompensation();
+	//configProbeCompensation();
 }
 
 void waitUntilReady()
@@ -123,9 +123,10 @@ void createConfig()
 	ScopeConfig* config = getConfig();
 
 	// configure trigger
-	//config->trigger.level = COMP_REF_1_65V;
-	//config->trigger.type = TRIG_RISING;
-	//config->trigger.mode = TRIG_MODE_SINGLE;
+	config->trigger.level = COMP_REF_1_65V;
+	config->trigger.type = TRIG_RISING;
+	config->trigger.mode = TRIG_MODE_AUTO;
+	config->trigger.source = TRIG_SRC_CH2;
 
 	config->trigger.mode = TRIG_MODE_FREE_RUNNING;
 
@@ -149,20 +150,19 @@ int main(void)
 	setup();
 	SysCtlDelay(1000);
 
-	//uint32_t samples[2];
+	uint32_t samples[2];
 	while(1)
 	{
-		waitUntilReady();
+		//waitUntilReady();
 		//outputDebug(samples_ch1[0], samples_ch2[0]);
 		//outputDebugMany(samples_ch1, samples_ch2, BUFFER_SIZE);
-		outputData(samples_ch1[0], samples_ch2[0]);
-		reArmTrigger();
-/*
+		//outputData(samples_ch1[0], samples_ch2[0]);
+		//reArmTrigger();
+
 		sampleAdc(samples);
 		double ch1 = calcCh1Input(samples[0]);
 		double ch2 = calcCh2Input(samples[1]);
-		outputDebug(ch1, ch2);
-*/
+		outputData(ch1, ch2);
 	}
 
 	return 0;

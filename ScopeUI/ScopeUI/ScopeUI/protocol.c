@@ -43,10 +43,10 @@ int calc_padding_size(int msgSize)
 bool protocol_send_config(const ConfigMsg* msg)
 {
 	// send config
-	if (!serial_write((const char*)msg, sizeof(*msg)))
+	if (!serial_write((const char*)msg, sizeof(ConfigMsg)))
 		return FALSE;
 
-	int paddingSize = calc_padding_size(sizeof(*msg));
+	int paddingSize = calc_padding_size(sizeof(ConfigMsg));
 	if (paddingSize > 0)
 	{
 		// send padding
