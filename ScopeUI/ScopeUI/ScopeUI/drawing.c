@@ -166,7 +166,8 @@ void screen_draw_grid()
 
 int translate(float value, const Trace* trace, int gridLines, int height, int width)
 {
-	int c = (int)(height / 2 + trace->offset - (value / trace->scale) * (height / gridLines));
+	//int c = (int)(height / 2 + trace->offset - (value / trace->scale) * (height / gridLines));
+	int c = (int)(height / 2 + trace->offset - (value) * (height / gridLines));
 	return c;
 }
 
@@ -215,7 +216,8 @@ void trace_draw(const Trace* trace)
 	for (i = 0; i < MIN(scope->bufferSize, width); ++i)
 	{
 		// y = offset - (sample/scale * height/grid.h)
-		int y = (int)(height / 2 + trace->offset - (trace->samples->data[i] / trace->scale)*(height / scope->screen.grid.horizontal));
+		//int y = (int)(height / 2 + trace->offset - (trace->samples->data[i] / trace->scale)*(height / scope->screen.grid.horizontal));
+		int y = (int)(height / 2 + trace->offset - (trace->samples->data[i])*(height / scope->screen.grid.horizontal));
 		cairo_line_to(drawing_context, i, y);
 	}
 

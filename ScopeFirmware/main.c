@@ -19,6 +19,7 @@
 #include "driverlib/adc.h"
 #include "driverlib/interrupt.h"
 #include "driverlib/comp.h"
+#include "driverlib/watchdog.h"
 
 // utilities
 #include "utils/uartstdio.h"
@@ -45,25 +46,10 @@ __error__(char *pcFilename, uint32_t ui32Line)
 //*****************************************************************************
 uint32_t g_ui32SysClock;
 
-void configureAnalogFrontend()
-{
-	ScopeConfig* config = getConfig();
-	int i;
-	for(i=1; i <= NUM_CHANNELS; ++i)
-	{
-		setDacVoltage(VCC/2, i);
-		setDacVoltage(VCC/2, i);
-	}
-
-	setPga1Channel(PGA_CHANNEL_0);
-	setPga2Channel(PGA_CHANNEL_0);
-	setPga1Gain(config->channels[0].gain);
-	setPga2Gain(config->channels[1].gain);
-}
-
 void configureFPU()
 {
 	FPUEnable();
+	FPULazyStackingEnable();
 }
 
 void setup()
@@ -79,14 +65,20 @@ void setup()
 					SYSCTL_OSC_MAIN | SYSCTL_USE_PLL |
 					SYSCTL_CFG_VCO_480), 120000000);
 
-	// TODO: if g_ui32SysClock == 0 error
+	if (g_ui32SysClock == 0)
+	{
+		while(1)
+		{
+
+		}
+	}
 	SysCtlDelay(1000);
 
 	configUART(g_ui32SysClock);
 	configAdc(config->trigger);
-	configSPI();
+	configSPI(g_ui32SysClock);
 	configureAnalogFrontend();
-	configProbeCompensation();
+	configProbeCompensation(g_ui32SysClock);
 }
 
 void waitUntilReady()
@@ -123,7 +115,7 @@ void createConfig()
 	// configure trigger
 	config->trigger.level = COMP_REF_1_65V;
 	config->trigger.type = TRIG_BOTH;
-	config->trigger.mode = TRIG_MODE_AUTO;
+	config->trigger.mode = TRIG_MODE_FREE_RUNNING;
 	config->trigger.source = TRIG_SRC_CH2;
 
 	//config->trigger.mode = TRIG_MODE_FREE_RUNNING;
@@ -165,6 +157,9 @@ void triggered()
  */
 int main(void)
 {
+	IntMasterDisable();
+
+	//WatchdogResetDisable(WATCHDOG0_BASE);
 	createConfig();
 
 	SysCtlDelay(1000000);
@@ -174,8 +169,8 @@ int main(void)
 
 	while(1)
 	{
-		triggered();
-		//freerunning();
+		//triggered();
+		freerunning();
 	}
 
 	return 0;

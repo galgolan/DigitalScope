@@ -25,7 +25,13 @@
 #define DAC_A 			0x0
 #define DAC_B 			0x8
 
-void configSPI();
+void configSPI(uint32_t ui32SysClock);
+
+void configureAnalogFrontend();
+
+void setGain();
+
+void setOffset();
 
 void setDacVoltage(double voltage, int channel);
 

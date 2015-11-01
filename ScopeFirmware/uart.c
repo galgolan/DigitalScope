@@ -122,7 +122,7 @@ void configUART(uint32_t sysClock)
 	GPIOPinConfigure(GPIO_PA1_U0TX);
 	GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
 
-	//UARTClockSourceSet(UART0_BASE, UART_CLOCK_SYSTEM) ; // Set System Clock for UART
+	UARTClockSourceSet(UART0_BASE, UART_CLOCK_SYSTEM) ; // Set System Clock for UART
 
 	// enable receive interrupt
 	UARTIntEnable(UART0_BASE, UART_INT_RX);
@@ -144,8 +144,8 @@ void outputDebug(double vin1, double vin2)
 	UARTprintf(buff);
 }
 
-volatile uint8_t buffer[64];
-volatile uint8_t buffer_index = 0;
+static volatile uint8_t buffer[64];
+static volatile uint8_t buffer_index = 0;
 
 int8_t translateGain(byte gainValue)
 {
@@ -209,8 +209,8 @@ void updateConfig(ConfigMsg* msg)
 {
 	ScopeConfig* config = getConfig();
 
-	int8_t gain1 =translateGain(msg->ch1_gain);
-	int8_t gain2 =translateGain(msg->ch2_gain);
+	int8_t gain1 = translateGain(msg->ch1_gain);
+	int8_t gain2 = translateGain(msg->ch2_gain);
 	if(gain1 != -1)
 		config->channels[0].gain = gain1;
 	if(gain2 != -1)
@@ -245,14 +245,14 @@ void handleCommand()
 	{
 		// received a valid config msg
 		updateConfig(msg);
-		configureAnalogFrontend();
+		setGain();
 	}
 }
 
 void UartISR(void)
 {
 	// handle serial input
-	UARTIntDisable(UART0_BASE, UART_INT_RX);
+	//UARTIntDisable(UART0_BASE, UART_INT_RX);
 	UARTIntClear(UART0_BASE, UART_INT_RX);
 
 	while(UARTCharsAvail(UART0_BASE))
@@ -274,5 +274,5 @@ void UartISR(void)
 
 	//buffer_index = 0;
 
-	UARTIntEnable(UART0_BASE, UART_INT_RX);
+	//UARTIntEnable(UART0_BASE, UART_INT_RX);
 }

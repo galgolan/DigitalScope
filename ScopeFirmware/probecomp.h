@@ -12,7 +12,7 @@
 //#include "driverlib/rom_map.h"
 
 // configures the probe compensation output to 1KHz 3.3Vpp square wave
-void configProbeCompensation();
+void configProbeCompensation(uint32_t ui32SysClock);
 
 void probeCompISR(void);
 

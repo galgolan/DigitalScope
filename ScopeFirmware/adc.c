@@ -32,9 +32,9 @@
 
 double samples_ch1[BUFFER_SIZE];
 double samples_ch2[BUFFER_SIZE];
-volatile uint32_t index = 0;
+static volatile uint32_t index = 0;
 volatile bool ready = false;
-uint32_t samples[2];
+static uint32_t samples[2];
 
 uint32_t getTriggerType(TriggerType type)
 {

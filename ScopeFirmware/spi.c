@@ -7,10 +7,12 @@
 #include "driverlib/gpio.h"
 #include "driverlib/pin_map.h"
 #include "driverlib/sysctl.h"
+#include "driverlib/interrupt.h"
 
 #include "driverlib/ssi.h"
 #include "spi.h"
 #include "scope_common.h"
+#include "config.h"
 
 #define PGA1_SS_PORT	GPIO_PORTP_BASE
 #define PGA2_SS_PORT	GPIO_PORTN_BASE
@@ -28,8 +30,8 @@ const double dacReference = 3.3;
 static volatile uint32_t dacGain = 1;
 const uint32_t dacRes = 4096;
 
-static volatile uint8_t pga1GainRegister = 1;
-static volatile uint8_t pga2GainRegister = 1;
+static volatile uint8_t pga1GainRegister = PGA_GAIN_1;
+static volatile uint8_t pga2GainRegister = PGA_GAIN_1;
 
 void configSlaveSelectPins()
 {
@@ -50,7 +52,7 @@ void configSlaveSelectPins()
 }
 
 // config SSI2
-void configSPI()
+void configSPI(uint32_t ui32SysClock)
 {
 	configSlaveSelectPins();
 
@@ -68,8 +70,41 @@ void configSPI()
 	GPIOPinTypeSSI(GPIO_PORTD_BASE, GPIO_PIN_3 | GPIO_PIN_1);
 
 	// Configure the SSI.
-	SSIConfigSetExpClk(SSI_BASE, SysCtlClockGet(), SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, 500000, 8);
+	SSIAdvModeSet(SSI_BASE, SSI_ADV_MODE_LEGACY);
+	SSIClockSourceSet(SSI_BASE, SSI_CLOCK_SYSTEM);
+	SSIConfigSetExpClk(SSI_BASE, ui32SysClock, SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, 200000, 8);
 	SSIEnable(SSI_BASE);
+}
+
+void setGain()
+{
+	ScopeConfig* config = getConfig();
+	setPga1Channel(PGA_CHANNEL_0);
+	setPga1Channel(PGA_CHANNEL_0);
+	setPga1Gain(config->channels[0].gain);
+	setPga1Gain(config->channels[0].gain);
+
+	setPga2Channel(PGA_CHANNEL_0);
+	setPga2Channel(PGA_CHANNEL_0);
+	setPga2Gain(config->channels[1].gain);
+	setPga2Gain(config->channels[1].gain);
+}
+
+void setOffset()
+{
+	ScopeConfig* config = getConfig();
+	int i;
+	for(i=1; i <= NUM_CHANNELS; ++i)
+	{
+		setDacVoltage(VCC/2, i);
+		setDacVoltage(VCC/2, i);
+	}
+}
+
+void configureAnalogFrontend()
+{
+	setOffset();
+	setGain();
 }
 
 uint16_t calcDacLevel(double voltage)
@@ -79,10 +114,12 @@ uint16_t calcDacLevel(double voltage)
 
 void programPga(uint8_t inst, uint8_t data, uint32_t ssPort, uint32_t ssPin)
 {
+	//IntMasterDisable();
 	GPIOPinWrite(ssPort, ssPin, LOW);
 	SSIDataPut(SSI_BASE, inst);
 	SSIDataPut(SSI_BASE, data);
 	GPIOPinWrite(ssPort, ssPin, HIGH);
+	//IntMasterEnable();
 }
 
 void programPga1(uint8_t inst, uint8_t data)

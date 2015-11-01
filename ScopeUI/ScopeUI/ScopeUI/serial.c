@@ -6,7 +6,7 @@
 #include "config.h"
 
 #define SERIAL_CONFIG_GROUP	"serial"
-#define SERIAL_READ_TIMEOUT_MS	100
+#define SERIAL_READ_TIMEOUT_MS	50
 
 // Declare variables and structures
 static HANDLE hSerial = INVALID_HANDLE_VALUE;
