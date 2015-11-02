@@ -25,16 +25,19 @@
 #define PGA2_SS_PIN_NUM	2
 #define	DAC1_SS_PIN		GPIO_PIN_3
 #define DAC1_SS_PIN_NUM	3
-//#define DAC2_SS_PIN		GPIO_PIN_3
-//#define DAC2_SS_PIN_NUM	3
+#define DAC2_SS_PIN		GPIO_PIN_3
+#define DAC2_SS_PIN_NUM	3
 
 #define SSI_BASE	SSI2_BASE
 
-static volatile double voltages[2] = {0.0, 0.0};
-
-const double dacReference = 3.3;
-static volatile uint32_t dacGain = 1;
 const uint32_t dacRes = 4096;
+const double dacReference = 3.3;
+
+static volatile double dac1_voltages[2] = {0.0, 0.0};
+static volatile double dac2_voltages[2] = {0.0, 0.0};
+
+static volatile uint32_t dac1Gain = 1;
+static volatile uint32_t dac2Gain = 1;
 
 static volatile uint8_t pga1GainRegister = PGA_GAIN_1;
 static volatile uint8_t pga2GainRegister = PGA_GAIN_1;
@@ -51,17 +54,17 @@ void configSlaveSelectPins()
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOP);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOL);
 
-	// pga1 cs - pin 11 PP2
-	// pga2 cs - pin 13 PN2
-	// dac cs - pin 12 PN3
-	GPIOPinTypeGPIOOutput(GPIO_PORTP_BASE, GPIO_PIN_2);
-	GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_2 | GPIO_PIN_3);
-	GPIOPinTypeGPIOOutput(GPIO_PORTD_BASE, GPIO_PIN_2);
+	GPIOPinTypeGPIOOutput(PGA1_SS_PORT, PGA1_SS_PIN);
+	GPIOPinTypeGPIOOutput(PGA2_SS_PORT, PGA2_SS_PIN);
+	GPIOPinTypeGPIOOutput(DAC1_SS_PORT, DAC1_SS_PIN);
+	GPIOPinTypeGPIOOutput(DAC2_SS_PORT, DAC2_SS_PIN);
 
-	GPIOPinWrite(DAC1_SS_PORT, DAC1_SS_PIN, HIGH << DAC1_SS_PIN_NUM);
 	GPIOPinWrite(PGA1_SS_PORT, PGA1_SS_PIN, HIGH << PGA1_SS_PIN_NUM);
 	GPIOPinWrite(PGA2_SS_PORT, PGA2_SS_PIN, HIGH << PGA2_SS_PIN_NUM);
+	GPIOPinWrite(DAC1_SS_PORT, DAC1_SS_PIN, HIGH << DAC1_SS_PIN_NUM);
+	GPIOPinWrite(DAC2_SS_PORT, DAC2_SS_PIN, HIGH << DAC2_SS_PIN_NUM);
 }
 
 // config SSI2
@@ -75,7 +78,6 @@ void configSPI(uint32_t ui32SysClock)
 
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI2);
-	SysCtlDelay(1000);
 
 	GPIOPinConfigure(GPIO_PD3_SSI2CLK);
 	GPIOPinConfigure(GPIO_PD1_SSI2XDAT0);
@@ -83,7 +85,6 @@ void configSPI(uint32_t ui32SysClock)
 	GPIOPinTypeSSI(GPIO_PORTD_BASE, GPIO_PIN_3 | GPIO_PIN_1);
 
 	// Configure the SSI.
-	//SSIAdvModeSet(SSI_BASE, SSI_ADV_MODE_LEGACY);
 	SSIClockSourceSet(SSI_BASE, SSI_CLOCK_SYSTEM);
 	SSIConfigSetExpClk(SSI_BASE, ui32SysClock, SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, 100000, 8);
 	SSIEnable(SSI_BASE);
@@ -93,34 +94,30 @@ void configSPI(uint32_t ui32SysClock)
 void setGain()
 {
 	ScopeConfig* config = getConfig();
-	setPga1Channel(PGA_CHANNEL_0);
-	//setPga1Channel(PGA_CHANNEL_0);
 	setPga1Gain(config->channels[0].gain);
-	//setPga1Gain(config->channels[0].gain);
-	setPga2Channel(PGA_CHANNEL_0);
-	//setPga2Channel(PGA_CHANNEL_0);
 	setPga2Gain(config->channels[1].gain);
-	//setPga2Gain(config->channels[1].gain);
 }
 
 void setOffset()
 {
 	ScopeConfig* config = getConfig();
-	int i;
-	for(i=1; i <= NUM_CHANNELS; ++i)
-	{
-		setDacVoltage(VCC/2, i);
-		//setDacVoltage(VCC/2, i);
-	}
+	setDac2Voltage(config->channels[0].offset, 1);
+	setDac2Voltage(config->channels[1].offset, 2);
 }
 
 void configureAnalogFrontend()
 {
+	// set reference voltage for both PGAs
+	setDac1Voltage(VCC/2, 1);
+
 	setOffset();
+
+	setPga1Channel(PGA_CHANNEL_0);
+	setPga2Channel(PGA_CHANNEL_0);
 	setGain();
 }
 
-uint16_t calcDacLevel(double voltage)
+uint16_t calcDacLevel(double voltage, int dacGain)
 {
 	return (dacRes-1) * voltage / ((double)dacGain * dacReference);
 }
@@ -194,22 +191,7 @@ uint8_t getPga2Gain()
 	return getPgaGain(pga2GainRegister);
 }
 
-void programDac(uint8_t config, double voltage)
-{
-	uint16_t dn = calcDacLevel(voltage);
-	uint16_t inst = (((uint16_t)config) << 12) | (dn & 0x0FFF);
-	uint8_t msb = (inst & 0xFF00) >> 8;
-	uint8_t lsb = (inst & 0x00FF);
-
-	GPIOPinWrite(DAC1_SS_PORT, DAC1_SS_PIN, LOW << DAC1_SS_PIN_NUM);
-	SSIDataPut(SSI_BASE, msb);
-	busyWaitForSSi();
-	SSIDataPut(SSI_BASE, lsb);
-	busyWaitForSSi();
-	GPIOPinWrite(DAC1_SS_PORT, DAC1_SS_PIN, HIGH << DAC1_SS_PIN_NUM);
-}
-
-void setDacVoltage(double voltage, int channel)
+void programDac(int channel, double voltage, int gain, uint32_t ssPort, uint8_t ssPin, uint8_t ssPinNum)
 {
 	uint8_t config = DAC_UNBUFFERED | DAC_GAIN_1 | DAC_ACTIVE;
 	if(channel == 1)
@@ -217,11 +199,37 @@ void setDacVoltage(double voltage, int channel)
 	else
 		config |= DAC_B;
 
-	programDac(config, voltage);
-	voltages[channel-1] = voltage;
+	uint16_t dn = calcDacLevel(voltage, gain);
+	uint16_t inst = (((uint16_t)config) << 12) | (dn & 0x0FFF);
+	uint8_t msb = (inst & 0xFF00) >> 8;
+	uint8_t lsb = (inst & 0x00FF);
+
+	GPIOPinWrite(ssPort, ssPin, LOW << ssPinNum);
+	SSIDataPut(SSI_BASE, msb);
+	busyWaitForSSi();
+	SSIDataPut(SSI_BASE, lsb);
+	busyWaitForSSi();
+	GPIOPinWrite(ssPort, ssPin, HIGH << ssPinNum);
 }
 
-double getDacVoltage(int channel)
+void setDac1Voltage(double voltage, int channel)
 {
-	return voltages[channel-1];
+	programDac(channel, voltage, dac1Gain, DAC1_SS_PORT, DAC1_SS_PIN, DAC1_SS_PIN_NUM);
+	dac1_voltages[channel-1] = voltage;
+}
+
+void setDac2Voltage(double voltage, int channel)
+{
+	programDac(channel, voltage, dac2Gain, DAC2_SS_PORT, DAC2_SS_PIN, DAC2_SS_PIN_NUM);
+	dac2_voltages[channel-1] = voltage;
+}
+
+double getDac1Voltage(int channel)
+{
+	return dac1_voltages[channel-1];
+}
+
+double getDac2Voltage(int channel)
+{
+	return dac2_voltages[channel-1];
 }

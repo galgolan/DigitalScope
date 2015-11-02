@@ -18,6 +18,16 @@ void configAdc();
 
 void triggerAdc();
 
+void setTriggerSource();
+
+void setTriggerLevel();
+
+void setTriggerMode();
+
+void setTriggerType();
+
+void setSampleRate();
+
 int sampleAdc(uint32_t* samples);
 
 void AdcISR(void);

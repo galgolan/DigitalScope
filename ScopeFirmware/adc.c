@@ -30,6 +30,9 @@
 //#include "driverlib/rom.h"
 //#include "driverlib/rom_map.h"
 
+#define MUX_CHANNEL_1	0x03		//Y3
+#define MUX_CHANNEL_2	0x04		//Y4
+
 double samples_ch1[BUFFER_SIZE];
 double samples_ch2[BUFFER_SIZE];
 static volatile uint32_t index = 0;
@@ -51,21 +54,63 @@ uint32_t getTriggerType(TriggerType type)
 	}
 }
 
-void setTriggerSource(TriggerSource source)
+void setTriggerSource()
 {
+	uint8_t muxSelect;
+	ScopeConfig* config = getConfig();
 
+	switch(config->trigger.source)
+	{
+	case TRIG_SRC_CH1:
+		muxSelect = MUX_CHANNEL_1;
+		break;
+	case TRIG_SRC_CH2:
+		muxSelect = MUX_CHANNEL_2;
+		break;
+	default:
+		// bad trigger src, do nothing
+		return;
+	}
+
+	// change the channel on the mux
+	GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3, muxSelect << 1);
 }
 
-void configMux(Trigger trigger)
+void setTriggerLevel()
+{
+	ScopeConfig* config = getConfig();
+	ComparatorRefSet(COMP_BASE, config->trigger.level);
+}
+
+void setTriggerMode()
+{
+	ScopeConfig* config = getConfig();
+}
+
+void setTriggerType()
+{
+	ScopeConfig* config = getConfig();
+	uint32_t type = getTriggerType(config->trigger.type);
+	ComparatorConfigure(COMP_BASE, 0, type | COMP_ASRCP_REF | COMP_OUTPUT_INVERT);
+}
+
+void setSampleRate()
+{
+	ScopeConfig* config = getConfig();
+}
+
+void configMux()
 {
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
+	GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3);
 
-	setTriggerSource(trigger.source);
+	setTriggerSource();
 }
 
-void configComparator(Trigger trigger)
+void configComparator()
 {
-	uint32_t type = getTriggerType(trigger.type);
+	ScopeConfig* config = getConfig();
+	uint32_t type = getTriggerType(config->trigger.type);
 
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOL);
@@ -77,8 +122,8 @@ void configComparator(Trigger trigger)
 	GPIOPinTypeComparator(GPIO_PORTC_BASE, GPIO_PIN_6);		// pos input / internal reference
 	GPIOPinTypeComparator(GPIO_PORTL_BASE, GPIO_PIN_2);		// out
 
-	ComparatorRefSet(COMP_BASE, trigger.level);
-	ComparatorConfigure(COMP_BASE, 0, type | COMP_ASRCP_REF | COMP_OUTPUT_INVERT);
+	setTriggerLevel();
+	setTriggerType();
 
 	SysCtlDelay(1000);
 }
@@ -92,7 +137,9 @@ void configAdc()
 	index = 0;
 
 	if(trigger.mode != TRIG_MODE_FREE_RUNNING)
-		configComparator(trigger);
+		configComparator();
+
+	configMux();
 
 	// ch1 - A3 (PE0)
 	// ch2 - A4 (PD7)
@@ -133,7 +180,6 @@ void configAdc()
 	ADCIntEnable(ADC0_BASE, 0);
 	if(trigger.mode != TRIG_MODE_FREE_RUNNING)
 		IntEnable(INT_ADC0SS0);
-	//IntMasterEnable();
 }
 
 void triggerAdc()
@@ -159,12 +205,17 @@ int sampleAdc(uint32_t* samples)
 
 void AdcISR(void)
 {
-	ADCComparatorIntDisable(ADC0_BASE, 0);
+	ADCComparatorIntClear(ADC0_BASE, 1);
 
+
+	ADCComparatorIntDisable(ADC0_BASE, 0);
+	while(!ADCIntStatus(ADC0_BASE, 0, false))
+		{
+		}
 	// Read the value from the ADC.
 	ADCSequenceDataGet(ADC0_BASE, 0, samples);
 
-	ADCComparatorIntClear(ADC0_BASE, 1);
+
 	IntPendClear(INT_ADC0SS0);
 	ADCIntClear(ADC0_BASE, 0);
 

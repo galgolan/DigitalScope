@@ -412,6 +412,12 @@ void screen_init()
 	populate_measurements_combo();
 	scope.measurements = g_queue_new();
 
+	// trigger
+	scope.trigger.level = 0;
+	scope.trigger.mode = TRIGGER_MODE_NONE;
+	scope.trigger.source = TRIGGER_SOURCE_CH1;
+	scope.trigger.type = TRIGGER_TYPE_RAISING;
+
 	// create serial worker thread
 	long serialThreadId;
 	HANDLE hSerialThread = CreateThread(NULL, 0, serial_worker_thread, NULL, 0, &serialThreadId);

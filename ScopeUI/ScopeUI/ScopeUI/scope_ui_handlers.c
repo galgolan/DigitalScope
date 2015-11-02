@@ -400,7 +400,6 @@ void on_comboboxTriggerSource_changed(GtkComboBox *widget, gpointer user_data)
 	guint activeItem = combobox_get_active_id(widget, (GtkListStore*)user_data);
 	scope->trigger.source = (TriggerSource)activeItem;
 	scope_build_and_send_config();
-	scope_build_and_send_config();
 }
 
 G_MODULE_EXPORT

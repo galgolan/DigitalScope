@@ -215,7 +215,10 @@ void updateConfig(ConfigMsg* msg)
 		config->channels[0].gain = gain1;
 	if(gain2 != -1)
 		config->channels[1].gain = gain2;
-	// TODO: add offsets for each channel
+	if((msg->ch1_offset >= 0) && (msg->ch1_offset <= VCC))
+		config->channels[0].offset = msg->ch1_offset;
+	if((msg->ch2_offset >= 0) && (msg->ch2_offset <= VCC))
+			config->channels[1].offset = msg->ch2_offset;
 	// TODO: add sample rate
 	if(msg->trigger & TRIGGER_CFG_MODE_NONE)
 	{
@@ -246,8 +249,12 @@ void handleCommand()
 		// received a valid config msg
 		updateConfig(msg);
 		setGain();
-		//SysCtlDelay(100000);
-		//SysCtlReset();		// TODO: WTF why this works ???
+		setOffset();
+		//setTriggerSource();
+		//setTriggerMode();
+		//setTriggerType();
+		//setTriggerLevel();
+		setSampleRate();
 	}
 }
 

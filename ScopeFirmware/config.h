@@ -47,7 +47,7 @@ typedef struct ChannelConfig
 {
 	bool active;
 	int gain;		// a value from spi.h under: PGA constants
-	// TODO: offset
+	float offset;	// offset range is [0, Vcc]
 } ChannelConfig;
 
 typedef struct ScopeConfig

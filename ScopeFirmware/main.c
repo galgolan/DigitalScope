@@ -79,6 +79,8 @@ void setup()
 	configSPI(g_ui32SysClock);
 	configureAnalogFrontend();
 	configProbeCompensation(g_ui32SysClock);
+
+	IntMasterEnable();
 }
 
 void waitUntilReady()
@@ -114,18 +116,18 @@ void createConfig()
 
 	// configure trigger
 	config->trigger.level = COMP_REF_1_65V;
-	config->trigger.type = TRIG_BOTH;
-	config->trigger.mode = TRIG_MODE_FREE_RUNNING;
+	config->trigger.type = TRIG_FALLING;
+	config->trigger.mode = TRIG_MODE_AUTO;
 	config->trigger.source = TRIG_SRC_CH2;
-
-	//config->trigger.mode = TRIG_MODE_FREE_RUNNING;
 
 	// configure ch1
 	config->channels[0].active = true;
+	config->channels[0].offset = VCC/2;
 	config->channels[0].gain = PGA_GAIN_1;
 
 	// configure ch2
 	config->channels[1].active = true;
+	config->channels[1].offset = VCC/2;
 	config->channels[1].gain = PGA_GAIN_1;
 }
 
@@ -165,12 +167,11 @@ int main(void)
 	SysCtlDelay(1000000);
 	setup();
 	SysCtlDelay(1000);
-	IntMasterEnable();
 
 	while(1)
 	{
-		//triggered();
-		freerunning();
+		triggered();
+		//freerunning();
 	}
 
 	return 0;

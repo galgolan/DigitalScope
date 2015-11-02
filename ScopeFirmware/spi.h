@@ -33,9 +33,13 @@ void setGain();
 
 void setOffset();
 
-void setDacVoltage(double voltage, int channel);
+void setDac1Voltage(double voltage, int channel);
 
-double getDacVoltage(int channel);
+double getDac1Voltage(int channel);
+
+void setDac2Voltage(double voltage, int channel);
+
+double getDac2Voltage(int channel);
 
 void setPga1Gain(uint8_t gain);
 
