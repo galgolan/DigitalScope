@@ -51,6 +51,18 @@ uint32_t getTriggerType(TriggerType type)
 	}
 }
 
+void setTriggerSource(TriggerSource source)
+{
+
+}
+
+void configMux(Trigger trigger)
+{
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
+
+	setTriggerSource(trigger.source);
+}
+
 void configComparator(Trigger trigger)
 {
 	uint32_t type = getTriggerType(trigger.type);

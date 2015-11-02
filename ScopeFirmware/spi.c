@@ -16,15 +16,21 @@
 
 #define PGA1_SS_PORT	GPIO_PORTP_BASE
 #define PGA2_SS_PORT	GPIO_PORTN_BASE
-#define DAC_SS_PORT		GPIO_PORTN_BASE
+#define DAC1_SS_PORT	GPIO_PORTN_BASE
+#define DAC2_SS_PORT	GPIO_PORTL_BASE
 
 #define	PGA1_SS_PIN		GPIO_PIN_2
+#define PGA1_SS_PIN_NUM	2
 #define	PGA2_SS_PIN		GPIO_PIN_2
-#define	DAC_SS_PIN		GPIO_PIN_3
+#define PGA2_SS_PIN_NUM	2
+#define	DAC1_SS_PIN		GPIO_PIN_3
+#define DAC1_SS_PIN_NUM	3
+//#define DAC2_SS_PIN		GPIO_PIN_3
+//#define DAC2_SS_PIN_NUM	3
 
 #define SSI_BASE	SSI2_BASE
 
-static volatile double voltages[2] = {0, 0};
+static volatile double voltages[2] = {0.0, 0.0};
 
 const double dacReference = 3.3;
 static volatile uint32_t dacGain = 1;
@@ -32,6 +38,13 @@ const uint32_t dacRes = 4096;
 
 static volatile uint8_t pga1GainRegister = PGA_GAIN_1;
 static volatile uint8_t pga2GainRegister = PGA_GAIN_1;
+
+void busyWaitForSSi()
+{
+	while(SSIBusy(SSI_BASE))
+	{
+	}
+}
 
 void configSlaveSelectPins()
 {
@@ -46,9 +59,9 @@ void configSlaveSelectPins()
 	GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_2 | GPIO_PIN_3);
 	GPIOPinTypeGPIOOutput(GPIO_PORTD_BASE, GPIO_PIN_2);
 
-	GPIOPinWrite(DAC_SS_PORT, DAC_SS_PIN, HIGH);
-	GPIOPinWrite(PGA1_SS_PORT, PGA1_SS_PIN, HIGH);
-	GPIOPinWrite(PGA2_SS_PORT, PGA2_SS_PIN, HIGH);
+	GPIOPinWrite(DAC1_SS_PORT, DAC1_SS_PIN, HIGH << DAC1_SS_PIN_NUM);
+	GPIOPinWrite(PGA1_SS_PORT, PGA1_SS_PIN, HIGH << PGA1_SS_PIN_NUM);
+	GPIOPinWrite(PGA2_SS_PORT, PGA2_SS_PIN, HIGH << PGA2_SS_PIN_NUM);
 }
 
 // config SSI2
@@ -70,24 +83,24 @@ void configSPI(uint32_t ui32SysClock)
 	GPIOPinTypeSSI(GPIO_PORTD_BASE, GPIO_PIN_3 | GPIO_PIN_1);
 
 	// Configure the SSI.
-	SSIAdvModeSet(SSI_BASE, SSI_ADV_MODE_LEGACY);
+	//SSIAdvModeSet(SSI_BASE, SSI_ADV_MODE_LEGACY);
 	SSIClockSourceSet(SSI_BASE, SSI_CLOCK_SYSTEM);
-	SSIConfigSetExpClk(SSI_BASE, ui32SysClock, SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, 200000, 8);
+	SSIConfigSetExpClk(SSI_BASE, ui32SysClock, SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, 100000, 8);
 	SSIEnable(SSI_BASE);
+	SysCtlDelay(1000);
 }
 
 void setGain()
 {
 	ScopeConfig* config = getConfig();
 	setPga1Channel(PGA_CHANNEL_0);
-	setPga1Channel(PGA_CHANNEL_0);
+	//setPga1Channel(PGA_CHANNEL_0);
 	setPga1Gain(config->channels[0].gain);
-	setPga1Gain(config->channels[0].gain);
-
+	//setPga1Gain(config->channels[0].gain);
 	setPga2Channel(PGA_CHANNEL_0);
-	setPga2Channel(PGA_CHANNEL_0);
+	//setPga2Channel(PGA_CHANNEL_0);
 	setPga2Gain(config->channels[1].gain);
-	setPga2Gain(config->channels[1].gain);
+	//setPga2Gain(config->channels[1].gain);
 }
 
 void setOffset()
@@ -97,7 +110,7 @@ void setOffset()
 	for(i=1; i <= NUM_CHANNELS; ++i)
 	{
 		setDacVoltage(VCC/2, i);
-		setDacVoltage(VCC/2, i);
+		//setDacVoltage(VCC/2, i);
 	}
 }
 
@@ -112,24 +125,24 @@ uint16_t calcDacLevel(double voltage)
 	return (dacRes-1) * voltage / ((double)dacGain * dacReference);
 }
 
-void programPga(uint8_t inst, uint8_t data, uint32_t ssPort, uint32_t ssPin)
+void programPga(uint8_t inst, uint8_t data, uint32_t ssPort, uint8_t ssPin, uint8_t ssPinNum)
 {
-	//IntMasterDisable();
-	GPIOPinWrite(ssPort, ssPin, LOW);
+	GPIOPinWrite(ssPort, ssPin, LOW << ssPinNum);
 	SSIDataPut(SSI_BASE, inst);
+	busyWaitForSSi();
 	SSIDataPut(SSI_BASE, data);
-	GPIOPinWrite(ssPort, ssPin, HIGH);
-	//IntMasterEnable();
+	busyWaitForSSi();
+	GPIOPinWrite(ssPort, ssPin, HIGH << ssPinNum);
 }
 
 void programPga1(uint8_t inst, uint8_t data)
 {
-	programPga(inst, data, PGA1_SS_PORT, PGA1_SS_PIN);
+	programPga(inst, data, PGA1_SS_PORT, PGA1_SS_PIN, PGA1_SS_PIN_NUM);
 }
 
 void programPga2(uint8_t inst, uint8_t data)
 {
-	programPga(inst, data, PGA2_SS_PORT, PGA2_SS_PIN);
+	programPga(inst, data, PGA2_SS_PORT, PGA2_SS_PIN, PGA2_SS_PIN_NUM);
 }
 
 void setPga1Gain(uint8_t gain)
@@ -188,10 +201,12 @@ void programDac(uint8_t config, double voltage)
 	uint8_t msb = (inst & 0xFF00) >> 8;
 	uint8_t lsb = (inst & 0x00FF);
 
-	GPIOPinWrite(DAC_SS_PORT, DAC_SS_PIN, LOW);
+	GPIOPinWrite(DAC1_SS_PORT, DAC1_SS_PIN, LOW << DAC1_SS_PIN_NUM);
 	SSIDataPut(SSI_BASE, msb);
+	busyWaitForSSi();
 	SSIDataPut(SSI_BASE, lsb);
-	GPIOPinWrite(DAC_SS_PORT, DAC_SS_PIN, HIGH);
+	busyWaitForSSi();
+	GPIOPinWrite(DAC1_SS_PORT, DAC1_SS_PIN, HIGH << DAC1_SS_PIN_NUM);
 }
 
 void setDacVoltage(double voltage, int channel)

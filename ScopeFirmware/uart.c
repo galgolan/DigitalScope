@@ -246,13 +246,14 @@ void handleCommand()
 		// received a valid config msg
 		updateConfig(msg);
 		setGain();
+		//SysCtlDelay(100000);
+		//SysCtlReset();		// TODO: WTF why this works ???
 	}
 }
 
 void UartISR(void)
 {
 	// handle serial input
-	//UARTIntDisable(UART0_BASE, UART_INT_RX);
 	UARTIntClear(UART0_BASE, UART_INT_RX);
 
 	while(UARTCharsAvail(UART0_BASE))
@@ -271,8 +272,4 @@ void UartISR(void)
 			}
 		}
 	}
-
-	//buffer_index = 0;
-
-	//UARTIntEnable(UART0_BASE, UART_INT_RX);
 }

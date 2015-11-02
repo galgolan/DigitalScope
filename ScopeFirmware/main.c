@@ -158,8 +158,8 @@ void triggered()
 int main(void)
 {
 	IntMasterDisable();
-
-	//WatchdogResetDisable(WATCHDOG0_BASE);
+	SysCtlPeripheralDisable(WATCHDOG0_BASE);
+	SysCtlPeripheralDisable(WATCHDOG1_BASE);
 	createConfig();
 
 	SysCtlDelay(1000000);
