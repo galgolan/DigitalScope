@@ -7,6 +7,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <string.h>
 
 #include "drawing.h"
@@ -161,6 +162,10 @@ void serial_worker_demo(AnalogChannel* ch1, AnalogChannel* ch2)
 		ch1->buffer->data[i] = (float)sin(100e3 * n * T) >= 0.0f ? ch1->probeRatio : 0.0f;	// square wave 100KHz
 		ch2->buffer->data[i] = ch2->probeRatio * 2 * (float)sin(200e3 * n * T + G_PI/4);	// cosine 200KHz
 
+		// add some noise
+		ch1->buffer->data[i] += (float)(rand() % 100) / 1000.0f;
+		ch2->buffer->data[i] += (float)(rand() % 100) / 1000.0f;
+
 		scope_screen_next_pos();
 	}
 }
@@ -216,6 +221,8 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 	unsigned long long n = 0;	// sample counter for simulating signals
 
 	static int pos = 0;
+
+	srand(time(NULL));
 
 	AnalogChannel* ch1 = scope_channel_get_nth(0);
 	AnalogChannel* ch2 = scope_channel_get_nth(1);

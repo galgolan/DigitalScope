@@ -4,11 +4,14 @@
 #include "drawing.h"
 #include "scope_ui_handlers.h"
 #include "config.h"
+#include "threads.h"
 
 #define LOW_FPS	15
 
 static cairo_surface_t* drawing_surface = NULL;
 static cairo_t*	drawing_context = NULL;
+
+static HANDLE hSurfaceMutex = INVALID_HANDLE_VALUE;
 
 int drawing_get_width()
 {
@@ -84,7 +87,7 @@ void drawing_resize(int width, int height)
 void drawing_buffer_init()
 {
 	static gboolean first = TRUE;
-	//ScopeUI* ui = common_get_ui();
+	
 	Scope* scope = scope_get();
 	int window_width = scope->screen.width;
 	int window_height = scope->screen.height;
@@ -268,8 +271,10 @@ void screen_draw_traces()
 }
 
 // draws to the internal buffer
-void drawing_update_buffer()
+bool drawing_update_buffer()
 {
+	TRY_LOCK(FALSE, "cant aquire lock on drawing buffer", hSurfaceMutex, 100);
+
 	drawing_buffer_init();
 
 	screen_fill_background();
@@ -279,12 +284,21 @@ void drawing_update_buffer()
 	draw_cursors();
 
 	cairo_surface_flush(drawing_surface);
+
+	ReleaseMutex(hSurfaceMutex);
 }
 
 DWORD WINAPI drawing_worker_thread(LPVOID param)
 {
 	Scope* scope = scope_get();
 	DWORD drawingInterval = (DWORD)(1.0f / scope->screen.fps * 1000);
+	
+	hSurfaceMutex = CreateMutexSimple();
+	if (hSurfaceMutex == INVALID_HANDLE_VALUE)
+	{
+		// handle error
+		return 1;
+	}
 
 	while (!scope->shuttingDown)
 	{
@@ -294,4 +308,19 @@ DWORD WINAPI drawing_worker_thread(LPVOID param)
 	}
 
 	return 0;
+}
+
+bool drawing_save_screen_as_image(char* filename)
+{
+	TRY_LOCK(FALSE, "cant aquire lock on drawing buffer", hSurfaceMutex, 200)	
+	cairo_status_t status = cairo_surface_write_to_png(drawing_surface, filename);
+	ReleaseMutex(hSurfaceMutex);
+
+	if (status != CAIRO_STATUS_SUCCESS)
+	{
+		// something went wrong
+		return FALSE;
+	}
+
+	return TRUE;
 }

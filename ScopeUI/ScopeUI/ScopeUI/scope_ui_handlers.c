@@ -28,6 +28,8 @@ guint combobox_get_active_id(GtkComboBox* widget, GtkListStore* liststore)
 
 void populate_ui(GtkBuilder* builder)
 {
+	scopeUI.window = (GtkWindow*)GET_GTK_OBJECT("window1");
+
 	scopeUI.drawingArea = (GtkDrawingArea*)GET_GTK_OBJECT("drawingarea");
 	scopeUI.statusBar = (GtkStatusbar*)GET_GTK_OBJECT("statusbar");
 	scopeUI.listMeasurements = (GtkListStore*)GET_GTK_OBJECT("listMeasurements");
@@ -423,4 +425,48 @@ void on_comboboxTriggerType_changed(GtkComboBox *widget, gpointer user_data)
 	guint activeItem = combobox_get_active_id(widget, (GtkListStore*)user_data);
 	scope->trigger.type = (TriggerType)activeItem;
 	scope_build_and_send_config();
+}
+
+G_MODULE_EXPORT
+void on_imagemenuitem4_select(GtkMenuItem* item, gpointer data)
+{
+	// handle save trace as
+	GtkWidget *dialog;
+	GtkFileChooser *chooser;
+	GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_SAVE;
+	gint res;
+
+	
+	Scope* scope = scope_get();
+	ScopeState oldState = scope->state;	// backup current stat
+	scope->state = SCOPE_STATE_PAUSED;	// pause the scope
+
+	dialog = gtk_file_chooser_dialog_new("Save File",
+		NULL,
+		action,
+		GTK_STOCK_CANCEL,
+		GTK_RESPONSE_CANCEL,
+		GTK_STOCK_SAVE,
+		GTK_RESPONSE_ACCEPT,
+		NULL);
+	chooser = GTK_FILE_CHOOSER(dialog);
+
+	gtk_file_chooser_set_do_overwrite_confirmation(chooser, TRUE);
+	gtk_file_chooser_set_current_name(chooser, "Untitled.png");
+
+	GtkFileFilter* filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter, "*.png");
+	gtk_file_chooser_set_filter(chooser, filter);
+
+	res = gtk_dialog_run(GTK_DIALOG(dialog));
+	if (res == GTK_RESPONSE_ACCEPT)
+	{
+		char* filename = gtk_file_chooser_get_filename(chooser);		
+		drawing_save_screen_as_image(filename);		
+		g_free(filename);
+	}
+
+	gtk_widget_destroy(dialog);
+
+	scope->state = oldState;	// restore scope state
 }

@@ -15,7 +15,7 @@ void drawing_copy_from_buffer(cairo_t* dest);
 void drawing_redraw();
 
 // draws to the internal buffer
-void drawing_update_buffer();
+bool drawing_update_buffer();
 
 float inverse_translate(int y, const Trace* trace);
 
@@ -23,5 +23,7 @@ int translate(float value, const Trace* trace);
 
 // returns value1-value2
 float inverse_translate_diff(int value1, int value2, const Trace* trace, int gridLines, int height);
+
+bool drawing_save_screen_as_image(char* filename);
 
 #endif
