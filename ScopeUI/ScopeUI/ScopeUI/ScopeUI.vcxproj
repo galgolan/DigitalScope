@@ -41,12 +41,12 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(GTKDIR)\include;$(GTKDIR)\lib\glib-2.0\include;$(IncludePath);..\..\..\libxml2-2.9.2-win32-x86_64\include\libxml2</IncludePath>
-    <LibraryPath>$(GTKDIR)\lib;$(LibraryPath);..\..\..\libxml2-2.9.2-win32-x86_64\bin</LibraryPath>
+    <IncludePath>$(GTKDIR)\include;$(GTKDIR)\lib\glib-2.0\include;$(IncludePath);..\..\kiss_fft130\;..\..\kiss_fft130\tools;..\..\..\kiss_fft130\</IncludePath>
+    <LibraryPath>$(GTKDIR)\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(GTKDIR)\include;$(GTKDIR)\lib\glib-2.0\include;$(IncludePath);..\..\..\libxml2-2.9.2-win32-x86_64\include\libxml2</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(GTKDIR)\include;$(GTKDIR)\lib\glib-2.0\include;$(IncludePath);..\..\kiss_fft130\;..\..\kiss_fft130\tools;..\..\..\kiss_fft130\</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(GTKDIR)\lib;$(LibraryPath);..\..\..\libxml2-2.9.2-win32-x86_64\bin</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -89,6 +89,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\kiss_fft130\kiss_fft.c" />
+    <ClCompile Include="..\..\..\kiss_fft130\tools\kiss_fftr.c" />
     <ClCompile Include="config.c" />
     <ClCompile Include="drawing.c" />
     <ClCompile Include="formatting.c" />
@@ -115,6 +117,9 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\kiss_fft130\kiss_fft.h" />
+    <ClInclude Include="..\..\..\kiss_fft130\tools\kiss_fftr.h" />
+    <ClInclude Include="..\..\..\kiss_fft130\_kiss_fft_guts.h" />
     <ClInclude Include="config.h" />
     <ClInclude Include="drawing.h" />
     <ClInclude Include="formatting.h" />

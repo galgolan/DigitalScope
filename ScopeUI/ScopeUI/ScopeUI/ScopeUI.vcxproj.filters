@@ -34,6 +34,8 @@
     <ClCompile Include="formatting.c">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\kiss_fft130\kiss_fft.c" />
+    <ClCompile Include="..\..\..\kiss_fft130\tools\kiss_fftr.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scope.h">
@@ -67,6 +69,9 @@
     <ClInclude Include="formatting.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\kiss_fft130\kiss_fft.h" />
+    <ClInclude Include="..\..\..\kiss_fft130\tools\kiss_fftr.h" />
+    <ClInclude Include="..\..\..\kiss_fft130\_kiss_fft_guts.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ui.xml">
