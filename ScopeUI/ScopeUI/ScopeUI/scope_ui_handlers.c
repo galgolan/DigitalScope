@@ -154,6 +154,34 @@ gint tree_view_get_selected_index(GtkTreeView* treeView, GtkListStore* listStore
 	return index;
 }
 
+G_MODULE_EXPORT
+void on_buttonSaveRef_clicked(GtkButton* button, gpointer user_data)
+{
+	Scope* scope = scope_get();
+	if (scope->screen.selectedTrace != NULL)
+	{
+		// pause the scope		
+		ScopeState oldState = scope->state;
+		scope->state = SCOPE_STATE_PAUSED;
+
+		scope_trace_save_ref(scope->screen.selectedTrace);
+
+		scope->state = oldState;
+	}
+}
+
+G_MODULE_EXPORT
+void on_buttonDeleteRefs_clicked(GtkButton* button, gpointer user_data)
+{
+	Scope* scope = scope_get();
+	
+	int numAnalogChannels = g_queue_get_length(scope->channels);
+	if (scope->screen.selectedTrace < numAnalogChannels + 1)
+		return;	// cant delete a system trace (analog/math)
+
+	scope_trace_delete_ref(scope->screen.selectedTraceId);
+}
+
 // get selected item and remove it from the TreeView and Scope's measurements list
 // we assume single selection
 G_MODULE_EXPORT
@@ -381,6 +409,7 @@ void treeview_selection2_changed_cb(GtkTreeSelection *treeselection, gpointer us
 	if (selectedId != -1)
 	{
 		scope->screen.selectedTrace = scope_trace_get_nth(selectedId);
+		scope->screen.selectedTraceId = selectedId;
 	}
 }
 

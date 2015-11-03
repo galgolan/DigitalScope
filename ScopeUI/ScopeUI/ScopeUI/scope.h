@@ -99,6 +99,7 @@ typedef struct Screen
 	int height;		// pixels
 	int maxVoltage;	// maximum positive voltage which can be displayed with gain=1, offset=0
 	Trace* selectedTrace;
+	int selectedTraceId;
 } Screen;
 
 // describes an analog channel
@@ -184,6 +185,10 @@ AnalogChannel* scope_channel_get_nth(int n);
 Trace* scope_trace_get_nth(int n);
 
 Trace* scope_trace_get_math();
+
+void scope_trace_save_ref(const Trace* trace);
+
+void scope_trace_delete_ref(int index);
 
 // moves the trace to the next position
 void scope_screen_next_pos();

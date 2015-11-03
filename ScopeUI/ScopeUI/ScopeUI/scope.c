@@ -512,3 +512,31 @@ void scope_screen_next_pos()
 		scope.posInBuffer = 0;
 	}
 }
+
+void scope_trace_save_ref(const Trace* trace)
+{
+	cairo_pattern_t* pattern = cairo_pattern_create_rgba(10, 10, 10, 0.5);
+
+	// clone samples
+	SampleBuffer* buffer = sample_buffer_create(trace->samples->size);
+	for (int i = 0; i < buffer->size; ++i)
+		buffer->data[i] = trace->samples->data[i];
+
+	int numAnalogChannels = g_queue_get_length(scope.channels);
+	int refCounter = g_queue_get_length(scope.screen.traces) - numAnalogChannels;
+
+	char traceName[24];
+	sprintf(traceName, "%s-Ref%d", trace->name, refCounter);
+
+	Trace* ref = scope_trace_add_new(pattern, buffer, traceName, trace->offset, trace->horizontal, trace->vertical);
+	ref->scale = trace->scale;
+	ref->trace_width = trace->trace_width;
+
+	populate_traces_list();
+}
+
+void scope_trace_delete_ref(int index)
+{
+	gpointer ref = g_queue_pop_nth(scope.screen.traces, index);
+	populate_traces_list();
+}
