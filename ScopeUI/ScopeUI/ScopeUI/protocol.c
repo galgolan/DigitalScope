@@ -10,6 +10,8 @@
 #include "serial.h"
 #include "protocol.h"
 #include "config.h"
+#include "scope.h"
+#include "threads.h"
 
 typedef enum State
 {
@@ -32,12 +34,38 @@ typedef struct ParseResult
 
 static ReceiveStats receiveStats = { .samples = 0, .triggers = 0, .malformed = 0, .bad = 0 };
 
+// the most updated config msg as written by the UI thread
+static ConfigMsg configMsg;
+static bool shouldWriteConfig = FALSE;
+HANDLE hConfigMsgMutex = INVALID_HANDLE_VALUE;
+
+bool protocol_update_config(const ConfigMsg* msg)
+{
+	TRY_LOCK(FALSE, "cant aquire lock on config copy", hConfigMsgMutex, 2000)
+
+	configMsg = *msg;	// create a local clone of the config msg
+	shouldWriteConfig = TRUE;	// mark as updated
+
+	return ReleaseMutex(hConfigMsgMutex);
+}
+
+
 int calc_padding_size(int msgSize)
 {
 	int fifo = config_get_int("serial", "fifo");
 	int totalSize = fifo * (msgSize / fifo + (msgSize % fifo == 0 ? 0 : 1));
 	int padding = totalSize - msgSize;
 	return padding;
+}
+
+bool protocol_init()
+{
+	hConfigMsgMutex = CreateMutexSimple();
+}
+
+void protocol_cleanup()
+{
+	CloseHandleHelper(hConfigMsgMutex);
 }
 
 bool protocol_send_config(const ConfigMsg* msg)
@@ -56,6 +84,35 @@ bool protocol_send_config(const ConfigMsg* msg)
 	}
 
 	return TRUE;
+}
+
+DWORD WINAPI protocol_config_updater_thread(LPVOID param)
+{
+	DWORD sleepInterval = config_get_int("hardware", "configUpdateInterval");
+	Scope* scope = scope_get();
+	ConfigMsg msg;
+
+	while (!scope->shuttingDown)
+	{
+		bool updateConfig = FALSE;
+		if (shouldWriteConfig)
+		{
+			TRY_LOCK(FALSE, "cant aquire lock on config copy", hConfigMsgMutex, 2000)
+
+			if (shouldWriteConfig)
+			{
+				updateConfig = TRUE;
+				msg = configMsg;	// create local copy so we wont have to hold the lock
+			}
+
+			ReleaseMutex(hConfigMsgMutex);
+
+			if (updateConfig)
+				protocol_send_config(&msg);
+		}
+
+		Sleep(sleepInterval);
+	}
 }
 
 ParseResult parse_frame(char* frame, int size)

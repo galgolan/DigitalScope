@@ -5,6 +5,8 @@
 #include <gtk-3.0\gtk\gtk.h>
 #include <glib-2.0\glib.h>
 
+#include "formatting.h"
+
 typedef struct SampleBuffer
 {
 	float* data;
@@ -40,6 +42,7 @@ typedef struct Measurement
 {
 	CalcFunc* measure;
 	char* name;
+	Units units;
 } Measurement;
 
 typedef struct Grid
@@ -59,6 +62,9 @@ typedef struct Trace
 	bool visible;
 	float scale;
 	const char* name;
+
+	Units horizontal;
+	Units vertical;
 } Trace;
 
 typedef struct MeasurementInstance
@@ -92,6 +98,7 @@ typedef struct Screen
 	int width;		// pixels
 	int height;		// pixels
 	int maxVoltage;	// maximum positive voltage which can be displayed with gain=1, offset=0
+	Trace* selectedTrace;
 } Screen;
 
 // describes an analog channel

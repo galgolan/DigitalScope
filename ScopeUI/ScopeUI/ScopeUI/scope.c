@@ -69,7 +69,7 @@ bool scope_build_and_send_config()
 	float offset2 = -1 * inverse_translate(scope.screen.height / 2, traceCh2);
 
 	ConfigMsg msg = common_create_config(trigCfg, scope.trigger.level, (byte)traceCh1->scale, offset1, (byte)traceCh2->scale, offset2, (float)1 / scope.screen.dt);
-	return protocol_send_config(&msg);
+	return protocol_update_config(&msg);
 }
 
 SampleBuffer* sample_buffer_create(int size)
@@ -98,7 +98,7 @@ AnalogChannel* scope_channel_get_nth(int n)
 	return (AnalogChannel*)g_queue_peek_nth(scope.channels, n);
 }
 
-Trace* scope_trace_add_new(cairo_pattern_t* pattern, SampleBuffer* samples, const char* name, int offset)
+Trace* scope_trace_add_new(cairo_pattern_t* pattern, SampleBuffer* samples, const char* name, int offset, Units horizontal, Units vertical)
 {
 	Trace* trace = (Trace*)malloc(sizeof(Trace));
 	g_queue_push_tail(scope.screen.traces, trace);
@@ -110,6 +110,8 @@ Trace* scope_trace_add_new(cairo_pattern_t* pattern, SampleBuffer* samples, cons
 	trace->visible = TRUE;
 	trace->scale = 1;
 	trace->name = name;
+	trace->horizontal = horizontal;
+	trace->vertical = vertical;
 
 	return trace;
 }
@@ -262,10 +264,10 @@ void populate_cursors_list()
 	g_queue_push_tail(cursors, scope.cursors.x2.name);
 	g_queue_push_tail(cursors, scope.cursors.y1.name);
 	g_queue_push_tail(cursors, scope.cursors.y2.name);
-	//g_queue_push_tail(cursors, "dx");
-	//g_queue_push_tail(cursors, "dy");
+	g_queue_push_tail(cursors, "x1-x2");
+	g_queue_push_tail(cursors, "y1-y2");
 	for (guint i = 0; i < g_queue_get_length(cursors); ++i)
-		g_queue_push_tail(values, "0[v]");
+		g_queue_push_tail(values, "0");
 
 	populate_list_store_index_string_string(ui->liststoreCursorValues, cursors, values, TRUE);
 
@@ -277,13 +279,13 @@ void cursors_init()
 {
 	scope.cursors.visible = FALSE;
 
-	Cursor x1 = { .type = CURSOR_TYPE_HORIZONTAL, .name = "x1", .position = 100 };
+	Cursor x1 = { .type = CURSOR_TYPE_VERTICAL, .name = "x1", .position = 100 };
 	scope.cursors.x1 = x1;
-	Cursor x2 = { .type = CURSOR_TYPE_HORIZONTAL, .name = "x2", .position = 200 };
+	Cursor x2 = { .type = CURSOR_TYPE_VERTICAL, .name = "x2", .position = 200 };
 	scope.cursors.x2 = x2;
-	Cursor y1 = { .type = CURSOR_TYPE_VERTICAL, .name = "y1", .position = 100 };
+	Cursor y1 = { .type = CURSOR_TYPE_HORIZONTAL, .name = "y1", .position = 100 };
 	scope.cursors.y1 = y1;
-	Cursor y2 = { .type = CURSOR_TYPE_VERTICAL, .name = "y2", .position = 200 };
+	Cursor y2 = { .type = CURSOR_TYPE_HORIZONTAL, .name = "y2", .position = 200 };
 	scope.cursors.y2 = y2;
 	
 	populate_cursors_list();
@@ -396,12 +398,12 @@ void screen_init()
 		char* traceName = (char*)malloc(sizeof(char) * 10);
 		sprintf(traceName, "CH%d", i+1);
 		int offset = offsetIt == NULL ? 0 : GPOINTER_TO_INT(offsetIt->data);
-		scope_trace_add_new(tracePatterns[i], scope_channel_get_nth(i)->buffer, traceName, offset);
+		scope_trace_add_new(tracePatterns[i], scope_channel_get_nth(i)->buffer, traceName, offset, UNITS_TIME, UNITS_VOLTAGE);
 		offsetIt = offsetIt->next;
 	}
 	
 	// create the math trace
-	Trace* mathTrace = scope_trace_add_new(tracePatterns[numChannels], sample_buffer_create(scope.bufferSize), "Math", GPOINTER_TO_INT(offsetIt->data));
+	Trace* mathTrace = scope_trace_add_new(tracePatterns[numChannels], sample_buffer_create(scope.bufferSize), "Math", GPOINTER_TO_INT(offsetIt->data), UNITS_FREQUENCY, UNITS_VOLTAGE);
 	scope.mathTraceDefinition.mathTrace = &MathTrace_Dft_Amplitude;
 	scope.mathTraceDefinition.firstTrace = scope_trace_get_nth(0);
 	scope.mathTraceDefinition.secondTrace = scope_trace_get_nth(1);
@@ -422,24 +424,32 @@ void screen_init()
 	scope.trigger.type = TRIGGER_TYPE_RAISING;
 
 	// create serial worker thread
-	long serialThreadId;
-	HANDLE hSerialThread = CreateThread(NULL, 0, serial_worker_thread, NULL, 0, &serialThreadId);
+	HANDLE hSerialThread = CreateThreadSimple(serial_worker_thread, NULL);
 	if (hSerialThread == INVALID_HANDLE_VALUE)
 	{
 		// TODO: handle error
 		int a = 5;
 	}
 
-	long measurementThreadId;
-	HANDLE hMeasurementThread = CreateThread(NULL, 0, measurement_worker_thread, NULL, 0, &measurementThreadId);
+	protocol_init();
+	if (!config_get_bool("test", "demo"))
+	{
+		HANDLE hUpdateConfigThread = CreateThreadSimple(protocol_config_updater_thread, NULL);
+		if (hUpdateConfigThread == INVALID_HANDLE_VALUE)
+		{
+			// TODO: handle error
+			int a = 5;
+		}
+	}
+
+	HANDLE hMeasurementThread = CreateThreadSimple(measurement_worker_thread, NULL);
 	if (hMeasurementThread == INVALID_HANDLE_VALUE)
 	{
 		// TODO: handle error
 		int a = 5;
 	}
 
-	long mathThreadId;
-	HANDLE hMathThread = CreateThread(NULL, 0, math_worker_thread, NULL, 0, &mathThreadId);
+	HANDLE hMathThread = CreateThreadSimple(math_worker_thread, NULL);
 	if (hMathThread == INVALID_HANDLE_VALUE)
 	{
 		// TODO: handle error

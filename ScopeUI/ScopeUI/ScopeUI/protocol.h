@@ -29,6 +29,7 @@ int		4	checksum
 
 */
 
+#include <Windows.h>
 #include <stdbool.h>
 
 #include "..\..\..\common\common.h"
@@ -46,12 +47,18 @@ typedef int(*pPosGetFunc)();
 
 typedef void(*pHandleFrame)(float* samples, int count, bool trigger);
 
-bool protocol_send_config(const ConfigMsg* msg);
+bool protocol_update_config(const ConfigMsg* msg);
+
+bool protocol_init();
+
+void protocol_cleanup();
 
 void handle_receive_date(char* buffer, int size, float* samples0, float* samples1, pHandleFrame frameHandler);
 
 float* protocol_read_samples(int* numSamplesPerChannel, int triggerIndex);
 
 ConfigMsg common_create_config(TriggerConfig trigger, float triggerLevel, byte ch1Gain, float ch1Offset, byte ch2Gain, float ch2Offset, float sampleRate);
+
+DWORD WINAPI protocol_config_updater_thread(LPVOID param);
 
 #endif

@@ -91,6 +91,7 @@
   <ItemGroup>
     <ClCompile Include="config.c" />
     <ClCompile Include="drawing.c" />
+    <ClCompile Include="formatting.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="measurement.c" />
     <ClCompile Include="protocol.c" />
@@ -116,6 +117,7 @@
   <ItemGroup>
     <ClInclude Include="config.h" />
     <ClInclude Include="drawing.h" />
+    <ClInclude Include="formatting.h" />
     <ClInclude Include="measurement.h" />
     <ClInclude Include="protocol.h" />
     <ClInclude Include="resource.h" />

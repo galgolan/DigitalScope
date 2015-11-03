@@ -31,6 +31,9 @@
     <ClCompile Include="threads.c">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="formatting.c">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scope.h">
@@ -59,6 +62,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="threads.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="formatting.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

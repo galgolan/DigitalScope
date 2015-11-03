@@ -365,11 +365,12 @@ G_MODULE_EXPORT
 void treeview_selection2_changed_cb(GtkTreeSelection *treeselection, gpointer user_data)
 {
 	ScopeUI* ui = common_get_ui();
+	Scope* scope = scope_get();
 
 	gint selectedId = tree_view_get_selected_index(ui->treeviewTraces, ui->tracesList);
 	if (selectedId != -1)
 	{
-		// TODO: update selected trace in Scope
+		scope->screen.selectedTrace = scope_trace_get_nth(selectedId);
 	}
 }
 
