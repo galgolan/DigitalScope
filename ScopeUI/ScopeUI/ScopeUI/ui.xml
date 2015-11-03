@@ -18,7 +18,7 @@
   <object class="GtkAdjustment" id="adjustmentOffsetMath">
     <property name="lower">-150</property>
     <property name="upper">100</property>
-    <property name="value">-60</property>
+    <property name="value">-100</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
@@ -46,11 +46,10 @@
     <property name="page_size">1</property>
   </object>
   <object class="GtkAdjustment" id="adjustmentScaleMath">
-    <property name="lower">0.10000000000000001</property>
-    <property name="upper">1000</property>
-    <property name="value">100</property>
-    <property name="step_increment">1</property>
-    <property name="page_increment">20</property>
+    <property name="upper">10</property>
+    <property name="value">0.10000000000000001</property>
+    <property name="step_increment">0.01</property>
+    <property name="page_increment">0.10000000000000001</property>
   </object>
   <object class="GtkAdjustment" id="adjustmentTriggerLevel">
     <property name="lower">-12</property>
@@ -1360,7 +1359,7 @@
                         <property name="invisible_char_set">True</property>
                         <property name="progress_pulse_step">0</property>
                         <property name="adjustment">adjustmentScaleMath</property>
-                        <property name="digits">1</property>
+                        <property name="digits">3</property>
                         <property name="numeric">True</property>
                         <property name="update_policy">if-valid</property>
                         <signal name="value-changed" handler="on_change_scaleMath" object="drawingarea" swapped="no"/>

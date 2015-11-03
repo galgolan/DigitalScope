@@ -61,12 +61,14 @@ bool scope_build_and_send_config()
 		break;
 	}
 
-	AnalogChannel* ch1 = scope_channel_get_nth(0);
-	AnalogChannel* ch2 = scope_channel_get_nth(1);
 	Trace* traceCh1 = scope_trace_get_nth(0);
 	Trace* traceCh2 = scope_trace_get_nth(1);
 
-	ConfigMsg msg = common_create_config(trigCfg, scope.trigger.level, (byte)traceCh1->scale, traceCh1->offset, (byte)traceCh2->scale, traceCh2->offset, (float)1 / scope.screen.dt);
+	// calculate offset voltages
+	float offset1 = -1 * inverse_translate(scope.screen.height / 2, traceCh1);
+	float offset2 = -1 * inverse_translate(scope.screen.height / 2, traceCh2);
+
+	ConfigMsg msg = common_create_config(trigCfg, scope.trigger.level, (byte)traceCh1->scale, offset1, (byte)traceCh2->scale, offset2, (float)1 / scope.screen.dt);
 	return protocol_send_config(&msg);
 }
 
@@ -96,7 +98,7 @@ AnalogChannel* scope_channel_get_nth(int n)
 	return (AnalogChannel*)g_queue_peek_nth(scope.channels, n);
 }
 
-Trace* scope_trace_add_new(cairo_pattern_t* pattern, SampleBuffer* samples, const char* name, float offset)
+Trace* scope_trace_add_new(cairo_pattern_t* pattern, SampleBuffer* samples, const char* name, int offset)
 {
 	Trace* trace = (Trace*)malloc(sizeof(Trace));
 	g_queue_push_tail(scope.screen.traces, trace);
@@ -365,8 +367,9 @@ void screen_init()
 	scope.screen.fps = config_get_int("display", "fps");
 //	scope.screen.dv = 1;		// 1v/div
 	scope.screen.grid.linePattern = cairo_pattern_create_rgb(0.5, 0.5, 0.5);
-	scope.screen.grid.horizontal = config_get_int("display", "gridlinesHorizontal");
-	scope.screen.grid.vertical = config_get_int("display", "gridlinesVertical");
+	scope.screen.grid.horizontal = config_get_int("display", "divsHorizontal");
+	scope.screen.grid.vertical = config_get_int("display", "divsVertical");
+	scope.screen.maxVoltage = config_get_int("display", "maxVoltage");
 	scope.screen.grid.stroke_width = 1;
 
 	// create analog channels
@@ -392,13 +395,13 @@ void screen_init()
 		// generate trace name
 		char* traceName = (char*)malloc(sizeof(char) * 10);
 		sprintf(traceName, "CH%d", i+1);
-		float offset = offsetIt == NULL ? 0.0f : (float)GPOINTER_TO_INT(offsetIt->data);
+		int offset = offsetIt == NULL ? 0 : GPOINTER_TO_INT(offsetIt->data);
 		scope_trace_add_new(tracePatterns[i], scope_channel_get_nth(i)->buffer, traceName, offset);
 		offsetIt = offsetIt->next;
 	}
 	
 	// create the math trace
-	Trace* mathTrace = scope_trace_add_new(tracePatterns[numChannels], sample_buffer_create(scope.bufferSize), "Math", (float)GPOINTER_TO_INT(offsetIt->data));
+	Trace* mathTrace = scope_trace_add_new(tracePatterns[numChannels], sample_buffer_create(scope.bufferSize), "Math", GPOINTER_TO_INT(offsetIt->data));
 	scope.mathTraceDefinition.mathTrace = &MathTrace_Dft_Amplitude;
 	scope.mathTraceDefinition.firstTrace = scope_trace_get_nth(0);
 	scope.mathTraceDefinition.secondTrace = scope_trace_get_nth(1);

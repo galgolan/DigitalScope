@@ -108,10 +108,13 @@ void update_statusbar()
 
 	guint context_id = gtk_statusbar_get_context_id(GTK_STATUSBAR(ui->statusBar), "Statusbar example");
 
-	gchar* msg = g_strdup_printf("CH1: %.1fv/div, CH2: %.1fv/div, Time: %.3fs/div",
-		scope_trace_get_nth(0)->scale,
-		scope_trace_get_nth(1)->scale,
-		scope->screen.dt
+	float voltsPerDiv1 = (float)scope->screen.maxVoltage * 2 * scope_channel_get_nth(0)->probeRatio / scope->screen.grid.horizontal / scope_trace_get_nth(0)->scale;
+	float voltsPerDiv2 = (float)scope->screen.maxVoltage * 2 * scope_channel_get_nth(1)->probeRatio / scope->screen.grid.horizontal / scope_trace_get_nth(1)->scale;
+
+	gchar* msg = g_strdup_printf("CH1: %.3fv/div, CH2: %.3fv/div, Time: %.3fs/div",
+		voltsPerDiv1,
+		voltsPerDiv2 ,
+		scope->screen.dt * (scope->screen.width / scope->screen.grid.vertical)
 		);
 
 	guint remove = gtk_statusbar_push(GTK_STATUSBAR(ui->statusBar), context_id, msg);
@@ -300,13 +303,14 @@ void on_comboChannel2Probe_changed(GtkComboBox *widget, gpointer user_data)
 G_MODULE_EXPORT
 void on_change_offsetMath(GtkSpinButton *spin_button, gpointer user_data)
 {
-	scope_trace_get_math()->offset = -1.0f * (int)gtk_spin_button_get_value(spin_button);
+	scope_trace_get_math()->offset = -1 * (int)gtk_spin_button_get_value(spin_button);
 }
 
 G_MODULE_EXPORT
 void on_change_scale1(GtkSpinButton *spin_button, gpointer user_data)
 {
-	scope_trace_get_nth(0)->scale = (float)gtk_spin_button_get_value(spin_button);
+	int scale = (int)gtk_spin_button_get_value(spin_button);
+	scope_trace_get_nth(0)->scale = (float)scale;
 	update_statusbar();
 	scope_build_and_send_config();
 }
@@ -314,14 +318,15 @@ void on_change_scale1(GtkSpinButton *spin_button, gpointer user_data)
 G_MODULE_EXPORT
 void on_change_offset1(GtkSpinButton *spin_button, gpointer user_data)
 {
-	scope_trace_get_nth(0)->offset = -1.0f * (int)gtk_spin_button_get_value(spin_button);
+	scope_trace_get_nth(0)->offset = -1 * (int)gtk_spin_button_get_value(spin_button);
 	scope_build_and_send_config();
 }
 
 G_MODULE_EXPORT
 void on_change_scale2(GtkSpinButton *spin_button, gpointer user_data)
 {
-	scope_trace_get_nth(1)->scale = (float)gtk_spin_button_get_value(spin_button);
+	int scale = (int)gtk_spin_button_get_value(spin_button);
+	scope_trace_get_nth(1)->scale = (float)scale;
 	update_statusbar();
 	scope_build_and_send_config();
 }
@@ -329,7 +334,7 @@ void on_change_scale2(GtkSpinButton *spin_button, gpointer user_data)
 G_MODULE_EXPORT
 void on_change_offset2(GtkSpinButton *spin_button, gpointer user_data)
 {
-	scope_trace_get_nth(1)->offset = -1.0f * (int)gtk_spin_button_get_value(spin_button);
+	scope_trace_get_nth(1)->offset = -1 * (int)gtk_spin_button_get_value(spin_button);
 	scope_build_and_send_config();
 }
 

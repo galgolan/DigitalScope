@@ -38,7 +38,7 @@
 #include "adc.h"
 #include "config.h"
 #include "spi.h"
-
+#include "calc.h"
 
 #include "../common/common.h"
 
@@ -147,7 +147,7 @@ void outputDebug(double vin1, double vin2)
 static volatile uint8_t buffer[64];
 static volatile uint8_t buffer_index = 0;
 
-int8_t translateGain(byte gainValue)
+int8_t translateGain(byte gainValue, int originalGain)
 {
 	//1;2;4;5;8;10;16;32
 	switch(gainValue)
@@ -169,7 +169,7 @@ int8_t translateGain(byte gainValue)
 	case 32:
 		return PGA_GAIN_32;
 	default:
-		return -1;		// invalid gain which should be ignored
+		return originalGain;		// invalid gain which should be ignored
 	}
 }
 
@@ -209,16 +209,10 @@ void updateConfig(ConfigMsg* msg)
 {
 	ScopeConfig* config = getConfig();
 
-	int8_t gain1 = translateGain(msg->ch1_gain);
-	int8_t gain2 = translateGain(msg->ch2_gain);
-	if(gain1 != -1)
-		config->channels[0].gain = gain1;
-	if(gain2 != -1)
-		config->channels[1].gain = gain2;
-	if((msg->ch1_offset >= 0) && (msg->ch1_offset <= VCC))
-		config->channels[0].offset = msg->ch1_offset;
-	if((msg->ch2_offset >= 0) && (msg->ch2_offset <= VCC))
-			config->channels[1].offset = msg->ch2_offset;
+	config->channels[0].gain = translateGain(msg->ch1_gain, config->channels[0].gain);
+	config->channels[1].gain = translateGain(msg->ch2_gain, config->channels[1].gain);
+	config->channels[0].offset = calcCh1Offset(msg->ch1_offset);
+	config->channels[1].offset = calcCh2Offset(msg->ch2_offset);
 	// TODO: add sample rate
 	if(msg->trigger & TRIGGER_CFG_MODE_NONE)
 	{

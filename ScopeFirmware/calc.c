@@ -16,14 +16,15 @@
 
 #include "calc.h"
 #include "spi.h"
+#include "spi.h"
 
 const double analogRef = 3.3;
 const double adcRes = 4096;
 
-const double b1 = 1.6602;
+const double b1 = 0.0102;
 const double m1 = 0.069051;
 
-const double b2 = 1.6559;
+const double b2 = 0.0059;
 const double m2 = 0.068276;
 
 const double vref = 1.65;
@@ -45,12 +46,36 @@ double calcCh1Input(uint32_t d)
 {
 	double vout = calcOutputVoltage(d);
 	uint8_t gain = getPga1Gain();
-	return calcInputVoltage(vout, gain, m1, b1);
+	float dacVoltage = getDac2Voltage(1);
+	return calcInputVoltage(vout, gain, m1, b1 + dacVoltage);
 }
 
 double calcCh2Input(uint32_t d)
 {
 	double vout = calcOutputVoltage(d);
 	uint8_t gain = getPga2Gain();
-	return calcInputVoltage(vout, gain, m2, b2);
+	float dacVoltage = getDac2Voltage(2);
+	return calcInputVoltage(vout, gain, m2, b2 + dacVoltage);
+}
+
+double calcCh1Offset(float volts)
+{
+	double offset = volts * m1 + analogRef/2;
+	if(offset < 0)
+		return 0;
+	if(offset > analogRef)
+		return analogRef;
+
+	return offset;
+}
+
+double calcCh2Offset(float volts)
+{
+	double offset = volts * m2 + analogRef/2;
+	if(offset < 0)
+		return 0;
+	if(offset > analogRef)
+		return analogRef;
+
+	return offset;
 }

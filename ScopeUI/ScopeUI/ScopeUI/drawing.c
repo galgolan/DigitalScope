@@ -20,6 +20,33 @@ int drawing_get_height()
 	return cairo_image_surface_get_height(cairo_get_target(drawing_context));
 }
 
+float inverse_translate(int y, const Trace* trace)
+{
+	Scope* scope = scope_get();
+	int height = scope->screen.height;
+	int max = scope->screen.maxVoltage;
+	//float value = (float)(height / 2 + trace->offset - y) * ((float)scope->screen.grid.horizontal / trace->scale / (float)height);
+	float v = (trace->offset + (float)height / 2.0f - y) * (2.0f * max / height / trace->scale);
+	return v;
+}
+
+int translate(float value, const Trace* trace)
+{
+	Scope* scope = scope_get();
+	int height = scope->screen.height;
+	int max = scope->screen.maxVoltage;
+	//int y = (int)(height / 2 + trace->offset - (value * trace->scale) * (height / scope->screen.grid.horizontal));
+	int y = (int)(trace->offset - height * trace->scale / 2.0f / max * (value - (float)max / trace->scale));
+	return y;
+}
+
+// returns value1-value2
+float inverse_translate_diff(int value1, int value2, const Trace* trace, int gridLines, int height)
+{
+	float v1= inverse_translate(value1, trace);
+	float v2 = inverse_translate(value2, trace);
+	return v1 - v2;
+}
 
 void screen_draw_horizontal_line(int y, cairo_pattern_t* pattern, double stroke_width)
 {
@@ -92,11 +119,8 @@ void drawing_redraw()
 	GdkRectangle rect;
 	rect.x = 0;
 	rect.y = 0;
-	//rect.width = gtk_widget_get_allocated_width((GtkWidget*)ui->drawingArea);
-	//rect.height = gtk_widget_get_allocated_height((GtkWidget*)ui->drawingArea);
 	rect.width = scope->screen.width;
 	rect.height = scope->screen.height;
-	//drawing_update_buffer();
 	gdk_window_invalidate_rect(window, &rect, FALSE);
 }
 
@@ -119,9 +143,10 @@ void draw_ground_marker(const Trace* trace)
 
 	int triangleHeight = 9, triangleWidth = 8;
 
-	cairo_move_to(drawing_context, 0, height / 2 + trace->offset - triangleHeight / 2);
-	cairo_line_to(drawing_context, triangleWidth, height / 2 + trace->offset);
-	cairo_line_to(drawing_context, 0, height / 2 + trace->offset + triangleHeight / 2);
+	int zero = translate(0, trace);
+	cairo_move_to(drawing_context, 0, zero - triangleHeight / 2);
+	cairo_line_to(drawing_context, triangleWidth, zero);
+	cairo_line_to(drawing_context, 0, zero + triangleHeight / 2);
 
 	cairo_set_source(drawing_context, trace->pattern);
 	cairo_fill(drawing_context);
@@ -150,25 +175,18 @@ void screen_draw_grid()
 	int i;
 
 	// horizontal lines
-	for (i = 0; i < scope->screen.grid.horizontal; ++i)
+	for (i = 1; i < scope->screen.grid.horizontal; ++i)
 	{
 		int y = i * height / scope->screen.grid.horizontal;
 		screen_draw_horizontal_line(y, scope->screen.grid.linePattern, scope->screen.grid.stroke_width);		
 	}
 
 	// vertical lines
-	for (i = 0; i < scope->screen.grid.vertical; ++i)
+	for (i = 1; i < scope->screen.grid.vertical; ++i)
 	{
 		int x = i * width / scope->screen.grid.vertical;
 		screen_draw_vertical_line(x, scope->screen.grid.linePattern, scope->screen.grid.stroke_width);
 	}
-}
-
-int translate(float value, const Trace* trace, int gridLines, int height, int width)
-{
-	//int c = (int)(height / 2 + trace->offset - (value / trace->scale) * (height / gridLines));
-	int c = (int)(height / 2 + trace->offset - (value) * (height / gridLines));
-	return c;
 }
 
 void screen_draw_xy()
@@ -188,16 +206,16 @@ void screen_draw_xy()
 	float y = yChannel->buffer->data[0];
 
 	cairo_move_to(drawing_context,
-		translate(x, xTrace, scope->screen.grid.horizontal, height, width),
-		translate(y, yTrace, scope->screen.grid.vertical, height, width));
+		translate(x, xTrace),
+		translate(y, yTrace));
 	for (i = 1; i < scope->bufferSize; ++i)
 	{
 		x = xChannel->buffer->data[i];
 		y = yChannel->buffer->data[i];
 
 		cairo_line_to(drawing_context,
-			translate(x, xTrace, scope->screen.grid.horizontal, height, width),
-			translate(y, yTrace, scope->screen.grid.vertical, height, width));
+			translate(x, xTrace),
+			translate(y, yTrace));
 	}
 
 	cairo_pattern_t* pattern = cairo_pattern_create_rgb(0, 0, 1);	// TODO: read from css
@@ -215,9 +233,7 @@ void trace_draw(const Trace* trace)
 
 	for (i = 0; i < MIN(scope->bufferSize, width); ++i)
 	{
-		// y = offset - (sample/scale * height/grid.h)
-		//int y = (int)(height / 2 + trace->offset - (trace->samples->data[i] / trace->scale)*(height / scope->screen.grid.horizontal));
-		int y = (int)(height / 2 + trace->offset - (trace->samples->data[i])*(height / scope->screen.grid.horizontal));
+		int y = translate(trace->samples->data[i], trace);
 		cairo_line_to(drawing_context, i, y);
 	}
 
@@ -268,7 +284,7 @@ void drawing_update_buffer()
 DWORD WINAPI drawing_worker_thread(LPVOID param)
 {
 	Scope* scope = scope_get();
-	DWORD drawingInterval = 1.0f / scope->screen.fps * 1000;
+	DWORD drawingInterval = (DWORD)(1.0f / scope->screen.fps * 1000);
 
 	while (!scope->shuttingDown)
 	{

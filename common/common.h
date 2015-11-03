@@ -13,12 +13,12 @@ typedef struct ConfigMsg
 {
 	uint64 preamble;
 	byte trigger;		// bitfield: TriggerConfig
-	float triggerLevel;
+	float triggerLevel;	// volts
 	byte ch1_gain;
-	float ch1_offset;
+	float ch1_offset;	// volts
 	byte ch2_gain;
-	float ch2_offset;
-	float	sample_rate;
+	float ch2_offset;	// volts
+	float	sample_rate;	// sample period time (T)
 	uint64	checksum;
 } ConfigMsg;
 

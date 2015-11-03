@@ -116,8 +116,8 @@ void createConfig()
 
 	// configure trigger
 	config->trigger.level = COMP_REF_1_65V;
-	config->trigger.type = TRIG_FALLING;
-	config->trigger.mode = TRIG_MODE_AUTO;
+	config->trigger.type = TRIG_RISING;
+	config->trigger.mode = TRIG_MODE_FREE_RUNNING;
 	config->trigger.source = TRIG_SRC_CH2;
 
 	// configure ch1
@@ -144,8 +144,6 @@ void triggered()
 {
 	int i;
 	waitUntilReady();
-	//outputDebug(samples_ch1[0], samples_ch2[0]);
-	//outputDebugMany(samples_ch1, samples_ch2, BUFFER_SIZE);
 	outputTrigger();
 	for(i=0;i<BUFFER_SIZE;++i)
 	{
@@ -168,10 +166,13 @@ int main(void)
 	setup();
 	SysCtlDelay(1000);
 
+	ScopeConfig* config = getConfig();
 	while(1)
 	{
-		triggered();
-		//freerunning();
+		if(config->trigger.mode == TRIG_MODE_FREE_RUNNING)
+			freerunning();
+		else
+			triggered();
 	}
 
 	return 0;

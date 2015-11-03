@@ -46,8 +46,8 @@ typedef struct Grid
 {
 	cairo_pattern_t* linePattern;
 	float stroke_width;
-	int horizontal;
-	int vertical;
+	int horizontal;		// number of horizontal grid lines, excluding screen edges
+	int vertical;		// number of vertical grid lines, excluding screen edges
 } Grid;
 
 typedef struct Trace
@@ -55,7 +55,7 @@ typedef struct Trace
 	cairo_pattern_t* pattern;
 	SampleBuffer* samples;
 	float trace_width;
-	float offset;
+	int offset;		// units are pixels from the middle of the screen (positive means down)
 	bool visible;
 	float scale;
 	const char* name;
@@ -85,17 +85,13 @@ typedef struct MathTraceInstance
 typedef struct Screen
 {
 	cairo_pattern_t* background;
-
-	float dt;	// sec (sample period time)
-	//float dv;	// volts/div
-
+	float dt;	// seconds/pixel in the horizontal axis
 	Grid grid;
-
 	GQueue* traces;	// contains Trace*
-	short fps;
-
-	int width;
-	int height;
+	short fps;		// frames/sec
+	int width;		// pixels
+	int height;		// pixels
+	int maxVoltage;	// maximum positive voltage which can be displayed with gain=1, offset=0
 } Screen;
 
 // describes an analog channel
@@ -158,7 +154,6 @@ typedef struct Scope
 	MathTraceInstance mathTraceDefinition;
 	int bufferSize;
 	int posInBuffer;
-
 	bool shuttingDown;	// signals all the threads to terminate gracefully
 } Scope;
 
