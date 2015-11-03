@@ -5,24 +5,28 @@
 
 #define BUFFER_SIZE	32
 
+#define KILO	1000
+#define MEGA	1000000
+#define GIGA	1000000000
+
 void formatVolts(float value, char* string)
 {
 	int mantisa = abs((int)value);
-	if (mantisa / 1000 > 0)
+	if (mantisa / KILO > 0)
 	{
-		sprintf(string, "%.2fKV", value/1000);
+		sprintf(string, "%.2fKV", value / KILO);
 	}
 	else if (mantisa / 1 > 0)
 	{
 		sprintf(string, "%.2fV", value);
 	}
-	else if ((int)(fabsf(value) * 1000) > 0)
+	else if ((int)(fabsf(value) * KILO) > 0)
 	{
-		sprintf(string, "%.2fmV", value*1000);
+		sprintf(string, "%.2fmV", value * KILO);
 	}
-	else if ((int)(fabsf(value) * 1000000) > 0)
+	else if ((int)(fabsf(value) * MEGA) > 0)
 	{
-		sprintf(string, "%.2fuV", value*1000000);
+		sprintf(string, "%.2fuV", value * MEGA);
 	}
 	else
 		sprintf(string, "%.2fV", value);
@@ -35,17 +39,17 @@ void formatTime(float value, char* string)
 	{
 		sprintf(string, "%.2fs", value);
 	}
-	else if ((int)(fabsf(value) * 1000) > 0)
+	else if ((int)(fabsf(value) * KILO) > 0)
 	{
-		sprintf(string, "%.2fms", value * 1000);
+		sprintf(string, "%.2fms", value * KILO);
 	}
-	else if ((int)(fabsf(value) * 1000000) > 0)
+	else if ((int)(fabsf(value) * MEGA) > 0)
 	{
-		sprintf(string, "%.2fus", value * 1000000);
+		sprintf(string, "%.2fus", value * MEGA);
 	}
-	else if ((int)(fabsf(value) * 1000000000) > 0)
+	else if ((int)(fabsf(value) * GIGA) > 0)
 	{
-		sprintf(string, "%.2fns", value * 1000000000);
+		sprintf(string, "%.2fns", value * GIGA);
 	}
 	else
 		sprintf(string, "%fs", value);
@@ -54,17 +58,17 @@ void formatTime(float value, char* string)
 void formatFrequency(float value, char* string)
 {
 	long long mantisa = llabs((long long)value);
-	if (mantisa / 1000000000 > 0)
+	if (mantisa / GIGA > 0)
 	{
-		sprintf(string, "%.2fGHz", value / 1000000000);
+		sprintf(string, "%.2fGHz", value / GIGA);
 	}
-	else if (mantisa / 1000000 > 0)
+	else if (mantisa / MEGA > 0)
 	{
-		sprintf(string, "%.2fMHz", value / 1000000);
+		sprintf(string, "%.2fMHz", value / MEGA);
 	}
-	else if (mantisa / 1000 > 0)
+	else if (mantisa / KILO > 0)
 	{
-		sprintf(string, "%.2fKHz", value / 1000);
+		sprintf(string, "%.2fKHz", value / KILO);
 	}
 	else
 		sprintf(string, "%fHz", value);
@@ -89,7 +93,7 @@ char* formatNumber(float value, Units units)
 		formatTime(value, string);
 		break;
 	case UNITS_DECIBEL:
-		sprintf(string, "%.2f", value);
+		sprintf(string, "%.2fdB", value);
 		break;
 	default:
 		sprintf("%.3f", value);

@@ -477,7 +477,7 @@ void screen_clear_measurements()
 	gtk_list_store_clear(ui->listMeasurements);
 }
 
-void screen_add_measurement(const char* name, const char* source, double value, guint id)
+void screen_add_measurement(const char* name, const char* source, char* value, guint id)
 {
 	ScopeUI* ui = common_get_ui();
 

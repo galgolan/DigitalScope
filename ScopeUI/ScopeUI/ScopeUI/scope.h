@@ -169,7 +169,7 @@ void screen_init();
 
 Scope* scope_get();
 
-void screen_add_measurement(const char* name, const char* source, double value, guint id);
+void screen_add_measurement(const char* name, const char* source, char* value, guint id);
 
 void screen_clear_measurements();
 

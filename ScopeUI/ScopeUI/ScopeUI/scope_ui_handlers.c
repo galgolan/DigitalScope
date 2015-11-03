@@ -110,12 +110,20 @@ void update_statusbar()
 
 	float voltsPerDiv1 = (float)scope->screen.maxVoltage * 2 * scope_channel_get_nth(0)->probeRatio / scope->screen.grid.horizontal / scope_trace_get_nth(0)->scale;
 	float voltsPerDiv2 = (float)scope->screen.maxVoltage * 2 * scope_channel_get_nth(1)->probeRatio / scope->screen.grid.horizontal / scope_trace_get_nth(1)->scale;
+	float secondsPerDiv = scope->screen.dt * ((float)scope->screen.width / scope->screen.grid.vertical);
 
-	gchar* msg = g_strdup_printf("CH1: %.3fv/div, CH2: %.3fv/div, Time: %.3fs/div",
-		voltsPerDiv1,
-		voltsPerDiv2 ,
-		scope->screen.dt * (scope->screen.width / scope->screen.grid.vertical)
-		);
+	char* voltsPerDiv1_s = formatNumber(voltsPerDiv1, UNITS_VOLTAGE);
+	char* voltsPerDiv2_s = formatNumber(voltsPerDiv2, UNITS_VOLTAGE);
+	char* secondsPerDiv_s = formatNumber(secondsPerDiv, UNITS_TIME);
+
+	gchar* msg = g_strdup_printf("CH1: %s/div, CH2: %s/div, Time: %s/div",
+		voltsPerDiv1_s,
+		voltsPerDiv2_s,
+		secondsPerDiv_s);
+
+	free(voltsPerDiv1_s);
+	free(voltsPerDiv2_s);
+	free(secondsPerDiv_s);
 
 	guint remove = gtk_statusbar_push(GTK_STATUSBAR(ui->statusBar), context_id, msg);
 	g_free(msg);
@@ -200,7 +208,7 @@ void on_buttonAddMeasurement_clicked(GtkButton* button, gpointer user_data)
 		return;
 	Measurement* meas = g_queue_peek_nth(allMeas, measId);
 	scope_measurement_add(meas, trace);
-	screen_add_measurement(meas->name, trace->name, 0, measId);
+	screen_add_measurement(meas->name, trace->name, "0", measId);
 }
 
 G_MODULE_EXPORT
