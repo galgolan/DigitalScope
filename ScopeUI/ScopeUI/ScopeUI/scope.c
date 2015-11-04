@@ -113,7 +113,16 @@ Trace* scope_trace_add_new(cairo_pattern_t* pattern, SampleBuffer* samples, cons
 	trace->name = name;
 	trace->horizontal = horizontal;
 	trace->vertical = vertical;
+	trace->ownsSampleBuffer = FALSE;
 
+	return trace;
+}
+
+Trace* scope_trace_add_new_alloc_buffer(cairo_pattern_t* pattern, const char* name, int bufferSize, int offset, Units horizontal, Units vertical)
+{
+	SampleBuffer* buffer = sample_buffer_create(bufferSize);
+	Trace* trace = scope_trace_add_new(pattern, buffer, name, offset, horizontal, vertical);
+	trace->ownsSampleBuffer = TRUE;
 	return trace;
 }
 
@@ -374,7 +383,6 @@ void screen_init()
 	scope.screen.background = cairo_pattern_create_rgb(0, 0, 0);
 	scope.screen.dt = 1e-3f;	// 1ms
 	scope.screen.fps = config_get_int("display", "fps");
-//	scope.screen.dv = 1;		// 1v/div
 	scope.screen.grid.linePattern = cairo_pattern_create_rgb(0.5, 0.5, 0.5);
 	scope.screen.grid.horizontal = config_get_int("display", "divsHorizontal");
 	scope.screen.grid.vertical = config_get_int("display", "divsVertical");
@@ -408,9 +416,10 @@ void screen_init()
 		scope_trace_add_new(tracePatterns[i], scope_channel_get_nth(i)->buffer, traceName, offset, UNITS_TIME, UNITS_VOLTAGE);
 		offsetIt = offsetIt->next;
 	}
+	scope.screen.hTracesMutex = CreateMutexSimple();
 	
 	// create the math trace
-	Trace* mathTrace = scope_trace_add_new(tracePatterns[numChannels], sample_buffer_create(scope.bufferSize), "Math", GPOINTER_TO_INT(offsetIt->data), UNITS_FREQUENCY, UNITS_VOLTAGE);
+	Trace* mathTrace = scope_trace_add_new_alloc_buffer(tracePatterns[numChannels], "Math", scope.bufferSize, GPOINTER_TO_INT(offsetIt->data), UNITS_FREQUENCY, UNITS_VOLTAGE);
 	scope.mathTraceDefinition.mathTrace = &MathTrace_Dft_Amplitude;
 	scope.mathTraceDefinition.firstTrace = scope_trace_get_nth(0);
 	scope.mathTraceDefinition.secondTrace = scope_trace_get_nth(1);
@@ -423,6 +432,7 @@ void screen_init()
 	// init measurements
 	populate_measurements_combo();
 	scope.measurements = g_queue_new();
+	scope.hMeasurementsMutex = CreateMutexSimple();
 
 	// trigger
 	scope.trigger.level = 0;
@@ -445,7 +455,7 @@ void screen_init()
 		if (hUpdateConfigThread == INVALID_HANDLE_VALUE)
 		{
 			// TODO: handle error
-			int a = 5;
+			scope.shuttingDown = TRUE;
 		}
 	}
 
@@ -453,21 +463,21 @@ void screen_init()
 	if (hMeasurementThread == INVALID_HANDLE_VALUE)
 	{
 		// TODO: handle error
-		int a = 5;
+		scope.shuttingDown = TRUE;
 	}
 
 	HANDLE hMathThread = CreateThreadSimple(math_worker_thread, NULL);
 	if (hMathThread == INVALID_HANDLE_VALUE)
 	{
 		// TODO: handle error
-		int a = 5;
+		scope.shuttingDown = TRUE;
 	}
 
 	HANDLE hDrawingThread = CreateThreadSimple(drawing_worker_thread, NULL);
 	if (hDrawingThread == INVALID_HANDLE_VALUE)
 	{
 		// TODO: handle error
-		int a = 5;
+		scope.shuttingDown = TRUE;
 	}
 
 	update_statusbar();
@@ -484,7 +494,7 @@ void screen_clear_measurements()
 	gtk_list_store_clear(ui->listMeasurements);
 }
 
-void screen_add_measurement(const char* name, const char* source, char* value, guint id)
+void screen_add_measurement(const char* name, const char* source, guint id)
 {
 	ScopeUI* ui = common_get_ui();
 
@@ -494,7 +504,7 @@ void screen_add_measurement(const char* name, const char* source, char* value, g
 	gtk_list_store_set(ui->listMeasurements, &iter,
 		0, name,
 		1, source,
-		2, value,
+		2, "",
 		3, id
 		-1);
 }
@@ -517,26 +527,52 @@ void scope_trace_save_ref(const Trace* trace)
 {
 	cairo_pattern_t* pattern = cairo_pattern_create_rgba(10, 10, 10, 0.5);
 
-	// clone samples
-	SampleBuffer* buffer = sample_buffer_create(trace->samples->size);
-	for (int i = 0; i < buffer->size; ++i)
-		buffer->data[i] = trace->samples->data[i];
+	if (WaitForMutex(scope.screen.hTracesMutex, 100))
+	{
+		int numAnalogChannels = g_queue_get_length(scope.channels);
+		int refCounter = g_queue_get_length(scope.screen.traces) - numAnalogChannels;
 
-	int numAnalogChannels = g_queue_get_length(scope.channels);
-	int refCounter = g_queue_get_length(scope.screen.traces) - numAnalogChannels;
+		char* traceName = (char*)malloc(sizeof(char)*24);
+		sprintf(traceName, "%s-Ref%d", trace->name, refCounter);
 
-	char traceName[24];
-	sprintf(traceName, "%s-Ref%d", trace->name, refCounter);
+		int size = trace->samples->size;
+		Trace* ref = scope_trace_add_new_alloc_buffer(pattern, traceName, size, trace->offset, trace->horizontal, trace->vertical);
+		
+		// clone samples
+		for (int i = 0; i < size; ++i)
+			ref->samples->data[i] = trace->samples->data[i];
 
-	Trace* ref = scope_trace_add_new(pattern, buffer, traceName, trace->offset, trace->horizontal, trace->vertical);
-	ref->scale = trace->scale;
-	ref->trace_width = trace->trace_width;
+		ref->scale = trace->scale;
+		ref->trace_width = trace->trace_width;
 
-	populate_traces_list();
+		populate_traces_list();
+
+		ReleaseMutex(scope.screen.hTracesMutex);
+	}
+}
+
+void free_trace(Trace* trace)
+{
+	if (trace->ownsSampleBuffer)
+		free(trace->samples);
+	
+	free(trace);
 }
 
 void scope_trace_delete_ref(int index)
 {
-	gpointer ref = g_queue_pop_nth(scope.screen.traces, index);
-	populate_traces_list();
+	if (WaitForMutex(scope.screen.hTracesMutex, 100))
+	{
+		Trace* ref = (Trace*)g_queue_pop_nth(scope.screen.traces, index);
+		populate_traces_list();
+
+		ReleaseMutex(scope.screen.hTracesMutex);
+
+		free_trace(ref);
+	}
+}
+
+void scope_cursor_set(Cursor* cursor, int position)
+{
+	cursor->position = position;
 }

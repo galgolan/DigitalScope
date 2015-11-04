@@ -6,6 +6,7 @@
 #include "scope_ui_handlers.h"
 #include "measurement.h"
 #include "drawing.h"
+#include "threads.h"
 
 static ScopeUI scopeUI;
 
@@ -48,6 +49,12 @@ void populate_ui(GtkBuilder* builder)
 
 	scopeUI.liststoreCursorValues = (GtkListStore*)GET_GTK_OBJECT("liststoreCursorValues");
 	scopeUI.treeviewCursorValues = (GtkTreeView*)GET_GTK_OBJECT("treeviewCursorValues");
+
+	gtk_widget_set_events(scopeUI.drawingArea, GDK_EXPOSURE_MASK
+		| GDK_LEAVE_NOTIFY_MASK
+		| GDK_BUTTON_PRESS_MASK
+		| GDK_POINTER_MOTION_MASK
+		| GDK_POINTER_MOTION_HINT_MASK);
 }
 
 void populate_list_store(GtkListStore* listStore, GQueue* items, gboolean clear)
@@ -129,6 +136,12 @@ void update_statusbar()
 
 	guint remove = gtk_statusbar_push(GTK_STATUSBAR(ui->statusBar), context_id, msg);
 	g_free(msg);
+
+	gtk_widget_set_events(scopeUI.drawingArea, GDK_EXPOSURE_MASK
+		| GDK_LEAVE_NOTIFY_MASK
+		| GDK_BUTTON_PRESS_MASK
+		| GDK_POINTER_MOTION_MASK
+		| GDK_POINTER_MOTION_HINT_MASK);
 }
 
 // return -1 if zero or more than one rows are selected
@@ -176,7 +189,7 @@ void on_buttonDeleteRefs_clicked(GtkButton* button, gpointer user_data)
 	Scope* scope = scope_get();
 	
 	int numAnalogChannels = g_queue_get_length(scope->channels);
-	if (scope->screen.selectedTrace < numAnalogChannels + 1)
+	if (scope->screen.selectedTraceId < numAnalogChannels + 1)
 		return;	// cant delete a system trace (analog/math)
 
 	scope_trace_delete_ref(scope->screen.selectedTraceId);
@@ -194,22 +207,30 @@ void on_buttonRemoveMeasurement_clicked(GtkButton* button, gpointer user_data)
 	GtkTreeSelection* selection = gtk_tree_view_get_selection(ui->viewMeasurements);
 	if (gtk_tree_selection_count_selected_rows(selection) != 1)
 		return;
-	
-	// remove from scope
+
 	gint selectedId = tree_view_get_selected_index(ui->viewMeasurements, ui->listMeasurements);
-	g_queue_pop_nth(scope->measurements, selectedId);
+	
+	TRY_LOCK(, "cant acquire lock on traces", scope->screen.hTracesMutex, 100)
+	TRY_LOCK(, "cant acquire lock on measurements", scope->hMeasurementsMutex, 100)
+
+	// remove from scope
+	MeasurementInstance* measurement = (MeasurementInstance*)g_queue_pop_nth(scope->measurements, selectedId);
 
 	// remove from UI
 	GtkTreeIter iter;
 	if (!gtk_tree_selection_get_selected(selection, &model, &iter))
 	{
 		// TODO: handle error
-		return;
 	}
 	if (!gtk_list_store_remove(ui->listMeasurements, &iter))
 	{
 		// TODO: handle error
 	}
+
+	ReleaseMutex(scope->hMeasurementsMutex);
+	ReleaseMutex(scope->screen.hTracesMutex);
+
+	free(measurement);
 }
 
 G_MODULE_EXPORT
@@ -230,15 +251,22 @@ void on_buttonAddMeasurement_clicked(GtkButton* button, gpointer user_data)
 	int traceId = gtk_combo_box_get_active(ui->addMeasurementSource);
 	if (traceId == -1)
 		return;
-	Trace* trace = scope_trace_get_nth(traceId);
 
 	GQueue* allMeas = measurement_get_all();
 	int measId = gtk_combo_box_get_active(ui->addMeasurementType);
 	if (measId == -1)
 		return;
+
+	TRY_LOCK(, "cant acquire lock on traces", scope->screen.hTracesMutex, 100)
+	TRY_LOCK(, "cant acquire lock on measurements", scope->hMeasurementsMutex, 100)
+
+	Trace* trace = scope_trace_get_nth(traceId);
 	Measurement* meas = g_queue_peek_nth(allMeas, measId);
 	scope_measurement_add(meas, trace);
 	screen_add_measurement(meas->name, trace->name, "0", measId);
+
+	ReleaseMutex(scope->hMeasurementsMutex);
+	ReleaseMutex(scope->screen.hTracesMutex);
 }
 
 G_MODULE_EXPORT
@@ -457,6 +485,12 @@ void on_comboboxTriggerType_changed(GtkComboBox *widget, gpointer user_data)
 }
 
 G_MODULE_EXPORT
+void on_imagemenuitem5_activate(GtkMenuItem* item, gpointer data)
+{
+	on_window1_destroy(item, data);
+}
+
+G_MODULE_EXPORT
 void on_imagemenuitem4_select(GtkMenuItem* item, gpointer data)
 {
 	// handle save trace as
@@ -498,4 +532,28 @@ void on_imagemenuitem4_select(GtkMenuItem* item, gpointer data)
 	gtk_widget_destroy(dialog);
 
 	scope->state = oldState;	// restore scope state
+}
+
+G_MODULE_EXPORT
+gboolean on_drawingarea_button_press_event(GtkWidget *widget, GdkEventButton  *event, gpointer   user_data)
+{
+	Scope* scope = scope_get();
+	if (event->button == 1)
+	{
+		// put x1 & y1 cursors on this position
+		scope_cursor_set(&(scope->cursors.x1), event->x);
+	}
+	return TRUE;
+}
+
+G_MODULE_EXPORT
+gboolean on_drawingarea_button_release_event(GtkWidget *widget, GdkEvent  *event, gpointer   user_data)
+{
+	return TRUE;
+}
+
+G_MODULE_EXPORT
+gboolean on_drawingarea_motion_notify_event(GtkWidget *widget, GdkEventMotion  *event, gpointer   user_data)
+{
+	return TRUE;
 }

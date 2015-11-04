@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <gtk-3.0\gtk\gtk.h>
 #include <glib-2.0\glib.h>
+#include <Windows.h>
 
 #include "formatting.h"
 
@@ -63,6 +64,8 @@ typedef struct Trace
 	float scale;
 	const char* name;
 
+	bool ownsSampleBuffer;
+
 	Units horizontal;
 	Units vertical;
 } Trace;
@@ -94,10 +97,12 @@ typedef struct Screen
 	float dt;	// seconds/pixel in the horizontal axis
 	Grid grid;
 	GQueue* traces;	// contains Trace*
+	HANDLE hTracesMutex;	// syncs access to traces list
 	short fps;		// frames/sec
 	int width;		// pixels
 	int height;		// pixels
 	int maxVoltage;	// maximum positive voltage which can be displayed with gain=1, offset=0
+
 	Trace* selectedTrace;
 	int selectedTraceId;
 } Screen;
@@ -156,6 +161,7 @@ typedef struct Scope
 	GQueue* channels;		// contains AnalogChannel*
 	Trigger trigger;
 	GQueue* measurements;	// contains MeasurementInstance*
+	HANDLE hMeasurementsMutex;	// syncs access to measurements list
 	ScopeState state;	
 	Cursors cursors;
 	DisplayMode display_mode;
@@ -170,7 +176,7 @@ void screen_init();
 
 Scope* scope_get();
 
-void screen_add_measurement(const char* name, const char* source, char* value, guint id);
+void screen_add_measurement(const char* name, const char* source, guint id);
 
 void screen_clear_measurements();
 
@@ -192,5 +198,7 @@ void scope_trace_delete_ref(int index);
 
 // moves the trace to the next position
 void scope_screen_next_pos();
+
+void scope_cursor_set(Cursor* cursor, int position);
 
 #endif

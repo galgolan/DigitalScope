@@ -8,6 +8,7 @@
 #include "scope_ui_handlers.h"
 #include "drawing.h"
 #include "config.h"
+#include "threads.h"
 
 // measurement prototypes
 float measure_avg(SampleBuffer* samples);
@@ -178,6 +179,27 @@ char* calculate_cursor_value_diff(const Cursor* cursor1, const Cursor* cursor2)
 	return formatNumber(value, units);
 }
 
+GQueue* measurements_dispatcher()
+{
+	Scope* scope = scope_get();
+	GQueue* msgs = g_queue_new();
+
+	if (WaitForMutex(scope->hMeasurementsMutex, 100))
+	{
+		// iterate over all measurements and update them
+		for (guint i = 0; i < g_queue_get_length(scope->measurements); ++i)
+		{
+			MeasurementInstance* meas = scope_measurement_get_nth(i);
+			AddMeasurementMessage* msg = process_measurement(meas);
+			g_queue_push_tail(msgs, msg);
+		}
+
+		ReleaseMutex(scope->hMeasurementsMutex);
+	}
+
+	return msgs;
+}
+
 DWORD WINAPI measurement_worker_thread(LPVOID param)
 {
 	DWORD updateInterval = config_get_int("display", "meas_refresh");
@@ -188,15 +210,7 @@ DWORD WINAPI measurement_worker_thread(LPVOID param)
 	{
 		if (scope->display_mode == DISPLAY_MODE_WAVEFORM)
 		{
-			GQueue* msgs = g_queue_new();
-
-			// iterate over all measurements and update them
-			for (guint i = 0; i < g_queue_get_length(scope->measurements); ++i)
-			{
-				MeasurementInstance* meas = scope_measurement_get_nth(i);
-				AddMeasurementMessage* msg = process_measurement(meas);
-				g_queue_push_tail(msgs, msg);
-			}
+			GQueue* msgs = measurements_dispatcher();
 
 			guint source_id = gdk_threads_add_idle_full(G_PRIORITY_DEFAULT, update_measurement_callback, msgs, NULL);
 

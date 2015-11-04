@@ -28,7 +28,6 @@ float inverse_translate(int y, const Trace* trace)
 	Scope* scope = scope_get();
 	int height = scope->screen.height;
 	int max = scope->screen.maxVoltage;
-	//float value = (float)(height / 2 + trace->offset - y) * ((float)scope->screen.grid.horizontal / trace->scale / (float)height);
 	float v = (trace->offset + (float)height / 2.0f - y) * (2.0f * max / height / trace->scale);
 	return v;
 }
@@ -38,7 +37,6 @@ int translate(float value, const Trace* trace)
 	Scope* scope = scope_get();
 	int height = scope->screen.height;
 	int max = scope->screen.maxVoltage;
-	//int y = (int)(height / 2 + trace->offset - (value * trace->scale) * (height / scope->screen.grid.horizontal));
 	int y = (int)(trace->offset - height * trace->scale / 2.0f / max * (value - (float)max / trace->scale));
 	return y;
 }
@@ -103,7 +101,6 @@ void drawing_buffer_init()
 
 	first = FALSE;
 }
-
 
 // paints the dest context from the buffer
 void drawing_copy_from_buffer(cairo_t* dest)

@@ -377,6 +377,7 @@
                         <property name="can_focus">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
+                        <signal name="activate" handler="on_imagemenuitem5_activate" swapped="no"/>
                       </object>
                     </child>
                   </object>
@@ -432,7 +433,10 @@
             <property name="margin_left">3</property>
             <property name="margin_right">3</property>
             <signal name="draw" handler="on_draw" swapped="no"/>
+            <signal name="button-press-event" handler="on_drawingarea_button_press_event" swapped="no"/>
+            <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
             <signal name="size-allocate" handler="on_drawing_area_resize" swapped="no"/>
+            <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
           </object>
           <packing>
             <property name="expand">True</property>
@@ -676,38 +680,8 @@
                         <signal name="toggled" handler="on_displayModeButton_toggled" swapped="no"/>
                       </object>
                       <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">2</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="buttonSaveRef">
-                        <property name="label" translatable="yes">Save Ref</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <signal name="clicked" handler="on_buttonSaveRef_clicked" swapped="no"/>
-                      </object>
-                      <packing>
                         <property name="left_attach">1</property>
                         <property name="top_attach">1</property>
-                        <property name="width">1</property>
-                        <property name="height">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="buttonDeleteRefs">
-                        <property name="label" translatable="yes">Delete Ref</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <signal name="clicked" handler="on_buttonDeleteRefs_clicked" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">2</property>
                         <property name="width">1</property>
                         <property name="height">1</property>
                       </packing>
@@ -1039,6 +1013,8 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="invisible_char">●</property>
+                            <property name="primary_icon_tooltip_text" translatable="yes">asd</property>
+                            <property name="secondary_icon_tooltip_text" translatable="yes">asd</property>
                             <property name="adjustment">adjustmentTriggerLevel</property>
                             <property name="digits">2</property>
                             <signal name="value-changed" handler="on_spinbuttonTriggerLevel_value_changed" swapped="no"/>
@@ -1374,6 +1350,50 @@
                     <property name="position">3</property>
                   </packing>
                 </child>
+                <child>
+                  <object class="GtkGrid" id="grid7">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="column_homogeneous">True</property>
+                    <child>
+                      <object class="GtkButton" id="buttonSaveRef">
+                        <property name="label">gtk-save</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="use_stock">True</property>
+                        <signal name="clicked" handler="on_buttonSaveRef_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">0</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="buttonDeleteRefs">
+                        <property name="label">gtk-delete</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="use_stock">True</property>
+                        <signal name="clicked" handler="on_buttonDeleteRefs_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">0</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">4</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -1474,12 +1494,14 @@
                   <object class="GtkBox" id="box8">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="homogeneous">True</property>
                     <child>
                       <object class="GtkButton" id="buttonAddMeasurement">
-                        <property name="label" translatable="yes">+</property>
+                        <property name="label">gtk-add</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
+                        <property name="use_stock">True</property>
                         <signal name="clicked" handler="on_buttonAddMeasurement_clicked" object="dialogAddMeasurement" swapped="no"/>
                       </object>
                       <packing>
@@ -1490,10 +1512,11 @@
                     </child>
                     <child>
                       <object class="GtkButton" id="buttonRemoveMeasurement">
-                        <property name="label" translatable="yes">-</property>
+                        <property name="label">gtk-remove</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
+                        <property name="use_stock">True</property>
                         <signal name="clicked" handler="on_buttonRemoveMeasurement_clicked" swapped="no"/>
                       </object>
                       <packing>
