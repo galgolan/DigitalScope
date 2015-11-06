@@ -22,7 +22,8 @@ guint combobox_get_active_id(GtkComboBox* widget, GtkListStore* liststore)
 	gtk_combo_box_get_active_iter(widget, &iter);
 	GtkTreeModel* model = GTK_TREE_MODEL(liststore);
 	gtk_tree_model_get(model, &iter,
-		0, &id);
+		0, &id,
+		-1);
 
 	return id;
 }
@@ -103,7 +104,7 @@ void populate_list_store_values_int(GtkListStore* listStore, GQueue* names, GQue
 		gtk_list_store_append(listStore, &iter);
 		gtk_list_store_set(listStore, &iter,
 			0, value,
-			1, name,
+			1, (gpointer)name,
 			-1);
 	}
 }
@@ -344,7 +345,8 @@ void on_comboChannel1Probe_changed(GtkComboBox *widget, gpointer user_data)
 	gtk_combo_box_get_active_iter(widget, &iter);
 	GtkTreeModel* model = GTK_TREE_MODEL(scopeUI.liststoreProbeRatio);
 	gtk_tree_model_get(model, &iter,
-		0, &ratio);
+		0, &ratio,
+		-1);
 
 	Scope* scope = scope_get();
 	AnalogChannel* ch = g_queue_peek_nth(scope->channels, 0);
@@ -359,7 +361,8 @@ void on_comboChannel2Probe_changed(GtkComboBox *widget, gpointer user_data)
 	gtk_combo_box_get_active_iter(widget, &iter);
 	GtkTreeModel* model = GTK_TREE_MODEL(scopeUI.liststoreProbeRatio);
 	gtk_tree_model_get(model, &iter,
-		0, &ratio);
+		0, &ratio,
+		-1);
 
 	Scope* scope = scope_get();
 	AnalogChannel* ch = g_queue_peek_nth(scope->channels, 1);
