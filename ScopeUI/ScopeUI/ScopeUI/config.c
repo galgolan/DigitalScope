@@ -58,8 +58,8 @@ void config_close()
 {
 	if (keyfile != NULL)
 	{
-		keyfile = NULL;
 		g_key_file_free(keyfile);
+		keyfile = NULL;
 	}
 }
 

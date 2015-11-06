@@ -4,7 +4,7 @@
 #		-O0 disables optimizations.
 #		-ggdb creates GDB debug symbols.
 
-args = `pkg-config --cflags gtk+-3.0` `pkg-config --libs gtk+-3.0` -IC:/GTK/include/glib-2.0 -IC:/GTK/lib/glib-2.0/include -D _inline= -std=c99 -ggdb
+args = `pkg-config --cflags gtk+-3.0` `pkg-config --libs gtk+-3.0` -IC:/GTK/include/glib-2.0 -IC:/GTK/lib/glib-2.0/include -D _inline= -std=c99 -O0 -ggdb
 
 all:					scopeui.exe
 scopeui.exe:			config.o formatting.o drawing.o main.o measurement.o protocol.o scope.o scope_ui_handlers.o serial.o threads.o trace_math.o

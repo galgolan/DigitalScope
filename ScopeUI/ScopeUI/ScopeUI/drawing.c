@@ -248,6 +248,9 @@ void screen_draw_traces()
 {
 	int i;
 	Scope* scope = scope_get();
+
+	TRY_LOCK(, "cant aquire lock on traces", scope->screen.hTracesMutex, 100)
+
 	int numTraces = g_queue_get_length(scope->screen.traces);
 
 	if (scope->display_mode == DISPLAY_MODE_WAVEFORM)
@@ -265,6 +268,8 @@ void screen_draw_traces()
 	{
 		screen_draw_xy();
 	}
+
+	ReleaseMutex(scope->screen.hTracesMutex);
 }
 
 // draws to the internal buffer

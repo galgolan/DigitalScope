@@ -1,10 +1,10 @@
 #define _CRT_SECURE_NO_WARNINGS
 
+#include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 #include <glib-2.0\glib.h>
 #include <stdlib.h>
-#include <stdio.h>
 
 #include "..\..\..\common\common.h"
 #include "serial.h"
@@ -38,6 +38,15 @@ static ReceiveStats receiveStats = { .samples = 0, .triggers = 0, .malformed = 0
 static ConfigMsg configMsg;
 static bool shouldWriteConfig = FALSE;
 HANDLE hConfigMsgMutex = INVALID_HANDLE_VALUE;
+
+union {
+	long long ll;
+	struct
+	{
+		float f1;
+		float f2;
+	} floats;
+} dword_64_bit;
 
 bool protocol_update_config(const ConfigMsg* msg)
 {
@@ -142,7 +151,11 @@ ParseResult parse_frame(char* frame, int size)
 		else
 		{
 			result.frameType = FRAME_TYPE_DATA;
-			_snscanf(frame, 16, "%08X%08X", &result.samples[0], &result.samples[1]);	// TODO: change to more efficient function
+			frame[16] = '\0';
+			dword_64_bit.ll = strtoll(frame, NULL, 16);
+			//_snscanf(frame, 16, "%08X%08X", &result.samples[0], &result.samples[1]);	// TODO: change to more efficient function
+			result.samples[0] = dword_64_bit.floats.f1;
+			result.samples[1] = dword_64_bit.floats.f2;
 		}
 	}
 
