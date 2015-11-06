@@ -61,6 +61,7 @@ int calc_padding_size(int msgSize)
 bool protocol_init()
 {
 	hConfigMsgMutex = CreateMutexSimple();
+	return TRUE;
 }
 
 void protocol_cleanup()
@@ -113,6 +114,8 @@ DWORD WINAPI protocol_config_updater_thread(LPVOID param)
 
 		Sleep(sleepInterval);
 	}
+
+	return 0;
 }
 
 ParseResult parse_frame(char* frame, int size)

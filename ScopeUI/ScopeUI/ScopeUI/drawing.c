@@ -283,6 +283,8 @@ bool drawing_update_buffer()
 	cairo_surface_flush(drawing_surface);
 
 	ReleaseMutex(hSurfaceMutex);
+
+	return TRUE;
 }
 
 DWORD WINAPI drawing_worker_thread(LPVOID param)

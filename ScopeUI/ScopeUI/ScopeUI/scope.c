@@ -231,7 +231,7 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 
 	static int pos = 0;
 
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 
 	AnalogChannel* ch1 = scope_channel_get_nth(0);
 	AnalogChannel* ch2 = scope_channel_get_nth(1);

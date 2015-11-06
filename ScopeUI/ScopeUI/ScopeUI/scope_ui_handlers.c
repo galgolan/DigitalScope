@@ -50,11 +50,11 @@ void populate_ui(GtkBuilder* builder)
 	scopeUI.liststoreCursorValues = (GtkListStore*)GET_GTK_OBJECT("liststoreCursorValues");
 	scopeUI.treeviewCursorValues = (GtkTreeView*)GET_GTK_OBJECT("treeviewCursorValues");
 
-	gtk_widget_set_events(scopeUI.drawingArea, GDK_EXPOSURE_MASK
-		| GDK_LEAVE_NOTIFY_MASK
-		| GDK_BUTTON_PRESS_MASK
-		| GDK_POINTER_MOTION_MASK
-		| GDK_POINTER_MOTION_HINT_MASK);
+	//gtk_widget_set_events(scopeUI.drawingArea, GDK_EXPOSURE_MASK
+	//	| GDK_LEAVE_NOTIFY_MASK
+	//	| GDK_BUTTON_PRESS_MASK
+	//	| GDK_POINTER_MOTION_MASK
+	//	| GDK_POINTER_MOTION_HINT_MASK);
 }
 
 void populate_list_store(GtkListStore* listStore, GQueue* items, gboolean clear)
@@ -137,11 +137,11 @@ void update_statusbar()
 	guint remove = gtk_statusbar_push(GTK_STATUSBAR(ui->statusBar), context_id, msg);
 	g_free(msg);
 
-	gtk_widget_set_events(scopeUI.drawingArea, GDK_EXPOSURE_MASK
-		| GDK_LEAVE_NOTIFY_MASK
-		| GDK_BUTTON_PRESS_MASK
-		| GDK_POINTER_MOTION_MASK
-		| GDK_POINTER_MOTION_HINT_MASK);
+	//gtk_widget_set_events(scopeUI.drawingArea, GDK_EXPOSURE_MASK
+	//	| GDK_LEAVE_NOTIFY_MASK
+	//	| GDK_BUTTON_PRESS_MASK
+	//	| GDK_POINTER_MOTION_MASK
+	//	| GDK_POINTER_MOTION_HINT_MASK);
 }
 
 // return -1 if zero or more than one rows are selected
@@ -263,7 +263,7 @@ void on_buttonAddMeasurement_clicked(GtkButton* button, gpointer user_data)
 	Trace* trace = scope_trace_get_nth(traceId);
 	Measurement* meas = g_queue_peek_nth(allMeas, measId);
 	scope_measurement_add(meas, trace);
-	screen_add_measurement(meas->name, trace->name, "0", measId);
+	screen_add_measurement(meas->name, trace->name, measId);
 
 	ReleaseMutex(scope->hMeasurementsMutex);
 	ReleaseMutex(scope->screen.hTracesMutex);
@@ -487,7 +487,7 @@ void on_comboboxTriggerType_changed(GtkComboBox *widget, gpointer user_data)
 G_MODULE_EXPORT
 void on_imagemenuitem5_activate(GtkMenuItem* item, gpointer data)
 {
-	on_window1_destroy(item, data);
+	on_window1_destroy((GtkWidget*)item, data);
 }
 
 G_MODULE_EXPORT
@@ -541,7 +541,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget, GdkEventButton  *e
 	if (event->button == 1)
 	{
 		// put x1 & y1 cursors on this position
-		scope_cursor_set(&(scope->cursors.x1), event->x);
+		scope_cursor_set(&(scope->cursors.x1), (int)event->x);
 	}
 	return TRUE;
 }

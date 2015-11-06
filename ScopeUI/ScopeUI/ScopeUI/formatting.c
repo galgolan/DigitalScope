@@ -1,5 +1,8 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <string.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "formatting.h"
 
@@ -96,7 +99,7 @@ char* formatNumber(float value, Units units)
 		sprintf(string, "%.2fdB", value);
 		break;
 	default:
-		sprintf("%.3f", value);
+		sprintf(string, "%.3f", value);
 	}
 
 	return string;

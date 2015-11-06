@@ -18,7 +18,7 @@ void controls_set_default_values(GtkBuilder* builder)
 		keys = keys->next;
 	}
 
-	g_list_free_full(keys, g_strfreev);
+	g_list_free_full(keys, (GDestroyNotify)g_strfreev);
 }
 
 int main(int argc, char *argv[])
