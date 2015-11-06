@@ -54,3 +54,6 @@ RemoteSystemsTempFiles/*
 /ScopeUI/ScopeUI/ScopeUI/Release
 *.sdf
 *.suo
+/ScopeUI/ScopeUI/ScopeUI/ScopeUI.vcxproj.user
+/ScopeUI/compilerflags.txt
+/ScopeUI/linkerflags.txt
