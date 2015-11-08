@@ -44,7 +44,7 @@ __error__(char *pcFilename, uint32_t ui32Line)
 // System clock rate in Hz.
 //
 //*****************************************************************************
-uint32_t g_ui32SysClock;
+//uint32_t g_ui32SysClock;
 
 void configureFPU()
 {
@@ -61,11 +61,11 @@ void setup()
 	SysCtlDelay(1000);
 
 	// Run from the PLL at 120 MHz.
-	g_ui32SysClock = SysCtlClockFreqSet((SYSCTL_XTAL_25MHZ |
+	config->systClock = SysCtlClockFreqSet((SYSCTL_XTAL_25MHZ |
 					SYSCTL_OSC_MAIN | SYSCTL_USE_PLL |
 					SYSCTL_CFG_VCO_480), 120000000);
 
-	if (g_ui32SysClock == 0)
+	if (config->systClock == 0)
 	{
 		while(1)
 		{
@@ -74,39 +74,21 @@ void setup()
 	}
 	SysCtlDelay(1000);
 
-	configUART(g_ui32SysClock);
-	configAdc(config->trigger);
-	configSPI(g_ui32SysClock);
+	configUART();
+	configAdc();
+	configSPI();
 	configureAnalogFrontend();
-	configProbeCompensation(g_ui32SysClock);
+	configProbeCompensation();
 
 	IntMasterEnable();
 }
 
 void waitUntilReady()
 {
-	while(!ready)
+	//ScopeConfig* config = getConfig();
+	while(adcState == ADC_STATE_CAPTURING)
 	{
-		SysCtlDelay(g_ui32SysClock / 10);
-	}
-}
-
-void reArmTrigger()
-{
-	ScopeConfig* config = getConfig();
-	ready = false;
-	if(config->trigger.mode == TRIG_MODE_FREE_RUNNING)
-	{
-		triggerAdc();
-	}
-	else if (config->trigger.mode == TRIG_MODE_AUTO)
-	{
-		configAdc(config->trigger);
-		ADCComparatorIntEnable(ADC0_BASE, 0);
-	}
-	else if (config->trigger.mode == TRIG_MODE_SINGLE)
-	{
-		// nothing to do
+		SysCtlDelay(1);	// TODO: i think there is no point in a delay (its not like we can starve a thread)
 	}
 }
 
@@ -115,48 +97,32 @@ void createConfig()
 	ScopeConfig* config = getConfig();
 
 	// configure trigger
-	config->trigger.level = COMP_REF_1_65V;
+	config->trigger.level = translateCompRef(1.77f);
 	config->trigger.type = TRIG_RISING;
-	config->trigger.mode = TRIG_MODE_FREE_RUNNING;
-	config->trigger.source = TRIG_SRC_CH2;
+	config->trigger.mode = TRIG_MODE_AUTO;
+	config->trigger.source = TRIG_SRC_CH1;
 
 	// configure ch1
 	config->channels[0].active = true;
-	config->channels[0].offset = VCC/2;
-	config->channels[0].gain = PGA_GAIN_1;
+	config->channels[0].offset = calcCh1Offset(0);
+	config->channels[0].gain = translateGain(1, 1);
 
 	// configure ch2
 	config->channels[1].active = true;
-	config->channels[1].offset = VCC/2;
-	config->channels[1].gain = PGA_GAIN_1;
+	config->channels[1].offset = calcCh2Offset(0);
+	config->channels[1].gain = translateGain(1, 1);
+
+	config->sampleRate = 1000;
 }
 
-void freerunning()
-{
-	uint32_t samples[2];
-	int numSamples = sampleAdc(samples);
-	double ch1 = calcCh1Input(samples[0]);
-	double ch2 = calcCh2Input(samples[1]);
-	outputData(ch1, ch2);
-}
-
-void triggered()
-{
-	int i;
-	waitUntilReady();
-	outputTrigger();
-	for(i=0;i<BUFFER_SIZE;++i)
-	{
-		outputData(samples_ch1[i], samples_ch2[i]);
-	}
-	reArmTrigger();
-}
 
 /*
  * main.c
  */
 int main(void)
 {
+	int i;
+
 	IntMasterDisable();
 	SysCtlPeripheralDisable(WATCHDOG0_BASE);
 	SysCtlPeripheralDisable(WATCHDOG1_BASE);
@@ -166,13 +132,21 @@ int main(void)
 	setup();
 	SysCtlDelay(1000);
 
-	ScopeConfig* config = getConfig();
 	while(1)
 	{
-		if(config->trigger.mode == TRIG_MODE_FREE_RUNNING)
-			freerunning();
-		else
-			triggered();
+		waitUntilReady();
+
+		outputTrigger();
+
+		// send all data
+		for(i=0;i<BUFFER_SIZE;++i)
+		{
+			float ch1 = calcCh1Input(samples_ch1[i]);
+			float ch2 = calcCh2Input(samples_ch2[i]);
+			outputData(ch1, ch2);
+		}
+		adcState = ADC_STATE_CAPTURING;
+		//ADCIntEnable(ADC0_BASE, 0);
 	}
 
 	return 0;

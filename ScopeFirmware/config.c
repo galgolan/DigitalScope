@@ -21,10 +21,54 @@
 
 #include "config.h"
 #include "scope_common.h"
+#include "../common/common.h"
+#include "adc.h"
+#include "spi.h"
+#include "calc.h"
 
 static ScopeConfig config;
 
 ScopeConfig* getConfig()
 {
 	return &config;
+}
+
+void updateConfig(ConfigMsg* msg)
+{
+	ScopeConfig* config = getConfig();
+
+	config->channels[0].gain = translateGain(msg->ch1_gain, config->channels[0].gain);
+	config->channels[1].gain = translateGain(msg->ch2_gain, config->channels[1].gain);
+	config->channels[0].offset = calcCh1Offset(msg->ch1_offset);
+	config->channels[1].offset = calcCh2Offset(msg->ch2_offset);
+
+	// trigger mode
+	if(msg->trigger & TRIGGER_CFG_MODE_NONE)
+		config->trigger.mode = TRIG_MODE_FREE_RUNNING;
+	else if (msg->trigger & TRIGGER_CFG_MODE_SINGLE)
+		config->trigger.mode = TRIG_MODE_SINGLE;
+	else if (msg->trigger & TRIGGER_CFG_MODE_AUTO)
+		config->trigger.mode = TRIG_MODE_AUTO;
+
+	// trigger level
+	config->trigger.level = translateCompRef(msg->triggerLevel);
+
+	// trigger source
+	if(msg->trigger & TRIGGER_CFG_SRC_CH1)
+		config->trigger.source = TRIG_SRC_CH1;
+	else if(msg->trigger & TRIGGER_CFG_SRC_CH2)
+		config->trigger.source = TRIG_SRC_CH2;
+
+	// trigger type
+	if(msg->trigger & TRIGGER_CFG_TYPE_RAISING)
+		config->trigger.type = TRIG_RISING;
+	else if(msg->trigger & TRIGGER_CFG_TYPE_FALLING)
+		config->trigger.type = TRIG_FALLING;
+	else if(msg->trigger & TRIGGER_CFG_TYPE_BOTH)
+			config->trigger.type = TRIG_BOTH;
+
+	if((msg->sample_rate >= 90) && (msg->sample_rate <= 1e6))
+	{
+		config->sampleRate = msg->sample_rate;
+	}
 }

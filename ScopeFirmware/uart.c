@@ -21,15 +21,11 @@
 #include "driverlib/interrupt.h"
 #include "driverlib/adc.h"
 #include "driverlib/comp.h"
+#include "driverlib/uart.h"
 
 // include these for working with ROM functions
 //#include "driverlib/rom.h"
 //#include "driverlib/rom_map.h"
-
-#include "driverlib/sysctl.h"
-
-// peripherals
-#include "driverlib/uart.h"
 
 // utilities
 #include "utils/uartstdio.h"
@@ -41,6 +37,17 @@
 #include "calc.h"
 
 #include "../common/common.h"
+
+typedef enum ReceiveState
+{
+	RECEIVE_STATE_WAITING_PREAMBLE,	// waiting to sync on preamble
+	RECEIVE_STATE_WAITING_CONFIG	// waiting to accumulate enough bytes for config msg
+} ReceiveState;
+
+static volatile uint8_t buffer[64];
+static volatile uint8_t buffer_index = 0;
+static volatile uint64_t preambleBuffer = 0x00;
+static volatile ReceiveState state = RECEIVE_STATE_WAITING_PREAMBLE;
 
 void serialFloatPrint(char* buff, float f)
 {
@@ -79,37 +86,17 @@ void outputData(float ch1, float ch2)
 	UARTprintf(buff);
 }
 
-void twoChannelPrint(char* buff, double ch1, double ch2)
+void outputDebug(double vin1, double vin2)
 {
-	sprintf(buff, "%.2f,%.2f\n", ch1, ch2);
+	char buff[256];
+	if(vin1>=0)
+		sprintf(buff, "Vin1=+%.2f Vin2=%.2f\n", vin1, vin2);
+	else
+		sprintf(buff, "Vin1=%.2f Vin2=%.2f\n", vin1, vin2);
+	UARTprintf(buff);
 }
 
-void oneChannelPrint(char* buff, double value)
-{
-	sprintf(buff, "%.2f\n", value);
-}
-
-void outputDebugMany(double* ch1, double* ch2, uint32_t n)
-{
-	ScopeConfig* config = getConfig();
-	char buff[24];
-	int i;
-	for(i=0; i<n; ++i)
-	{
-		if(config->channels[0].active && config->channels[1].active)
-			twoChannelPrint(buff, ch1[i], ch2[i]);
-		else if(config->channels[0].active && !config->channels[1].active)
-			oneChannelPrint(buff, ch1[i]);
-		else if(!config->channels[0].active && config->channels[1].active)
-			oneChannelPrint(buff, ch2[i]);
-		else
-			return;
-
-		UARTprintf(buff);
-	}
-}
-
-void configUART(uint32_t sysClock)
+void configUART()
 {
 	// UART0: PA.0 - RX, PA.1 - TX
 
@@ -126,129 +113,67 @@ void configUART(uint32_t sysClock)
 
 	// enable receive interrupt
 	UARTIntEnable(UART0_BASE, UART_INT_RX);
-
-	UARTStdioConfig(0, 230400, sysClock);
+	ScopeConfig* config = getConfig();
+	UARTStdioConfig(0, 230400, config->systClock);
 	UARTFlowControlSet(UART0_BASE, UART_FLOWCONTROL_NONE) ;
 	UARTFIFOEnable(UART0_BASE) ; // UART FIFO enable
 	UARTFIFOLevelSet(UART0_BASE, UART_FIFO_TX7_8, UART_FIFO_RX2_8);	// receive 4 chars each interrupt
 	IntEnable(INT_UART0);
 }
 
-void outputDebug(double vin1, double vin2)
+bool isChecksumCorrect(ConfigMsg* msg)
 {
-	char buff[256];
-	if(vin1>=0)
-		sprintf(buff, "Vin1=+%.2f Vin2=%.2f\n", vin1, vin2);
-	else
-		sprintf(buff, "Vin1=%.2f Vin2=%.2f\n", vin1, vin2);
-	UARTprintf(buff);
-}
-
-static volatile uint8_t buffer[64];
-static volatile uint8_t buffer_index = 0;
-
-int8_t translateGain(byte gainValue, int originalGain)
-{
-	//1;2;4;5;8;10;16;32
-	switch(gainValue)
-	{
-	case 1:
-		return PGA_GAIN_1;
-	case 2:
-		return PGA_GAIN_2;
-	case 4:
-		return PGA_GAIN_4;
-	case 5:
-		return PGA_GAIN_5;
-	case 8:
-		return PGA_GAIN_8;
-	case 10:
-		return PGA_GAIN_10;
-	case 16:
-		return PGA_GAIN_16;
-	case 32:
-		return PGA_GAIN_32;
-	default:
-		return originalGain;		// invalid gain which should be ignored
-	}
-}
-
-uint32_t translateCompRef(float refValue)
-{
-	if (refValue<=0.06875) return COMP_REF_0V;
-	else if (refValue<=0.20625) return COMP_REF_0_1375V;
-	else if (refValue<=0.34375) return COMP_REF_0_275V;
-	else if (refValue<=0.48125) return COMP_REF_0_4125V;
-	else if (refValue<=0.61875) return COMP_REF_0_55V;
-	else if (refValue<=0.75625) return COMP_REF_0_6875V;
-	else if (refValue<=0.8765625) return COMP_REF_0_825V;
-	else if (refValue<=0.9453125) return COMP_REF_0_928125V;
-	else if (refValue<=0.996875) return COMP_REF_0_9625V;
-	else if (refValue<=1.0828125) return COMP_REF_1_03125V;
-	else if (refValue<=1.1171875) return COMP_REF_1_1V;
-	else if (refValue<=1.16875) return COMP_REF_1_134375V;
-	else if (refValue<=1.2890625) return COMP_REF_1_2375V;
-	else if (refValue<=1.3578125) return COMP_REF_1_340625V;
-	else if (refValue<=1.409375) return COMP_REF_1_375V;
-	else if (refValue<=1.478125) return COMP_REF_1_44375V;
-	else if (refValue<=1.5296875) return COMP_REF_1_5125V;
-	else if (refValue<=1.5984375) return COMP_REF_1_546875V;
-	else if (refValue<=1.7015625) return COMP_REF_1_65V;
-	else if (refValue<=1.7703125) return COMP_REF_1_753125V;
-	else if (refValue<=1.821875) return COMP_REF_1_7875V;
-	else if (refValue<=1.890625) return COMP_REF_1_85625V;
-	else if (refValue<=1.9421875) return COMP_REF_1_925V;
-	else if (refValue<=2.0109375) return COMP_REF_1_959375V;
-	else if (refValue<=2.1140625) return COMP_REF_2_0625V;
-	else if (refValue<=2.2171875) return COMP_REF_2_165625V;
-	else if (refValue<=2.3203125) return COMP_REF_2_26875V;
-	else return COMP_REF_2_371875V;
-}
-
-void updateConfig(ConfigMsg* msg)
-{
-	ScopeConfig* config = getConfig();
-
-	config->channels[0].gain = translateGain(msg->ch1_gain, config->channels[0].gain);
-	config->channels[1].gain = translateGain(msg->ch2_gain, config->channels[1].gain);
-	config->channels[0].offset = calcCh1Offset(msg->ch1_offset);
-	config->channels[1].offset = calcCh2Offset(msg->ch2_offset);
-	// TODO: add sample rate
-	if(msg->trigger & TRIGGER_CFG_MODE_NONE)
-	{
-		config->trigger.mode = TRIG_MODE_FREE_RUNNING;
-	}
-	else
-	{
-		// a trigger is set
-		if (msg->trigger & TRIGGER_CFG_MODE_SINGLE)
-			config->trigger.mode = TRIG_MODE_SINGLE;
-		else if (msg->trigger & TRIGGER_CFG_MODE_AUTO)
-			config->trigger.mode = TRIG_MODE_AUTO;
-
-		config->trigger.level = translateCompRef(msg->triggerLevel);
-
-		if(msg->trigger & TRIGGER_CFG_SRC_CH1)
-			config->trigger.source = TRIG_SRC_CH1;
-		else if(msg->trigger & TRIGGER_CFG_SRC_CH2)
-			config->trigger.source = TRIG_SRC_CH2;
-	}
+	return (msg->checksum == 0);
 }
 
 void handleCommand()
 {
 	ConfigMsg* msg = (ConfigMsg*)buffer;
-	if(msg->preamble == CONFIG_PREAMBLE)
+	if((msg->preamble == CONFIG_PREAMBLE) && isChecksumCorrect(msg))
 	{
 		// received a valid config msg
 		updateConfig(msg);
 		setGain();
 		setOffset();
-		//setTriggerSource();
+		setTriggerSource();
 		//setTriggerMode();
-		//setTriggerType();
-		//setTriggerLevel();
+		setTriggerType();
+		setTriggerLevel();	// TODO: take offset into account
 		setSampleRate();
+	}
+}
+
+// handles a new character received
+void handleNewByte(uint8_t byte)
+{
+	switch(state)
+	{
+	case RECEIVE_STATE_WAITING_PREAMBLE:
+		preambleBuffer = preambleBuffer >> 8;
+		preambleBuffer |= ((uint64_t)byte) << 56;
+		if(preambleBuffer == CONFIG_PREAMBLE)
+		{
+			uint64_t* pPreamble = (uint64_t*)buffer;
+			*pPreamble = preambleBuffer;
+			buffer_index = 8;
+			state = RECEIVE_STATE_WAITING_CONFIG;
+		}
+		break;
+
+	case RECEIVE_STATE_WAITING_CONFIG:
+		buffer[buffer_index] = byte;
+		buffer_index++;
+		if(buffer_index >= sizeof(ConfigMsg))
+		{
+			buffer_index = 0;
+			handleCommand();
+			state = RECEIVE_STATE_WAITING_PREAMBLE;
+			preambleBuffer = 0x00;
+		}
+		break;
+
+	default:
+		return;
 	}
 }
 
@@ -263,14 +188,7 @@ void UartISR(void)
 		int32_t c = UARTCharGetNonBlocking(UART0_BASE);
 		if(c != -1)
 		{
-			buffer[buffer_index] = (uint8_t)c;
-			buffer_index++;
-
-			if(buffer_index >= sizeof(ConfigMsg))
-			{
-				buffer_index = 0;
-				handleCommand();
-			}
+			handleNewByte(c);
 		}
 	}
 }

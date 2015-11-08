@@ -20,6 +20,7 @@
 #include "driverlib/adc.h"
 #include "driverlib/comp.h"
 #include "driverlib/interrupt.h"
+#include "driverlib/timer.h"
 
 #include "adc.h"
 #include "uart.h"
@@ -33,11 +34,53 @@
 #define MUX_CHANNEL_1	0x03		//Y3
 #define MUX_CHANNEL_2	0x04		//Y4
 
-double samples_ch1[BUFFER_SIZE];
-double samples_ch2[BUFFER_SIZE];
+typedef enum AdcInterruptSource
+{
+	ADC_INTERRUPT_SRC_NONE = 0,
+	ADC_INTERRUPT_SRC_TIMER,
+	ADC_INTERRUPT_SRC_COMP
+} AdcInterruptSource;
+
+uint16_t samples_ch1[BUFFER_SIZE];
+uint16_t samples_ch2[BUFFER_SIZE];
 static volatile uint32_t index = 0;
-volatile bool ready = false;
-static uint32_t samples[2];
+
+AdcState adcState = ADC_STATE_CAPTURING;
+AdcInterruptSource interruptSource = ADC_INTERRUPT_SRC_NONE;
+static uint32_t samples[2] = {0, 0};
+
+
+uint32_t translateCompRef(float refValue)	// todo: take into account the offset
+{
+	if (refValue<=0.06875) return COMP_REF_0V;
+	else if (refValue<=0.20625) return COMP_REF_0_1375V;
+	else if (refValue<=0.34375) return COMP_REF_0_275V;
+	else if (refValue<=0.48125) return COMP_REF_0_4125V;
+	else if (refValue<=0.61875) return COMP_REF_0_55V;
+	else if (refValue<=0.75625) return COMP_REF_0_6875V;
+	else if (refValue<=0.8765625) return COMP_REF_0_825V;
+	else if (refValue<=0.9453125) return COMP_REF_0_928125V;
+	else if (refValue<=0.996875) return COMP_REF_0_9625V;
+	else if (refValue<=1.0828125) return COMP_REF_1_03125V;
+	else if (refValue<=1.1171875) return COMP_REF_1_1V;
+	else if (refValue<=1.16875) return COMP_REF_1_134375V;
+	else if (refValue<=1.2890625) return COMP_REF_1_2375V;
+	else if (refValue<=1.3578125) return COMP_REF_1_340625V;
+	else if (refValue<=1.409375) return COMP_REF_1_375V;
+	else if (refValue<=1.478125) return COMP_REF_1_44375V;
+	else if (refValue<=1.5296875) return COMP_REF_1_5125V;
+	else if (refValue<=1.5984375) return COMP_REF_1_546875V;
+	else if (refValue<=1.7015625) return COMP_REF_1_65V;
+	else if (refValue<=1.7703125) return COMP_REF_1_753125V;
+	else if (refValue<=1.821875) return COMP_REF_1_7875V;
+	else if (refValue<=1.890625) return COMP_REF_1_85625V;
+	else if (refValue<=1.9421875) return COMP_REF_1_925V;
+	else if (refValue<=2.0109375) return COMP_REF_1_959375V;
+	else if (refValue<=2.1140625) return COMP_REF_2_0625V;
+	else if (refValue<=2.2171875) return COMP_REF_2_165625V;
+	else if (refValue<=2.3203125) return COMP_REF_2_26875V;
+	else return COMP_REF_2_371875V;
+}
 
 uint32_t getTriggerType(TriggerType type)
 {
@@ -82,9 +125,43 @@ void setTriggerLevel()
 	ComparatorRefSet(COMP_BASE, config->trigger.level);
 }
 
+void configureSequencer(uint32_t trigger)
+{
+	// configure sequencer with 2 steps: sample ch3, sample ch4
+	ADCSequenceDisable(ADC0_BASE, 0);
+	ADCSequenceConfigure(ADC0_BASE, 0, trigger, 0);
+	ADCSequenceStepConfigure(ADC0_BASE, 0, 0, ADC_CTL_CH3);
+	ADCSequenceStepConfigure(ADC0_BASE, 0, 1, ADC_CTL_IE | ADC_CTL_END | ADC_CTL_CH4);
+	ADCSequenceEnable(ADC0_BASE, 0);
+	ADCIntClear(ADC0_BASE, 0);
+}
+
+void setSampleRate()
+{
+	ScopeConfig* config = getConfig();
+	unsigned long timer_value = config->systClock / config->sampleRate;
+	TimerLoadSet(TIMER1_BASE, TIMER_A, timer_value);
+}
+
+void setAdcInterruptSourceTimer()
+{
+	interruptSource = ADC_INTERRUPT_SRC_TIMER;
+	configureSequencer(ADC_TRIGGER_TIMER);
+}
+
+void setAdcInterruptSourceComparator()
+{
+	interruptSource = ADC_INTERRUPT_SRC_COMP;
+	configureSequencer(ADC_TRIGGER_COMP0);
+}
+
 void setTriggerMode()
 {
 	ScopeConfig* config = getConfig();
+	if(config->trigger.mode == TRIG_MODE_FREE_RUNNING)
+		setAdcInterruptSourceTimer();
+	else
+		setAdcInterruptSourceComparator();
 }
 
 void setTriggerType()
@@ -92,11 +169,6 @@ void setTriggerType()
 	ScopeConfig* config = getConfig();
 	uint32_t type = getTriggerType(config->trigger.type);
 	ComparatorConfigure(COMP_BASE, 0, type | COMP_ASRCP_REF | COMP_OUTPUT_INVERT);
-}
-
-void setSampleRate()
-{
-	ScopeConfig* config = getConfig();
 }
 
 void configMux()
@@ -128,17 +200,26 @@ void configComparator()
 	SysCtlDelay(1000);
 }
 
+void setupSamplingTimer()
+{
+	ScopeConfig* config = getConfig();
+
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
+	TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC);
+	setSampleRate();
+	TimerControlTrigger(TIMER1_BASE, TIMER_A, true);
+	TimerEnable(TIMER1_BASE, TIMER_A);
+}
+
 void configAdc()
 {
 	ScopeConfig* config = getConfig();
-	Trigger trigger = config->trigger;
 
-	ready = false;
+	adcState = ADC_STATE_CAPTURING;
+	interruptSource = ADC_INTERRUPT_SRC_NONE;
 	index = 0;
 
-	if(trigger.mode != TRIG_MODE_FREE_RUNNING)
-		configComparator();
-
+	configComparator();
 	configMux();
 
 	// ch1 - A3 (PE0)
@@ -153,7 +234,7 @@ void configAdc()
 
 	SysCtlDelay(1000);
 
-	ADCClockConfigSet(ADC0_BASE, ADC_CLOCK_SRC_PLL | ADC_CLOCK_RATE_EIGHTH, 24);
+	ADCClockConfigSet(ADC0_BASE, ADC_CLOCK_SRC_PLL | ADC_CLOCK_RATE_FULL, 15);
 
 	// configure adc pins
 	GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_0);
@@ -163,80 +244,51 @@ void configAdc()
 	ADCReferenceSet(ADC0_BASE, ADC_REF_INT);
 	SysCtlDelay(1000);
 
-	// configure sequencer with 1 step: sample from CH3
-	ADCSequenceDisable(ADC0_BASE, 0);
+	setupSamplingTimer();
 
-	if(trigger.mode == TRIG_MODE_FREE_RUNNING)
-		ADCSequenceConfigure(ADC0_BASE, 0, ADC_TRIGGER_PROCESSOR, 0);
-	else
-		ADCSequenceConfigure(ADC0_BASE, 0, ADC_TRIGGER_COMP0, 0);
-
-	ADCSequenceStepConfigure(ADC0_BASE, 0, 0, ADC_CTL_CH3);
-	ADCSequenceStepConfigure(ADC0_BASE, 0, 1, ADC_CTL_IE | ADC_CTL_END | ADC_CTL_CH4);
-	ADCSequenceEnable(ADC0_BASE, 0);
+	setTriggerMode();
 
 	// enable ADC0 sequencer 0 interrupt
 	ADCIntClear(ADC0_BASE, 0);
 	ADCIntEnable(ADC0_BASE, 0);
-	if(trigger.mode != TRIG_MODE_FREE_RUNNING)
-		IntEnable(INT_ADC0SS0);
-}
-
-void triggerAdc()
-{
-	// Trigger the sample sequence manualy
-	ADCIntClear(ADC0_BASE, 0);
-	ADCProcessorTrigger(ADC0_BASE, 0);
-}
-
-int sampleAdc(uint32_t* samples)
-{
-	triggerAdc();
-
-	// Wait until the sample sequence has completed.
-	while(!ADCIntStatus(ADC0_BASE, 0, false))
-	{
-	}
-
-	// Read the value from the ADC.
-	int numSamples = ADCSequenceDataGet(ADC0_BASE, 0, samples);
-	return numSamples;
+	IntEnable(INT_ADC0SS0);
 }
 
 void AdcISR(void)
 {
-	ADCComparatorIntClear(ADC0_BASE, 1);
-
-
-	ADCComparatorIntDisable(ADC0_BASE, 0);
-	while(!ADCIntStatus(ADC0_BASE, 0, false))
-		{
-		}
-	// Read the value from the ADC.
-	ADCSequenceDataGet(ADC0_BASE, 0, samples);
-
-
-	IntPendClear(INT_ADC0SS0);
 	ADCIntClear(ADC0_BASE, 0);
 
-	ADCSequenceConfigure(ADC0_BASE, 0, ADC_TRIGGER_PROCESSOR, 0);
+	//IntPendClear(INT_ADC0SS0);	// TODO: where to put this ?
 
-	// TODO: remove floating point calculations from here avoid corruption of the stack
-	// we can configure the FPU to save the stack but this will increase ISR latency
-	samples_ch1[index] = calcCh1Input(samples[0]);
-	samples_ch2[index] = calcCh2Input(samples[1]);
-	++index;
+	ScopeConfig* config = getConfig();
 
-	if(index >= BUFFER_SIZE)
+	if(adcState == ADC_STATE_CAPTURING)
 	{
-		// aquisition completed
-		ready = true;
-		index = 0;
-	}
-	else
-	{
-		triggerAdc();
-	}
+		// Read the value from the ADC.
+		ADCSequenceDataGet(ADC0_BASE, 0, samples);
 
-	//ADCComparatorIntEnable(ADC0_BASE, 0);
+		samples_ch1[index] = samples[0];
+		samples_ch2[index] = samples[1];
+		++index;
+
+		if(index >= BUFFER_SIZE)
+		{
+			// aquisition completed
+			adcState = ADC_STATE_SUSPENDED;
+			index = 0;
+
+			// if triggered - disable timer, enable comparator
+			if((config->trigger.mode != TRIG_MODE_FREE_RUNNING) && (interruptSource == ADC_INTERRUPT_SRC_TIMER))
+			{
+				setAdcInterruptSourceComparator();
+
+			}
+		}
+		else
+		{
+			// if interrupt was comparator - start timer
+			if (interruptSource == ADC_INTERRUPT_SRC_COMP)
+				setAdcInterruptSourceTimer();
+		}
+	}
 }

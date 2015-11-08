@@ -1,6 +1,8 @@
 #ifndef _SPI_H_
 #define _SPI_H_
 
+#include "../common/common.h"
+
 // PGA constants
 #define PGA_SET_GAIN	0x40
 #define PGA_SET_CHANNEL	0x41
@@ -25,13 +27,15 @@
 #define DAC_A 			0x0
 #define DAC_B 			0x8
 
-void configSPI(uint32_t ui32SysClock);
+void configSPI();
 
 void configureAnalogFrontend();
 
 void setGain();
 
 void setOffset();
+
+int8_t translateGain(byte gainValue, int originalGain);
 
 void setDac1Voltage(double voltage, int channel);
 

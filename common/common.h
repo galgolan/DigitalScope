@@ -18,7 +18,7 @@ typedef struct ConfigMsg
 	float ch1_offset;	// volts
 	byte ch2_gain;
 	float ch2_offset;	// volts
-	float	sample_rate;	// sample period time (T)
+	unsigned int sample_rate;	// sample rate [Hz]
 	uint64	checksum;
 } ConfigMsg;
 

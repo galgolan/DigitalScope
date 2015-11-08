@@ -457,6 +457,7 @@ void on_spinbuttonTriggerLevel_value_changed(GtkSpinButton *spin_button, gpointe
 {
 	Scope* scope = scope_get();
 	scope->trigger.level = (float)gtk_spin_button_get_value(spin_button);
+	scope->screen.showTrigger = TRUE;
 	scope_build_and_send_config();
 }
 

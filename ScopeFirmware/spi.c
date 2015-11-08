@@ -13,6 +13,7 @@
 #include "spi.h"
 #include "scope_common.h"
 #include "config.h"
+#include "../common/common.h"
 
 #define PGA1_SS_PORT	GPIO_PORTP_BASE
 #define PGA2_SS_PORT	GPIO_PORTN_BASE
@@ -68,7 +69,7 @@ void configSlaveSelectPins()
 }
 
 // config SSI2
-void configSPI(uint32_t ui32SysClock)
+void configSPI()
 {
 	configSlaveSelectPins();
 
@@ -86,7 +87,8 @@ void configSPI(uint32_t ui32SysClock)
 
 	// Configure the SSI.
 	SSIClockSourceSet(SSI_BASE, SSI_CLOCK_SYSTEM);
-	SSIConfigSetExpClk(SSI_BASE, ui32SysClock, SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, 100000, 8);
+	ScopeConfig* config = getConfig();
+	SSIConfigSetExpClk(SSI_BASE, config->systClock, SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, 100000, 8);
 	SSIEnable(SSI_BASE);
 	SysCtlDelay(1000);
 }
@@ -157,6 +159,23 @@ void setPga2Gain(uint8_t gain)
 void setPga1Channel(uint8_t channel)
 {
 	programPga1(PGA_SET_CHANNEL, channel);
+}
+
+int8_t translateGain(byte gainValue, int originalGain)
+{
+	//1;2;4;5;8;10;16;32
+	switch(gainValue)
+	{
+	case 1:		return PGA_GAIN_1;
+	case 2:		return PGA_GAIN_2;
+	case 4:		return PGA_GAIN_4;
+	case 5:		return PGA_GAIN_5;
+	case 8:		return PGA_GAIN_8;
+	case 10:		return PGA_GAIN_10;
+	case 16:		return PGA_GAIN_16;
+	case 32:		return PGA_GAIN_32;
+	default:		return originalGain;		// invalid gain which should be ignored
+	}
 }
 
 uint8_t getPgaGain(uint8_t gainRegister)

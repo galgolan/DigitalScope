@@ -109,7 +109,7 @@ DWORD WINAPI protocol_config_updater_thread(LPVOID param)
 		{
 			TRY_LOCK(FALSE, "cant aquire lock on config copy", hConfigMsgMutex, 2000)
 
-			if (shouldWriteConfig)
+			if (shouldWriteConfig)	// TODO: compare bytes to see if actually changed
 			{
 				updateConfig = TRUE;
 				msg = configMsg;	// create local copy so we wont have to hold the lock
@@ -118,7 +118,10 @@ DWORD WINAPI protocol_config_updater_thread(LPVOID param)
 			ReleaseMutex(hConfigMsgMutex);
 
 			if (updateConfig)
+			{
 				protocol_send_config(&msg);
+				shouldWriteConfig = FALSE;
+			}
 		}
 
 		Sleep(sleepInterval);
@@ -151,11 +154,11 @@ ParseResult parse_frame(char* frame, int size)
 		else
 		{
 			result.frameType = FRAME_TYPE_DATA;
-			frame[16] = '\0';
-			dword_64_bit.ll = strtoll(frame, NULL, 16);
-			//_snscanf(frame, 16, "%08X%08X", &result.samples[0], &result.samples[1]);	// TODO: change to more efficient function
-			result.samples[0] = dword_64_bit.floats.f1;
-			result.samples[1] = dword_64_bit.floats.f2;
+			//frame[16] = '\0';
+			//dword_64_bit.ll = strtoll(frame, NULL, 16);
+			_snscanf(frame, 16, "%08X%08X", &result.samples[0], &result.samples[1]);	// TODO: change to more efficient function
+			//result.samples[0] = dword_64_bit.floats.f2;
+			//result.samples[1] = dword_64_bit.floats.f1;
 		}
 	}
 
@@ -229,6 +232,7 @@ void handle_receive_date(char* buffer, int size, float* samples0, float* samples
 			{
 				// this is bad
 				pos = 0;
+				frameBuffer[0] = '\0';
 				++receiveStats.bad;
 			}
 		}
@@ -241,6 +245,7 @@ void handle_receive_date(char* buffer, int size, float* samples0, float* samples
 			{
 				// this is bad
 				pos = 0;
+				frameBuffer[0] = '\0';
 				++receiveStats.bad;
 			}
 			if (!copied)
@@ -267,6 +272,7 @@ void handle_receive_date(char* buffer, int size, float* samples0, float* samples
 				}
 
 				pos = 0;
+				frameBuffer[0] = '\0';
 				state = STATE_WAITING_SOF;
 				if (size - bytesToCopy > 0)
 				{
@@ -290,7 +296,7 @@ uint64 calc_checksum(const ConfigMsg* msg)
 	return 0x00;
 }
 
-ConfigMsg common_create_config(TriggerConfig trigger, float triggerLevel, byte ch1Gain, float ch1Offset, byte ch2Gain, float ch2Offset, float sampleRate)
+ConfigMsg common_create_config(TriggerConfig trigger, float triggerLevel, byte ch1Gain, float ch1Offset, byte ch2Gain, float ch2Offset, unsigned int sampleRate)
 {
 	ConfigMsg msg;
 
@@ -302,6 +308,7 @@ ConfigMsg common_create_config(TriggerConfig trigger, float triggerLevel, byte c
 	msg.ch2_offset = ch2Offset;
 	msg.sample_rate = sampleRate;
 	msg.trigger = (byte)trigger;
+	msg.triggerLevel = triggerLevel;
 
 	msg.checksum = calc_checksum(&msg);
 

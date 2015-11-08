@@ -57,7 +57,7 @@ void handle_receive_date(char* buffer, int size, float* samples0, float* samples
 
 float* protocol_read_samples(int* numSamplesPerChannel, int triggerIndex);
 
-ConfigMsg common_create_config(TriggerConfig trigger, float triggerLevel, byte ch1Gain, float ch1Offset, byte ch2Gain, float ch2Offset, float sampleRate);
+ConfigMsg common_create_config(TriggerConfig trigger, float triggerLevel, byte ch1Gain, float ch1Offset, byte ch2Gain, float ch2Offset, unsigned int sampleRate);
 
 DWORD WINAPI protocol_config_updater_thread(LPVOID param);
 

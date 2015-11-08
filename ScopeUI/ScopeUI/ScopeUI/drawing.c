@@ -49,7 +49,7 @@ float inverse_translate_diff(int value1, int value2, const Trace* trace, int gri
 	return v1 - v2;
 }
 
-void screen_draw_horizontal_line(int y, cairo_pattern_t* pattern, double stroke_width)
+void screen_draw_horizontal_line(int y, cairo_pattern_t* pattern, double stroke_width, bool dashes)
 {
 	int width = drawing_get_width();
 
@@ -58,10 +58,18 @@ void screen_draw_horizontal_line(int y, cairo_pattern_t* pattern, double stroke_
 
 	cairo_move_to(drawing_context, 0, y);
 	cairo_line_to(drawing_context, width, y);
+
+	if (dashes)
+	{
+		double dashes[1] = { 1.0 };
+		cairo_set_dash(drawing_context, dashes, 1, 0);
+	}
+
 	cairo_stroke(drawing_context);
+	cairo_set_dash(drawing_context, NULL, 0, 0);
 }
 
-void screen_draw_vertical_line(int x, cairo_pattern_t* pattern, double stroke_width)
+void screen_draw_vertical_line(int x, cairo_pattern_t* pattern, double stroke_width, bool dashes)
 {
 	int height = drawing_get_height();
 
@@ -70,7 +78,14 @@ void screen_draw_vertical_line(int x, cairo_pattern_t* pattern, double stroke_wi
 
 	cairo_move_to(drawing_context, x, 0);
 	cairo_line_to(drawing_context, x, height);
+
+	if (dashes)
+	{
+		double dashes[1] = { 1.0 };
+		cairo_set_dash(drawing_context, dashes, 1, 0);
+	}
 	cairo_stroke(drawing_context);
+	cairo_set_dash(drawing_context, NULL, 0, 0);
 }
 
 void drawing_resize(int width, int height)
@@ -160,10 +175,10 @@ void draw_cursors()
 
 	cairo_pattern_t* cursorPattern = cairo_pattern_create_rgb(1, 1, 1);	// TODO: read from css
 
-	screen_draw_horizontal_line(scope->cursors.y1.position, cursorPattern, 1);
-	screen_draw_horizontal_line(scope->cursors.y2.position, cursorPattern, 1);
-	screen_draw_vertical_line(scope->cursors.x1.position, cursorPattern, 1);
-	screen_draw_vertical_line(scope->cursors.x2.position, cursorPattern, 1);
+	screen_draw_horizontal_line(scope->cursors.y1.position, cursorPattern, 1, FALSE);
+	screen_draw_horizontal_line(scope->cursors.y2.position, cursorPattern, 1, FALSE);
+	screen_draw_vertical_line(scope->cursors.x1.position, cursorPattern, 1, FALSE);
+	screen_draw_vertical_line(scope->cursors.x2.position, cursorPattern, 1, FALSE);
 }
 
 void screen_draw_grid()
@@ -178,14 +193,14 @@ void screen_draw_grid()
 	for (i = 1; i < scope->screen.grid.horizontal; ++i)
 	{
 		int y = i * height / scope->screen.grid.horizontal;
-		screen_draw_horizontal_line(y, scope->screen.grid.linePattern, scope->screen.grid.stroke_width);		
+		screen_draw_horizontal_line(y, scope->screen.grid.linePattern, scope->screen.grid.stroke_width, TRUE);		
 	}
 
 	// vertical lines
 	for (i = 1; i < scope->screen.grid.vertical; ++i)
 	{
 		int x = i * width / scope->screen.grid.vertical;
-		screen_draw_vertical_line(x, scope->screen.grid.linePattern, scope->screen.grid.stroke_width);
+		screen_draw_vertical_line(x, scope->screen.grid.linePattern, scope->screen.grid.stroke_width, TRUE);
 	}
 }
 
@@ -222,6 +237,39 @@ void screen_draw_xy()
 	cairo_set_source(drawing_context, pattern);
 	cairo_set_line_width(drawing_context, 1);	// TODO: use style
 	cairo_stroke(drawing_context);
+}
+
+gboolean trigger_line_hide_callback(gpointer data)
+{
+	Scope* scope = scope_get();
+	scope->screen.showTrigger = FALSE;
+	return G_SOURCE_REMOVE;
+}
+
+void draw_trigger_line()
+{
+	Scope* scope = scope_get();
+
+	if (scope->screen.showTrigger)
+	{
+		const Trace* sourceTrace;
+		
+		switch (scope->trigger.source)
+		{
+		case TRIGGER_SOURCE_CH1:
+			sourceTrace = scope_trace_get_nth(0);
+			break;
+		case TRIGGER_SOURCE_CH2:
+			sourceTrace = scope_trace_get_nth(1);
+			break;
+		}
+
+		int y = translate(scope->trigger.level, sourceTrace);
+		screen_draw_horizontal_line(y, sourceTrace->pattern, 1, TRUE);
+	}
+
+	// set a timer for 3 secs
+	g_timeout_add_seconds(3, trigger_line_hide_callback, NULL);
 }
 
 void trace_draw(const Trace* trace)
@@ -281,9 +329,9 @@ bool drawing_update_buffer()
 
 	screen_fill_background();
 	screen_draw_grid();
-
 	screen_draw_traces();
 	draw_cursors();
+	draw_trigger_line();
 
 	cairo_surface_flush(drawing_surface);
 

@@ -69,7 +69,7 @@ bool scope_build_and_send_config()
 	float offset1 = -1 * inverse_translate(scope.screen.height / 2, traceCh1);
 	float offset2 = -1 * inverse_translate(scope.screen.height / 2, traceCh2);
 
-	ConfigMsg msg = common_create_config(trigCfg, scope.trigger.level, (byte)traceCh1->scale, offset1, (byte)traceCh2->scale, offset2, (float)1 / scope.screen.dt);
+	ConfigMsg msg = common_create_config(trigCfg, scope.trigger.level, (byte)traceCh1->scale, offset1, (byte)traceCh2->scale, offset2, 1.0f / scope.screen.dt);
 	return protocol_update_config(&msg);
 }
 
@@ -226,6 +226,19 @@ bool serial_worker_read(char* buffer, int bufferSize, AnalogChannel* ch1, Analog
 	return TRUE;
 }
 
+void scope_connect_serial()
+{
+	while (!serial_open())
+	{
+		// wait for serial port to become available
+		// TODO: write CONNECTING COM?... in the status bar
+		Sleep(1000);
+	}
+
+	// send config so the settings in the UI are synced with settings in the Scope
+	scope_build_and_send_config();
+}
+
 DWORD WINAPI serial_worker_thread(LPVOID param)
 {
 	gboolean demoMode = config_get_bool("test", "demo");
@@ -257,11 +270,7 @@ DWORD WINAPI serial_worker_thread(LPVOID param)
 			bool result = serial_worker_read(buffer, bufferSize, ch1, ch2);
 			if (!result)
 			{
-				while (!serial_open())
-				{
-					// wait for serial port to become available
-					Sleep(1000);
-				}
+				scope_connect_serial();
 			}
 		}
 	}
@@ -527,7 +536,7 @@ void scope_screen_next_pos()
 
 void scope_trace_save_ref(const Trace* trace)
 {
-	cairo_pattern_t* pattern = cairo_pattern_create_rgba(10, 10, 10, 0.5);
+	cairo_pattern_t* pattern = cairo_pattern_create_rgba(255, 255, 255, 0.9);
 
 	if (WaitForMutex(scope.screen.hTracesMutex, 100))
 	{

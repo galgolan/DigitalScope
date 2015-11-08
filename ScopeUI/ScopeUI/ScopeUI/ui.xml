@@ -23,7 +23,7 @@
     <property name="page_increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjustmentSampleRate">
-    <property name="lower">1</property>
+    <property name="lower">0.10000000000000001</property>
     <property name="upper">1000</property>
     <property name="value">1</property>
     <property name="step_increment">10</property>
@@ -643,6 +643,7 @@
                         <property name="invisible_char">●</property>
                         <property name="invisible_char_set">True</property>
                         <property name="adjustment">adjustmentSampleRate</property>
+                        <property name="digits">1</property>
                         <signal name="value-changed" handler="sampleRateSpin_value_changed_cb" object="drawingarea" swapped="no"/>
                       </object>
                       <packing>

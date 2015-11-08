@@ -9,6 +9,7 @@
 #define CONFIG_H_
 
 #include "stdbool.h"
+#include "../common/common.h"
 
 #define NUM_CHANNELS	2
 #define BUFFER_SIZE		1024
@@ -54,9 +55,12 @@ typedef struct ScopeConfig
 {
 	Trigger trigger;
 	ChannelConfig channels[NUM_CHANNELS];
-	// TODO: sample rate
+	uint32_t sampleRate;
+	uint32_t systClock;
 } ScopeConfig;
 
 ScopeConfig* getConfig();
+
+void updateConfig(ConfigMsg* msg);
 
 #endif /* CONFIG_H_ */

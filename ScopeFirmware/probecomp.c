@@ -23,13 +23,16 @@
 
 #include "probecomp.h"
 #include "scope_common.h"
+#include "config.h"
 
 static volatile uint8_t value = HIGH;
 
 #define PROBE_COMP_HERTZ	1000
 
-void configProbeCompensation(uint32_t ui32SysClock)
+void configProbeCompensation()
 {
+	ScopeConfig* config = getConfig();
+
 	// set a digital pin to output
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOM);
@@ -40,7 +43,7 @@ void configProbeCompensation(uint32_t ui32SysClock)
 	TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
 
 	// configure 1KHz timer periodic
-	unsigned long timer_value = ui32SysClock / PROBE_COMP_HERTZ / 2;
+	unsigned long timer_value = config->systClock / PROBE_COMP_HERTZ / 2;
 	TimerLoadSet(TIMER0_BASE, TIMER_A, timer_value);
 	TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
 	IntEnable(INT_TIMER0A);

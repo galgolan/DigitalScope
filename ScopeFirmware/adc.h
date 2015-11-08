@@ -10,9 +10,17 @@
 
 #include "config.h"
 
-extern volatile bool ready;
-extern double samples_ch1[BUFFER_SIZE];
-extern double samples_ch2[BUFFER_SIZE];
+typedef enum AdcState
+{
+	ADC_STATE_CAPTURING=1,		// adc is currently capturing data into buffer
+	ADC_STATE_SUSPENDED=2			// adc is currently suspended (probably because the main loop is sending the data)
+} AdcState;
+
+extern AdcState adcState;
+extern uint16_t samples_ch1[BUFFER_SIZE];
+extern uint16_t samples_ch2[BUFFER_SIZE];
+
+uint32_t translateCompRef(float refValue);
 
 void configAdc();
 

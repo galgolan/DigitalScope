@@ -105,6 +105,7 @@ typedef struct Screen
 
 	Trace* selectedTrace;
 	int selectedTraceId;
+	bool showTrigger;
 } Screen;
 
 // describes an analog channel
