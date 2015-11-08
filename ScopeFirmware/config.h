@@ -39,7 +39,7 @@ typedef enum TriggerSource
 typedef struct Trigger
 {
 	TriggerType type;
-	uint32_t level;
+	float level;
 	TriggerMode mode;
 	TriggerSource source;
 } Trigger;
@@ -47,8 +47,8 @@ typedef struct Trigger
 typedef struct ChannelConfig
 {
 	bool active;
-	int gain;		// a value from spi.h under: PGA constants
-	float offset;	// offset range is [0, Vcc]
+	int gain;		// a valid gain value (1,2,4,5,8,10,16,32)
+	float offset;	// offset range is [-VCC/2,VCC/2]
 } ChannelConfig;
 
 typedef struct ScopeConfig

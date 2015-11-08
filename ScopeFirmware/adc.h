@@ -20,6 +20,9 @@ extern AdcState adcState;
 extern uint16_t samples_ch1[BUFFER_SIZE];
 extern uint16_t samples_ch2[BUFFER_SIZE];
 
+// calculates the analog voltage from an ADC sample
+double calcVoltage(uint32_t d);
+
 uint32_t translateCompRef(float refValue);
 
 void configAdc();

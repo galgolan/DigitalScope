@@ -49,6 +49,14 @@ AdcState adcState = ADC_STATE_CAPTURING;
 AdcInterruptSource interruptSource = ADC_INTERRUPT_SRC_NONE;
 static uint32_t samples[2] = {0, 0};
 
+const double adcRes = 4096;
+const double analogRef = VCC;
+
+double calcVoltage(uint32_t d)
+{
+	double tmp = (analogRef * d);
+	return tmp / (double)(adcRes-1);
+}
 
 uint32_t translateCompRef(float refValue)	// todo: take into account the offset
 {
@@ -122,7 +130,12 @@ void setTriggerSource()
 void setTriggerLevel()
 {
 	ScopeConfig* config = getConfig();
-	ComparatorRefSet(COMP_BASE, config->trigger.level);
+	int channel;
+	if(config->trigger.source == TRIG_SRC_CH1) channel = 0;
+	else if (config->trigger.source == TRIG_SRC_CH2) channel = 1;
+	double vout2 = calcVout2FromVin(channel, config->trigger.level);
+	uint32_t compRef = translateCompRef(vout2);
+	ComparatorRefSet(COMP_BASE, compRef);
 }
 
 void configureSequencer(uint32_t trigger)

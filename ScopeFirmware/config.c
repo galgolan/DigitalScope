@@ -37,27 +37,30 @@ void updateConfig(ConfigMsg* msg)
 {
 	ScopeConfig* config = getConfig();
 
-	config->channels[0].gain = translateGain(msg->ch1_gain, config->channels[0].gain);
-	config->channels[1].gain = translateGain(msg->ch2_gain, config->channels[1].gain);
-	config->channels[0].offset = calcCh1Offset(msg->ch1_offset);
-	config->channels[1].offset = calcCh2Offset(msg->ch2_offset);
+	if(isValidGain(msg->ch1_gain))
+		config->channels[0].gain = msg->ch1_gain;
+	if(isValidGain(msg->ch2_gain))
+		config->channels[1].gain = msg->ch2_gain;
+
+	config->channels[0].offset = calcOffsetFromVin(1, msg->ch1_offset);
+	config->channels[1].offset = calcOffsetFromVin(2, msg->ch2_offset);
 
 	// trigger mode
-	if(msg->trigger & TRIGGER_CFG_MODE_NONE)
+	if(msg->trigger == TRIGGER_CFG_MODE_NONE)
 		config->trigger.mode = TRIG_MODE_FREE_RUNNING;
 	else if (msg->trigger & TRIGGER_CFG_MODE_SINGLE)
 		config->trigger.mode = TRIG_MODE_SINGLE;
 	else if (msg->trigger & TRIGGER_CFG_MODE_AUTO)
 		config->trigger.mode = TRIG_MODE_AUTO;
 
-	// trigger level
-	config->trigger.level = translateCompRef(msg->triggerLevel);
-
 	// trigger source
 	if(msg->trigger & TRIGGER_CFG_SRC_CH1)
 		config->trigger.source = TRIG_SRC_CH1;
 	else if(msg->trigger & TRIGGER_CFG_SRC_CH2)
 		config->trigger.source = TRIG_SRC_CH2;
+
+	// trigger level
+	config->trigger.level = msg->triggerLevel;
 
 	// trigger type
 	if(msg->trigger & TRIGGER_CFG_TYPE_RAISING)

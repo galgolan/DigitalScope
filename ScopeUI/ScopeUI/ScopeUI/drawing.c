@@ -239,13 +239,6 @@ void screen_draw_xy()
 	cairo_stroke(drawing_context);
 }
 
-gboolean trigger_line_hide_callback(gpointer data)
-{
-	Scope* scope = scope_get();
-	scope->screen.showTrigger = FALSE;
-	return G_SOURCE_REMOVE;
-}
-
 void draw_trigger_line()
 {
 	Scope* scope = scope_get();
@@ -267,9 +260,6 @@ void draw_trigger_line()
 		int y = translate(scope->trigger.level, sourceTrace);
 		screen_draw_horizontal_line(y, sourceTrace->pattern, 1, TRUE);
 	}
-
-	// set a timer for 3 secs
-	g_timeout_add_seconds(3, trigger_line_hide_callback, NULL);
 }
 
 void trace_draw(const Trace* trace)

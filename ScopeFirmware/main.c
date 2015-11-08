@@ -97,20 +97,20 @@ void createConfig()
 	ScopeConfig* config = getConfig();
 
 	// configure trigger
-	config->trigger.level = translateCompRef(1.77f);
+	config->trigger.level = 0;
 	config->trigger.type = TRIG_RISING;
 	config->trigger.mode = TRIG_MODE_AUTO;
 	config->trigger.source = TRIG_SRC_CH1;
 
 	// configure ch1
 	config->channels[0].active = true;
-	config->channels[0].offset = calcCh1Offset(0);
-	config->channels[0].gain = translateGain(1, 1);
+	config->channels[0].offset = 0;
+	config->channels[0].gain = 1;
 
 	// configure ch2
 	config->channels[1].active = true;
-	config->channels[1].offset = calcCh2Offset(0);
-	config->channels[1].gain = translateGain(1, 1);
+	config->channels[1].offset = 0;
+	config->channels[1].gain = 1;
 
 	config->sampleRate = 1000;
 }
@@ -141,8 +141,8 @@ int main(void)
 		// send all data
 		for(i=0;i<BUFFER_SIZE;++i)
 		{
-			float ch1 = calcCh1Input(samples_ch1[i]);
-			float ch2 = calcCh2Input(samples_ch2[i]);
+			float ch1 = calcVinFromSample(0, samples_ch1[i]);
+			float ch2 = calcVinFromSample(1, samples_ch2[i]);
 			outputData(ch1, ch2);
 		}
 		adcState = ADC_STATE_CAPTURING;

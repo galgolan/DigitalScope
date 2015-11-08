@@ -295,6 +295,11 @@ void runButton_toggled(GtkToggleButton* runButton, gpointer user_data)
 {
 	Scope* scope = scope_get();
 	scope->state = gtk_toggle_button_get_active(runButton);
+	if (scope->state == SCOPE_STATE_RUNNING)
+	{
+		// send configuration when resuming so settings made while paused are applied
+		scope_build_and_send_config();
+	}
 	drawing_redraw();	// make sure the display is most updated as possible
 }
 
@@ -452,6 +457,14 @@ void on_drawing_area_resize(GtkWidget *widget, GdkRectangle *allocation, gpointe
 	scope->screen.height = allocation->height;
 }
 
+gboolean trigger_line_hide_callback(gpointer data)
+{
+	Scope* scope = scope_get();
+	scope->screen.showTrigger = FALSE;
+
+	return G_SOURCE_REMOVE;
+}
+
 G_MODULE_EXPORT
 void on_spinbuttonTriggerLevel_value_changed(GtkSpinButton *spin_button, gpointer user_data)
 {
@@ -459,6 +472,9 @@ void on_spinbuttonTriggerLevel_value_changed(GtkSpinButton *spin_button, gpointe
 	scope->trigger.level = (float)gtk_spin_button_get_value(spin_button);
 	scope->screen.showTrigger = TRUE;
 	scope_build_and_send_config();
+	
+	// set a timer for 3 secs
+	g_timeout_add_seconds(3, trigger_line_hide_callback, NULL);
 }
 
 G_MODULE_EXPORT

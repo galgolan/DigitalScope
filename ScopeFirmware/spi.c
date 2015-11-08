@@ -14,6 +14,7 @@
 #include "scope_common.h"
 #include "config.h"
 #include "../common/common.h"
+#include "calc.h"
 
 #define PGA1_SS_PORT	GPIO_PORTP_BASE
 #define PGA2_SS_PORT	GPIO_PORTN_BASE
@@ -42,6 +43,20 @@ static volatile uint32_t dac2Gain = 1;
 
 static volatile uint8_t pga1GainRegister = PGA_GAIN_1;
 static volatile uint8_t pga2GainRegister = PGA_GAIN_1;
+
+int8_t translateGain(byte gainValue, int originalGain);
+
+void setDac1Voltage(double voltage, int channel);
+
+void setDac2Voltage(double voltage, int channel);
+
+void setPga1Gain(uint8_t gain);
+
+void setPga2Gain(uint8_t gain);
+
+void setPga1Channel(uint8_t channel);
+
+void setPga2Channel(uint8_t channel);
 
 void busyWaitForSSi()
 {
@@ -103,8 +118,11 @@ void setGain()
 void setOffset()
 {
 	ScopeConfig* config = getConfig();
-	setDac2Voltage(config->channels[0].offset, 1);
-	setDac2Voltage(config->channels[1].offset, 2);
+
+	double vdacCh1 = calcVDacFromOffset(config->channels[0].offset);
+	double vdacCh2 = calcVDacFromOffset(config->channels[1].offset);
+	setDac2Voltage(vdacCh1, 1);
+	setDac2Voltage(vdacCh2, 2);
 }
 
 void configureAnalogFrontend()
@@ -146,19 +164,26 @@ void programPga2(uint8_t inst, uint8_t data)
 
 void setPga1Gain(uint8_t gain)
 {
-	programPga1(PGA_SET_GAIN, gain);
-	pga1GainRegister = gain;
+	uint8_t gainRegister = translateGain(gain, pga1GainRegister);
+	programPga1(PGA_SET_GAIN, gainRegister);
+	pga1GainRegister = gainRegister;
 }
 
 void setPga2Gain(uint8_t gain)
 {
-	programPga2(PGA_SET_GAIN, gain);
-	pga2GainRegister = gain;
+	uint8_t gainRegister = translateGain(gain, pga2GainRegister);
+	programPga2(PGA_SET_GAIN, gainRegister);
+	pga2GainRegister = gainRegister;
 }
 
 void setPga1Channel(uint8_t channel)
 {
 	programPga1(PGA_SET_CHANNEL, channel);
+}
+
+bool isValidGain(int gain)
+{
+	return translateGain(gain, -1) != -1;
 }
 
 int8_t translateGain(byte gainValue, int originalGain)
@@ -194,20 +219,9 @@ uint8_t getPgaGain(uint8_t gainRegister)
 
 	return 0;
 }
-
-uint8_t getPga1Gain()
-{
-	return getPgaGain(pga1GainRegister);
-}
-
 void setPga2Channel(uint8_t channel)
 {
 	programPga2(PGA_SET_CHANNEL, channel);
-}
-
-uint8_t getPga2Gain()
-{
-	return getPgaGain(pga2GainRegister);
 }
 
 void programDac(int channel, double voltage, int gain, uint32_t ssPort, uint8_t ssPin, uint8_t ssPinNum)

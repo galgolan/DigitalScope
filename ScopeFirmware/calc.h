@@ -8,12 +8,14 @@
 #ifndef CALC_H_
 #define CALC_H_
 
-double calcCh1Input(uint32_t d);
+double calcVinFromVout2(int channel, double vout2);
 
-double calcCh2Input(uint32_t d);
+double calcVout2FromVin(int channel, double vin);
 
-double calcCh1Offset(float volts);
+double calcVDacFromOffset(double offset);
 
-double calcCh2Offset(float volts);
+double calcVinFromSample(int channel, uint16_t sample);
+
+double calcOffsetFromVin(int channel, double vout2);
 
 #endif /* CALC_H_ */

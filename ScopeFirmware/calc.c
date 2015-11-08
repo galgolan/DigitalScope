@@ -16,66 +16,63 @@
 
 #include "calc.h"
 #include "spi.h"
-#include "spi.h"
+#include "adc.h"
+#include "config.h"
 
-const double analogRef = 3.3;
-const double adcRes = 4096;
+const double vref = VCC/2;
 
-const double b1 = 0.0102;
-const double m1 = 0.069051;
+const double m[NUM_CHANNELS] = { 0.069051, 0.068276};
+const double b[NUM_CHANNELS] = { 1.6602, 1.6559 };
 
-const double b2 = 0.0059;
-const double m2 = 0.068276;
+//const double b1 = 0.0102;
+//const double m1 = 0.069051;
 
-const double vref = 1.65;
+//const double b2 = 0.0059;
+//const double m2 = 0.068276;
 
-double calcInputVoltage(double voltage, uint8_t gain, double m, double b)
+// Vout1 = Vin * m + b + offset
+// Vdac = Vref + offset
+// Vout2 = (Vout1 - Vref) * G + Vref
+//       = (Vin * m + b + offset - Vref) * G + Vref
+//		 = (Vin * m + b + Vdac - 2*Vref) * G + Vref
+
+// Vin = Vout2 - G*(b+offset) + Vref(G-1)
+//		---------------------------------
+//					mG
+
+double calcVinFromVout2(int channel, double vout2)
 {
-	double num = voltage - (gain * b) + vref * (gain-1);
-	double den = m * gain;
-	return num/den;
+	ScopeConfig* config = getConfig();
+	uint8_t g = config->channels[channel].gain;
+	float offset = config->channels[channel].offset;
+
+	double num = vout2 - g * (b[channel] + offset) + vref * (g-1);
+	double den = m[channel] * g;
+	return num / den;
 }
 
-double calcOutputVoltage(uint32_t d)
+double calcVout2FromVin(int channel, double vin)
 {
-	double tmp = (analogRef * d);
-	return tmp / (double)(adcRes-1);
+	ScopeConfig* config = getConfig();
+	float offset = config->channels[channel].offset;
+	uint8_t g = config->channels[channel].gain;
+
+	double vout1 = vin * m[channel] + b[channel] + offset;
+	return (vout1 - vref) * g + vref;
 }
 
-double calcCh1Input(uint32_t d)
+double calcVDacFromOffset(double offset)
 {
-	double vout = calcOutputVoltage(d);
-	uint8_t gain = getPga1Gain();
-	float dacVoltage = getDac2Voltage(1);
-	return calcInputVoltage(vout, gain, m1, b1 + dacVoltage);
+	return vref + offset;
 }
 
-double calcCh2Input(uint32_t d)
+double calcVinFromSample(int channel, uint16_t sample)
 {
-	double vout = calcOutputVoltage(d);
-	uint8_t gain = getPga2Gain();
-	float dacVoltage = getDac2Voltage(2);
-	return calcInputVoltage(vout, gain, m2, b2 + dacVoltage);
+	double vout2 = calcVoltage(sample);
+	return calcVinFromVout2(channel, vout2);
 }
 
-double calcCh1Offset(float volts)
+double calcOffsetFromVin(int channel, double vin)
 {
-	double offset = volts * m1 + analogRef/2;
-	if(offset < 0)
-		return 0;
-	if(offset > analogRef)
-		return analogRef;
-
-	return offset;
-}
-
-double calcCh2Offset(float volts)
-{
-	double offset = volts * m2 + analogRef/2;
-	if(offset < 0)
-		return 0;
-	if(offset > analogRef)
-		return analogRef;
-
-	return offset;
+	return calcVout2FromVin(channel, vin) - vref;
 }

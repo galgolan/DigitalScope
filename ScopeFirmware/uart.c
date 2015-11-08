@@ -136,9 +136,9 @@ void handleCommand()
 		setGain();
 		setOffset();
 		setTriggerSource();
-		//setTriggerMode();
+		setTriggerMode();
 		setTriggerType();
-		setTriggerLevel();	// TODO: take offset into account
+		setTriggerLevel();
 		setSampleRate();
 	}
 }
