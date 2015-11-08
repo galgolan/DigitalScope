@@ -34,6 +34,8 @@ typedef struct ScopeUI
 	// cursors
 	GtkListStore* liststoreCursorValues;
 	GtkTreeView* treeviewCursorValues;
+
+	GtkToggleButton* runButton;
 } ScopeUI;
 
 ScopeUI* common_get_ui();

@@ -21,6 +21,16 @@
 #include "protocol.h"
 #include "threads.h"
 
+typedef enum TriggerState
+{
+	// waiting for trigger to happen
+	TRIGGER_STATE_WAIT,
+	// capturing data into the screen
+	TRIGGER_STATE_CAPTURE,
+	// scope is paused and resting
+	TRIGGER_STATE_PAUSE
+} TriggerState;
+
 static Scope scope;
 
 bool scope_build_and_send_config()
@@ -71,8 +81,8 @@ bool scope_build_and_send_config()
 	// calculate offset voltages
 	float offset1 = -1 * inverse_translate(scope.screen.height / 2, traceCh1);
 	float offset2 = -1 * inverse_translate(scope.screen.height / 2, traceCh2);
-
-	ConfigMsg msg = common_create_config(trigCfg, scope.trigger.level, (byte)traceCh1->scale, offset1, (byte)traceCh2->scale, offset2, 1.0f / scope.screen.dt);
+	unsigned int sampleRate = (unsigned int)(1.0f / scope.screen.dt);
+	ConfigMsg msg = common_create_config(trigCfg, scope.trigger.level, (byte)traceCh1->scale, offset1, (byte)traceCh2->scale, offset2, sampleRate);
 	return protocol_update_config(&msg);
 }
 
@@ -190,6 +200,19 @@ int get_pos_in_buffer()
 	return scope.posInBuffer;
 }
 
+gboolean toggleRunButton(gpointer data)
+{
+	ScopeUI* ui = common_get_ui();
+	gtk_toggle_button_set_active(ui->runButton, FALSE);
+	return G_SOURCE_REMOVE;
+}
+
+void handleSingleTrigger()
+{
+	// Pause the scope
+	gdk_threads_add_idle_full(G_THREAD_PRIORITY_HIGH, toggleRunButton, NULL, NULL);
+}
+
 // handles new frames from the serial port
 void serial_frame_handler(float* samples, int count, bool trigger)
 {
@@ -207,6 +230,7 @@ void serial_frame_handler(float* samples, int count, bool trigger)
 		AnalogChannel* ch2 = scope_channel_get_nth(1);
 		ch1->buffer->data[scope.posInBuffer] = ch1->probeRatio * samples[0];
 		ch2->buffer->data[scope.posInBuffer] = ch2->probeRatio * samples[1];
+		
 		scope_screen_next_pos();
 	}
 	else
@@ -534,6 +558,8 @@ void scope_screen_next_pos()
 	else
 	{
 		scope.posInBuffer = 0;
+		if (scope.trigger.mode == TRIGGER_MODE_SINGLE)
+			handleSingleTrigger();
 	}
 }
 

@@ -51,11 +51,7 @@ void populate_ui(GtkBuilder* builder)
 	scopeUI.liststoreCursorValues = (GtkListStore*)GET_GTK_OBJECT("liststoreCursorValues");
 	scopeUI.treeviewCursorValues = (GtkTreeView*)GET_GTK_OBJECT("treeviewCursorValues");
 
-	//gtk_widget_set_events(scopeUI.drawingArea, GDK_EXPOSURE_MASK
-	//	| GDK_LEAVE_NOTIFY_MASK
-	//	| GDK_BUTTON_PRESS_MASK
-	//	| GDK_POINTER_MOTION_MASK
-	//	| GDK_POINTER_MOTION_HINT_MASK);
+	scopeUI.runButton = (GtkToggleButton*)GET_GTK_OBJECT("runButton");
 }
 
 void populate_list_store(GtkListStore* listStore, GQueue* items, gboolean clear)
@@ -137,12 +133,6 @@ void update_statusbar()
 
 	guint remove = gtk_statusbar_push(GTK_STATUSBAR(ui->statusBar), context_id, msg);
 	g_free(msg);
-
-	//gtk_widget_set_events(scopeUI.drawingArea, GDK_EXPOSURE_MASK
-	//	| GDK_LEAVE_NOTIFY_MASK
-	//	| GDK_BUTTON_PRESS_MASK
-	//	| GDK_POINTER_MOTION_MASK
-	//	| GDK_POINTER_MOTION_HINT_MASK);
 }
 
 // return -1 if zero or more than one rows are selected

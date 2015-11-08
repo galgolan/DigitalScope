@@ -76,7 +76,7 @@ gboolean update_measurement_callback(gpointer data)
 			break;
 
 		AddMeasurementMessage* msg = (AddMeasurementMessage*)g_queue_peek_nth(msgs, i);
-		char* valueString = formatNumber(msg->value, msg->measurement->measurement->units);
+		char* valueString = formatNumber((float)msg->value, msg->measurement->measurement->units);
 		gtk_list_store_set(scopeUI->listMeasurements, &iter,
 			2, valueString,
 			-1);
