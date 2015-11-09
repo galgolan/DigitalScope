@@ -7,6 +7,7 @@
 #include "measurement.h"
 #include "drawing.h"
 #include "threads.h"
+#include "trace_math.h"
 
 static ScopeUI scopeUI;
 
@@ -34,12 +35,17 @@ void populate_ui(GtkBuilder* builder)
 
 	scopeUI.drawingArea = (GtkDrawingArea*)GET_GTK_OBJECT("drawingarea");
 	scopeUI.statusBar = (GtkStatusbar*)GET_GTK_OBJECT("statusbar");
+
 	scopeUI.listMeasurements = (GtkListStore*)GET_GTK_OBJECT("listMeasurements");
 	scopeUI.viewMeasurements = (GtkTreeView*)GET_GTK_OBJECT("viewMeasurements");
 	scopeUI.addMeasurementDialog = (GtkDialog*)GET_GTK_OBJECT("dialogAddMeasurement");
 	scopeUI.addMeasurementSource = (GtkComboBox*)GET_GTK_OBJECT("comboMeasurementSource");
 	scopeUI.addMeasurementType = (GtkComboBox*)GET_GTK_OBJECT("comboMeasurementType");
 	scopeUI.measurementTypesList = (GtkListStore*)GET_GTK_OBJECT("listMeasurementDefinitions");
+
+	scopeUI.liststoreMathTypes = (GtkListStore*)GET_GTK_OBJECT("liststoreMathTypes");
+	scopeUI.comboMathType = (GtkComboBox*)GET_GTK_OBJECT("comboMathType");
+	scopeUI.comboMathSource = (GtkComboBox*)GET_GTK_OBJECT("comboMathSource");
 
 	scopeUI.tracesList = (GtkListStore*)GET_GTK_OBJECT("liststoreTraces");
 	scopeUI.treeviewTraces = (GtkTreeView*)GET_GTK_OBJECT("treeviewTraces");
@@ -327,7 +333,16 @@ G_MODULE_EXPORT
 void on_change_scaleMath(GtkSpinButton *spin_button, gpointer user_data)
 {
 	scope_trace_get_math()->scale = (float)gtk_spin_button_get_value(spin_button);
-	//update_statusbar();
+	update_statusbar();
+}
+
+G_MODULE_EXPORT
+void on_comboMathType_changed(GtkComboBox *widget, gpointer user_data)
+{
+	int mathType = gtk_combo_box_get_active(widget);
+	GQueue* mathTypes = math_get_all();
+	MathTrace* math = (MathTrace*)g_queue_peek_nth(mathTypes, mathType);
+	scope_math_change(math);
 }
 
 G_MODULE_EXPORT

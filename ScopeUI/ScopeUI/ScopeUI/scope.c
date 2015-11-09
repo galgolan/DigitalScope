@@ -494,7 +494,7 @@ void populate_probe_list_store()
 		char* name = malloc(sizeof(char) * 10);
 		sprintf(name, "1:%d", value);
 
-		g_queue_push_tail(values, GINT_TO_POINTER(value));		
+		g_queue_push_tail(values, GINT_TO_POINTER(value));
 		g_queue_push_tail(names, name);
 
 		it = it->next;
@@ -508,6 +508,24 @@ void populate_probe_list_store()
 
 	gtk_combo_box_set_active(ui->comboChannel1Probe, 0);
 	gtk_combo_box_set_active(ui->comboChannel2Probe, 0);
+}
+
+void populate_math_combo()
+{
+	ScopeUI* ui = common_get_ui();
+
+	// populate available measurement types
+	GQueue* math = math_get_all();
+	GQueue* mathName = g_queue_new();
+	for (guint i = 0; i < g_queue_get_length(math); ++i)
+	{
+		MathTrace* m = g_queue_peek_nth(math, i);
+		g_queue_push_tail(mathName, m->name);
+	}
+	populate_list_store(ui->liststoreMathTypes, mathName, TRUE);
+	g_queue_free(mathName);
+
+	gtk_combo_box_set_active(ui->comboMathType, 0);
 }
 
 void populate_measurements_combo()
@@ -540,6 +558,44 @@ void populate_traces_list()
 	g_queue_free(traceNames);
 }
 
+void scope_math_change(MathTrace* math)
+{
+	// create MathTraceInstance
+	// create Trace
+	// backup existing pointer
+
+	// lock traces
+		// override pointer
+		// change selected trace if needed
+		// set MathTraceInstance
+	// free traces
+
+	// free backup pointer
+}
+
+void init_math()
+{
+	int offset = config_get_int("display", "mathOffset");
+	cairo_pattern_t* pattern = cairo_pattern_create_rgb(0, 0, 1);
+
+	scope.hMathMutex = CreateMutexSimple();
+	if (scope.hMathMutex == INVALID_HANDLE_VALUE)
+	{
+		// TODO: handle error
+	}
+
+	// initial math
+	MathTrace* math = &MathTrace_Fft_Amplitude;
+
+	// create the math trace
+	Trace* mathTrace = scope_trace_add_new_alloc_buffer(pattern, "Math", scope.bufferSize, offset, math->horizontal, math->vertical);
+	mathTrace->visible = FALSE;
+	scope.mathTraceDefinition.mathTrace = math;
+	scope.mathTraceDefinition.firstTrace = scope_trace_get_nth(0);
+	
+	populate_math_combo();
+}
+
 void screen_init()
 {
 	GError* error = NULL;
@@ -570,33 +626,22 @@ void screen_init()
 
 	// create traces for the analog channels
 	scope.screen.traces = g_queue_new();
-	GList* offsets = config_get_int_list("display", "defaultOffset");
+
 	cairo_pattern_t* tracePatterns[] = {
 		cairo_pattern_create_rgb(0, 1, 0),
-		cairo_pattern_create_rgb(1, 0, 0),
-		cairo_pattern_create_rgb(0, 0, 1) };
+		cairo_pattern_create_rgb(1, 0, 0) };
 
-	GList* offsetIt = offsets;
-	int count = g_list_length(offsets);
 	for (int i = 0; i < numChannels; ++i)
 	{
 		// generate trace name
 		char* traceName = (char*)malloc(sizeof(char) * 10);
 		sprintf(traceName, "CH%d", i+1);
-		int offset = offsetIt == NULL ? 0 : GPOINTER_TO_INT(offsetIt->data);
-		scope_trace_add_new(tracePatterns[i], scope_channel_get_nth(i)->buffer, traceName, offset, UNITS_TIME, UNITS_VOLTAGE);
-		offsetIt = offsetIt->next;
+		scope_trace_add_new(tracePatterns[i], scope_channel_get_nth(i)->buffer, traceName, 0, UNITS_TIME, UNITS_VOLTAGE);
 	}
 	scope.screen.hTracesMutex = CreateMutexSimple();
 	
 	// create the math trace
-	Trace* mathTrace = scope_trace_add_new_alloc_buffer(tracePatterns[numChannels], "Math", scope.bufferSize, GPOINTER_TO_INT(offsetIt->data), UNITS_FREQUENCY, UNITS_VOLTAGE);
-	scope.mathTraceDefinition.mathTrace = &MathTrace_Dft_Amplitude;
-	scope.mathTraceDefinition.firstTrace = scope_trace_get_nth(0);
-	scope.mathTraceDefinition.secondTrace = scope_trace_get_nth(1);
-	// TODO: populate math list
-	mathTrace->visible = FALSE;
-	g_list_free(offsets);
+	init_math();
 
 	populate_traces_list();
 	

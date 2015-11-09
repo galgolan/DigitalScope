@@ -4,70 +4,96 @@
 #include "scope.h"
 #include "trace_math.h"
 #include "config.h"
+#include "threads.h"
 
-void math_trace_difference(const SampleBuffer* first, const SampleBuffer* second, SampleBuffer* result);
-void math_trace_dft_amplitude(const SampleBuffer* first, const SampleBuffer* second, SampleBuffer* result);
+#include "../../../kiss_fft130/kiss_fft.h"
+#include "../../../kiss_fft130/tools/kiss_fftr.h"
 
-MathTrace MathTrace_Difference = { .name = "Difference", .function = math_trace_difference };
-MathTrace MathTrace_Dft_Amplitude = { .name = "DFT", .function = math_trace_dft_amplitude };
+void math_trace_fft_amplitude(const SampleBuffer* first, SampleBuffer* result);
+void math_trace_fft_amplitude_db(const SampleBuffer* first, SampleBuffer* result);
+
+MathTrace MathTrace_Fft_Amplitude = { .name = "FFT", .function = math_trace_fft_amplitude, .horizontal = UNITS_FREQUENCY, .vertical = UNITS_VOLTAGE };	// TODO: change to normalized units (%)
+MathTrace MathTrace_Fft_Amplitude_Db = { .name = "FFT dB", .function = math_trace_fft_amplitude_db, .horizontal = UNITS_FREQUENCY, .vertical = UNITS_DECIBEL };
+
+static kiss_fftr_cfg kiss_cfg;
+static int nfft;
+
+GQueue* math_get_all()
+{
+	static gboolean ready = FALSE;
+	static GQueue* allFunctions = NULL;
+
+	if (ready == FALSE)
+	{
+		allFunctions = g_queue_new();
+
+		// build list
+		g_queue_push_tail(allFunctions, &MathTrace_Fft_Amplitude);
+		g_queue_push_tail(allFunctions, &MathTrace_Fft_Amplitude_Db);
+
+		ready = TRUE;
+	}
+
+	return allFunctions;
+}
 
 void math_update_trace()
 {
 	Scope* scope = scope_get();
 	Trace* mathTrace = scope_trace_get_math();
+	
+	// TODO: lock math
 	MathTraceInstance* mathInstance = &scope->mathTraceDefinition;
 
 	if ((mathTrace->visible == TRUE) && (mathInstance != NULL) && (scope->display_mode == DISPLAY_MODE_WAVEFORM))
 	{
 		// perform calculation to update the samples
-		mathInstance->mathTrace->function(mathInstance->firstTrace->samples, mathInstance->secondTrace->samples, mathTrace->samples);
+		mathInstance->mathTrace->function(mathInstance->firstTrace->samples, mathTrace->samples);
 	}
+
+	// TODO: release math
 }
 
 DWORD WINAPI math_worker_thread(LPVOID param)
 {
 	int mathRefreshIntervalMs = config_get_int("display", "math_refresh");
 	Scope* scope = scope_get();
+
+	nfft = scope->bufferSize % 2 == 0 ? scope->bufferSize : scope->bufferSize - 1;
+	kiss_cfg = kiss_fftr_alloc(nfft, false, NULL, NULL);
+	
 	while (!scope->shuttingDown)
 	{
 		math_update_trace();
 		Sleep(mathRefreshIntervalMs);
 	}
+
+	free(kiss_cfg);
+
 	return 0;
 }
 
-// second can be null
-void math_trace_dft_amplitude(const SampleBuffer* first, const SampleBuffer* second, SampleBuffer* result)
+void math_trace_fft_amplitude_db(const SampleBuffer* first, SampleBuffer* result)
 {
-	Scope* scope = scope_get();
-	int width = scope->screen.width;
-	int N = MIN(width,scope->bufferSize);
-	int k,n;
-	const float* x = first->data;
-	double PI2N = G_PI * 2 / N;
+	math_trace_fft_amplitude(first, result);
 
-	for (k = 0; k<N; ++k)
+	// modify to db
+	for (int i = 0; i < nfft; ++i)
 	{
-		float xk_r = 0, xk_im = 0;
-		for (n = 0; n < N; ++n)
-		{
-			xk_r += x[n] * (float)cos(n * k * PI2N);
-			xk_im -= x[n] * (float)sin(n * k * PI2N);
-		}
-
-		// Power at Kth frequency bin (should we calculate in dB ?)
-		//result->data[k] = 10 * log ( xk_r * xk_r + xk_im * xk_im);
-		result->data[k] = xk_r * xk_r + xk_im * xk_im;
+		result->data[i] = 10 * log(result->data[i]);
 	}
 }
 
-void math_trace_difference(const SampleBuffer* first, const SampleBuffer* second, SampleBuffer* result)
+void math_trace_fft_amplitude(const SampleBuffer* first, SampleBuffer* result)
 {
-	int i;
-	Scope* scope = scope_get();
-	int width = scope->screen.width;
-	for (i = 0; i < MIN(width,scope->bufferSize); ++i)
+	kiss_fft_cpx* fft = (kiss_fft_cpx*)malloc(sizeof(kiss_fft_cpx) * nfft);
+	kiss_fftr(kiss_cfg, first->data, fft);
+
+	// copy amplitude to result
+	for (int i = 0; i < nfft; ++i)
 	{
-		result->data[i] = first->data[i] - second->data[i];
+		result->data[i] = sqrt(fft[i].i * fft[i].i + fft[i].r * fft[i].r);
 	}
+
+	free(fft);
 }

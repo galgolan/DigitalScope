@@ -23,6 +23,11 @@ typedef struct ScopeUI
 	GtkComboBox* addMeasurementType;
 	GtkListStore* measurementTypesList;
 
+	// math
+	GtkComboBox* comboMathSource;
+	GtkComboBox* comboMathType;
+	GtkListStore* liststoreMathTypes;
+
 	// tracelist
 	GtkListStore* tracesList;
 	GtkTreeView* treeviewTraces;

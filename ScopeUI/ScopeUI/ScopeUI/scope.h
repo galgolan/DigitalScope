@@ -76,19 +76,21 @@ typedef struct MeasurementInstance
 	Trace* trace;
 } MeasurementInstance;
 
-typedef void(MathFunc)(const SampleBuffer* first, const SampleBuffer* second, SampleBuffer* result);
+typedef void(MathFunc)(const SampleBuffer* first, SampleBuffer* result);
 
 typedef struct MathTrace
 {
 	MathFunc* function;
 	char* name;
+
+	Units horizontal;
+	Units vertical;
 } MathTrace;
 
 typedef struct MathTraceInstance
 {
 	MathTrace* mathTrace;
 	Trace* firstTrace;
-	Trace* secondTrace;
 } MathTraceInstance;
 
 typedef struct Screen
@@ -186,7 +188,10 @@ typedef struct Scope
 	ScopeState state;	
 	Cursors cursors;
 	DisplayMode display_mode;
+
 	MathTraceInstance mathTraceDefinition;
+	HANDLE hMathMutex;
+
 	int bufferSize;
 	int posInBuffer;
 	bool shuttingDown;	// signals all the threads to terminate gracefully
@@ -224,5 +229,7 @@ bool scope_screen_next_pos();
 void scope_cursor_set(Cursor* cursor, int position);
 
 void handle_scope_event(ScopeEvent event, float* samples);
+
+void scope_math_change(MathTrace* math);
 
 #endif
