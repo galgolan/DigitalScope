@@ -21,16 +21,6 @@
 #include "protocol.h"
 #include "threads.h"
 
-typedef enum TriggerState
-{
-	// waiting for trigger to happen
-	TRIGGER_STATE_WAIT,
-	// capturing data into the screen
-	TRIGGER_STATE_CAPTURE,
-	// scope is paused and resting
-	TRIGGER_STATE_PAUSE
-} TriggerState;
-
 static Scope scope;
 
 bool scope_build_and_send_config()
@@ -171,27 +161,61 @@ MeasurementInstance* scope_measurement_add(Measurement* measurement, Trace* sour
 	return instance;
 }
 
-void serial_worker_demo(AnalogChannel* ch1, AnalogChannel* ch2)
+void simulate_trigger(float* samples)
 {
-	float T = scope.screen.dt;		// create local copy of sample time
-	Sleep(10);	// throttle down to simulate serial port
+	static float last_samples[2] = { 0, 0 };
 
+	int source = scope.trigger.source;
+	float level = scope.trigger.level;
+
+	if (scope.trigger.type == TRIGGER_TYPE_RAISING)
+	{
+		if ((last_samples[source] <= level) && (samples[source] >= level))
+			handle_scope_event(SCOPE_EVENT_TRIGGER, NULL);
+	}
+	else if (scope.trigger.type == TRIGGER_TYPE_FALLING)
+	{
+		if ((last_samples[source] >= level) && (samples[source] <= level))
+			handle_scope_event(SCOPE_EVENT_TRIGGER, NULL);
+	}
+	else // both
+	{
+		if (((last_samples[source] <= level) && (samples[source] >= level))
+			|| ((last_samples[source] >= level) && (samples[source] <= level)))
+			handle_scope_event(SCOPE_EVENT_TRIGGER, NULL);
+	}
+
+	// copy by value
+	last_samples[0] = samples[0];
+	last_samples[1] = samples[1];
+}
+
+void serial_worker_demo()
+{
+	static unsigned long long n = 0;
+		
+	float T = scope.screen.dt;		// create local copy of sample time
+	float samples[2] = { 0, 0 };
+
+	Sleep(100);						// throttle down to simulate serial port
+		
 	// fill channels with samples
 	for (int i = 0; i < scope.bufferSize; ++i)
-	{
-		int n = scope.posInBuffer;
+	{		
 		//ch2->buffer->data[i] = ch2->probeRatio * sin(0.2*n*T) * - 3 * sin(5e3 * n * T);
-		ch1->buffer->data[i] = (float)sin(100e3 * n * T) >= 0.0f ? 1.0f : 0.0f;	// square wave 100KHz
-		ch2->buffer->data[i] = 2 * (float)sin(200e3 * n * T + G_PI/4);	// cosine 200KHz
+		samples[0] = (float)sin(100e3 * n * T) >= 0.0f ? 3.0f : 0.0f;	// square wave 100KHz
+		samples[1] = 2 * (float)sin(200e3 * n * T + G_PI / 4);	// cosine 200KHz
 
 		// add some noise
-		ch1->buffer->data[i] += (float)(rand() % 100) / 1000.0f;
-		ch2->buffer->data[i] += (float)(rand() % 100) / 1000.0f;
+		samples[0] += (float)(rand() % 100) / 1000.0f;
+		samples[1] += (float)(rand() % 100) / 1000.0f;
 
-		ch1->buffer->data[i] *= ch1->probeRatio;
-		ch2->buffer->data[i] *= ch2->probeRatio;
+		simulate_trigger(samples);
 
-		scope_screen_next_pos();
+		// generate a data event
+		handle_scope_event(SCOPE_EVENT_DATA, samples);
+
+		++n;
 	}
 }
 
@@ -207,10 +231,127 @@ gboolean toggleRunButton(gpointer data)
 	return G_SOURCE_REMOVE;
 }
 
-void handleSingleTrigger()
+void handlePaused()
 {
-	// Pause the scope
+	scope.state = SCOPE_STATE_PAUSED;
 	gdk_threads_add_idle_full(G_THREAD_PRIORITY_HIGH, toggleRunButton, NULL, NULL);
+}
+
+void handleWait()
+{
+	scope.state = SCOPE_STATE_WAIT;
+	scope.posInBuffer = 0;	// move position to start
+}
+
+void handle_scope_event_wait(ScopeEvent event, void* args)
+{
+	switch (event)
+	{
+	case SCOPE_EVENT_PAUSE:
+		handlePaused();
+		break;
+
+	case SCOPE_EVENT_TRIGGER:
+		scope.state = SCOPE_STATE_CAPTURE;
+		break;
+
+	case SCOPE_EVENT_TRIGGER_MODE_CHANGE:
+		{
+			TriggerMode mode = *(TriggerMode*)args;
+			if (mode == TRIGGER_MODE_NONE)
+				scope.state = SCOPE_STATE_CAPTURE;
+		}
+		break;
+	}
+}
+
+void decide_event_eof_or_start()
+{
+	switch (scope.trigger.mode)
+	{
+	case TRIGGER_MODE_NONE:
+		scope.state = SCOPE_STATE_CAPTURE;
+		break;
+
+	case TRIGGER_MODE_AUTO:
+		scope.state = SCOPE_STATE_WAIT;
+		break;
+
+	case TRIGGER_MODE_SINGLE:
+		handlePaused();
+		break;
+	}
+}
+
+void decide_event_run(ScopeEvent event)
+{
+	switch (scope.trigger.mode)
+	{
+	case TRIGGER_MODE_NONE:
+		scope.state = SCOPE_STATE_CAPTURE;
+		break;
+
+	case TRIGGER_MODE_AUTO:
+	case TRIGGER_MODE_SINGLE:
+		scope.state = SCOPE_STATE_WAIT;
+		break;
+	}
+}
+
+void handle_capture_data(float* samples)
+{
+	AnalogChannel* ch1 = scope_channel_get_nth(0);
+	AnalogChannel* ch2 = scope_channel_get_nth(1);
+	ch1->buffer->data[scope.posInBuffer] = ch1->probeRatio * samples[0];
+	ch2->buffer->data[scope.posInBuffer] = ch2->probeRatio * samples[1];
+
+	bool eof = scope_screen_next_pos();
+	if (eof)
+		handle_scope_event(SCOPE_EVENT_EOF, NULL);
+}
+
+void handle_scope_event_capture(ScopeEvent event, void* args)
+{
+	switch (event)
+	{
+	case SCOPE_EVENT_EOF:
+		decide_event_eof_or_start();
+		break;
+
+	case SCOPE_EVENT_PAUSE:
+		handlePaused();
+		break;
+
+	case SCOPE_EVENT_DATA:
+		handle_capture_data((float*)args);
+		break;
+	}
+}
+
+void handle_scope_event_pause(ScopeEvent event, void* args)
+{
+	switch (event)
+	{
+	case SCOPE_EVENT_RUN:
+		decide_event_run(event);
+		break;
+	}
+}
+
+void handle_scope_event(ScopeEvent event, void* args)
+{
+	switch (scope.state)
+	{
+	case SCOPE_STATE_WAIT:
+		handle_scope_event_wait(event, args);
+		break;
+	case SCOPE_STATE_CAPTURE:
+		handle_scope_event_capture(event, args);
+		break;
+	case SCOPE_STATE_PAUSED:
+		handle_scope_event_pause(event, args);
+		break;
+	}
 }
 
 // handles new frames from the serial port
@@ -218,20 +359,11 @@ void serial_frame_handler(float* samples, int count, bool trigger)
 {
 	if (trigger)
 	{
-		if (scope.posInBuffer != scope.bufferSize - 1)
-		{
-			// TODO: report pre-mature trigger, probably firmware buffer size too small.
-		}
-		scope.posInBuffer = 0;
+		handle_scope_event(SCOPE_EVENT_TRIGGER, NULL);
 	}
 	else if (count == 2)
 	{
-		AnalogChannel* ch1 = scope_channel_get_nth(0);
-		AnalogChannel* ch2 = scope_channel_get_nth(1);
-		ch1->buffer->data[scope.posInBuffer] = ch1->probeRatio * samples[0];
-		ch2->buffer->data[scope.posInBuffer] = ch2->probeRatio * samples[1];
-		
-		scope_screen_next_pos();
+		handle_scope_event(SCOPE_EVENT_DATA, samples);
 	}
 	else
 	{
@@ -414,7 +546,7 @@ void screen_init()
 
 	scope.bufferSize = config_get_int("hardware", "bufferSize");
 	scope.shuttingDown = FALSE;
-	scope.state = SCOPE_STATE_RUNNING;
+	decide_event_eof_or_start();
 	scope.display_mode = DISPLAY_MODE_WAVEFORM;
 	cursors_init();
 
@@ -547,19 +679,19 @@ void screen_add_measurement(const char* name, const char* source, guint id)
 		-1);
 }
 
-void scope_screen_next_pos()
+bool scope_screen_next_pos()
 {
 	// we implement the code this way to be thread safe
 	if (scope.posInBuffer + 1 < scope.bufferSize)
 	{
 		// can increase
 		++scope.posInBuffer;
+		return false;
 	}
 	else
 	{
 		scope.posInBuffer = 0;
-		if (scope.trigger.mode == TRIGGER_MODE_SINGLE)
-			handleSingleTrigger();
+		return true;
 	}
 }
 

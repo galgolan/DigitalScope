@@ -144,10 +144,30 @@ typedef struct Trigger
 	float level;
 } Trigger;
 
+typedef enum ScopeEvent
+{
+	// received a data frame
+	SCOPE_EVENT_DATA,
+	// received a trigger frame
+	SCOPE_EVENT_TRIGGER,
+	// run button was pressed
+	SCOPE_EVENT_RUN,
+	// pause button was pressed
+	SCOPE_EVENT_PAUSE,
+	// end of buffer was reached
+	SCOPE_EVENT_EOF,
+	// trigger mode was changed by user
+	SCOPE_EVENT_TRIGGER_MODE_CHANGE
+} ScopeEvent;
+
 typedef enum ScopeState
 {
-	SCOPE_STATE_RUNNING = 1,
-	SCOPE_STATE_PAUSED = 0
+	// ignore incoming data and triggers, dont send config updates
+	SCOPE_STATE_PAUSED = 0,
+	// ignore incoming data
+	SCOPE_STATE_WAIT = 1,	
+	// all as usual
+	SCOPE_STATE_CAPTURE = 2
 } ScopeState;
 
 typedef enum DisplayMode
@@ -198,8 +218,11 @@ void scope_trace_save_ref(const Trace* trace);
 void scope_trace_delete_ref(int index);
 
 // moves the trace to the next position
-void scope_screen_next_pos();
+// returns true when eof was reached
+bool scope_screen_next_pos();
 
 void scope_cursor_set(Cursor* cursor, int position);
+
+void handle_scope_event(ScopeEvent event, float* samples);
 
 #endif

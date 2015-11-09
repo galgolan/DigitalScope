@@ -284,13 +284,19 @@ G_MODULE_EXPORT
 void runButton_toggled(GtkToggleButton* runButton, gpointer user_data)
 {
 	Scope* scope = scope_get();
-	scope->state = gtk_toggle_button_get_active(runButton);
-	if (scope->state == SCOPE_STATE_RUNNING)
+	bool running = gtk_toggle_button_get_active(runButton);
+	if (running)
 	{
-		// send configuration when resuming so settings made while paused are applied
 		scope_build_and_send_config();
+		// handle run event
+		handle_scope_event(SCOPE_EVENT_RUN, NULL);
 	}
-	drawing_redraw();	// make sure the display is most updated as possible
+	else
+	{
+		drawing_redraw();	// make sure the display is most updated as possible
+		// handle pause event
+		handle_scope_event(SCOPE_EVENT_PAUSE, NULL);
+	}
 }
 
 // TODO: add finalize and remove timeout callback source
@@ -472,7 +478,9 @@ void on_comboboxTriggerMode_changed(GtkComboBox *widget, gpointer user_data)
 {
 	Scope* scope = scope_get();
 	guint activeItem = combobox_get_active_id(widget, (GtkListStore*)user_data);
-	scope->trigger.mode = (TriggerMode)activeItem;
+	TriggerMode newMode = (TriggerMode)activeItem;
+	scope->trigger.mode = newMode;
+	handle_scope_event(SCOPE_EVENT_TRIGGER_MODE_CHANGE, &newMode);
 	scope_build_and_send_config();
 }
 
