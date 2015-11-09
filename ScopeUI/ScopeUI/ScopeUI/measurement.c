@@ -156,7 +156,7 @@ char* calculate_cursor_value(const Cursor* cursor)
 	if (cursor->type == CURSOR_TYPE_VERTICAL)
 	{
 		// value of the cursor is number of pixels from the left * dt
-		value = cursor->position * scope->screen.dt;
+		value = cursor->position * scope->screen.dt;	// TODO: support frequency axis
 		units = trace->horizontal;
 	}
 	else // horizontal
