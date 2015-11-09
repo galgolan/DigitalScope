@@ -16,6 +16,10 @@ float measure_min(SampleBuffer* samples);
 float measure_max(SampleBuffer* samples);
 float measure_vpp(SampleBuffer* samples);
 float measure_rms(SampleBuffer* samples);
+float measure_rise_time(SampleBuffer* samples);
+float measure_dutyCycle(SampleBuffer* samples);
+float measure_high(SampleBuffer* samples);
+float measure_low(SampleBuffer* samples);
 
 // measurements
 Measurement Measurement_Average = { .name = "Average", .measure = measure_avg, .units = UNITS_VOLTAGE };
@@ -23,6 +27,10 @@ Measurement Measurement_Minimum = { .name = "Minimum", .measure = measure_min, .
 Measurement Measurement_Maximum = { .name = "Maximum", .measure = measure_max, .units = UNITS_VOLTAGE };
 Measurement Measurement_PeakToPeak = { .name = "Vpp", .measure = measure_vpp, .units = UNITS_VOLTAGE };
 Measurement Measurement_RMS = { .name = "Vrms", .measure = measure_rms, .units = UNITS_VOLTAGE };
+Measurement Measurement_DutyCycle = { .name = "Duty Cycle", .measure = measure_dutyCycle, .units = UNITS_PERCENT };
+Measurement Measurement_RiseTime = { .name = "Rising Time", .measure = measure_rise_time, .units = UNITS_TIME };
+Measurement Measurement_High = { .name = "High", .measure = measure_high, .units = UNITS_VOLTAGE };
+Measurement Measurement_Low = { .name = "Low", .measure = measure_low, .units = UNITS_VOLTAGE };
 
 GQueue* measurement_get_all()
 {
@@ -39,6 +47,10 @@ GQueue* measurement_get_all()
 		g_queue_push_tail(allMeasurements, &Measurement_Maximum);
 		g_queue_push_tail(allMeasurements, &Measurement_PeakToPeak);
 		g_queue_push_tail(allMeasurements, &Measurement_RMS);
+		g_queue_push_tail(allMeasurements, &Measurement_RiseTime);
+		g_queue_push_tail(allMeasurements, &Measurement_DutyCycle);
+		g_queue_push_tail(allMeasurements, &Measurement_High);
+		g_queue_push_tail(allMeasurements, &Measurement_Low);
 
 		ready = TRUE;
 	}
@@ -238,52 +250,190 @@ DWORD WINAPI measurement_worker_thread(LPVOID param)
 
 // ********** calculation funtions *********************
 
-float measure_avg(SampleBuffer* samples)
+float average(float* samples, int size)
 {
 	float avg = 0;
 	int i;
-	
-	for (i = 0; i < samples->size; ++i)
+
+	for (i = 0; i < size; ++i)
 	{
-		avg += samples->data[i] / (float)samples->size;
+		avg += samples[i] / size;
 	}
 
 	return avg;
 }
 
-float measure_max(SampleBuffer* samples)
+float measure_avg(SampleBuffer* samples)
 {
-	float max = samples->data[0];
+	return average(samples->data, samples->size);
+}
+
+// assigns to each point in samples its closest center
+// each index K in assignments represents the center of the Kth point in samples.
+// returns if the assignment was changed or not
+bool updateAssignments(SampleBuffer* samples, float* assignments, float high, float low)
+{
+	int i;
+	bool updated = false;
+
+	for (i = 0; i < samples->size; ++i)
+	{
+		float p = samples->data[i];
+		float a = fabsf(p - high) < fabsf(p - low) ? high : low;
+		if (assignments[i] != a)
+		{
+			updated = true;
+			assignments[i] = a;
+		}
+	}
+	
+	return updated;
+}
+
+void calculateNewCenters(SampleBuffer* samples, float* assignments, float* high, float* low)
+{
+	int i;
+	int highCount = 0, lowCount = 0;
+	int highSum = 0, lowSum = 0;
+
+	for (i = 0; i < samples->size; ++i)
+	{
+		if (assignments[i] == *high)
+		{
+			highCount++;
+			highSum += samples->data[i];
+		}
+		else
+		{
+			lowCount++;
+			lowSum += samples->data[i];
+		}
+	}
+
+	*low = (float)lowSum / lowCount;
+	*high = (float)highSum / highCount;
+}
+
+void findMinMax(SampleBuffer* samples, float* min, float* max)
+{
+	float t_max = samples->data[0];
+	float t_min = samples->data[0];
 	int i;
 
 	for (i = 1; i < samples->size; ++i)
 	{
-		if (samples->data[i] > max)
-			max = samples->data[i];
+		if (samples->data[i] > t_max)
+			t_max = samples->data[i];
+		if (samples->data[i] < t_min)
+			t_min = samples->data[i];
 	}
 
+	if (max != NULL) *max = t_max;
+	if (min != NULL) *min = t_min;
+}
+
+// 1D K-means to find high and low values.
+// This assumes the signal is composed of two discrete voltage levels with minor additive noise.
+void findHighLow(SampleBuffer* samples, float* high, float* low)
+{
+	float t_high, t_low;
+	findMinMax(samples, &t_low, &t_high);	// initial guess for centers
+	bool improved = false;
+	float* assignments = (float*)malloc(sizeof(float) * samples->size);
+
+	do
+	{
+		improved = updateAssignments(samples, assignments, t_high, t_low);
+		if (improved)
+		{
+			// calcualte new centers
+			calculateNewCenters(samples, assignments, &t_high, &t_low);
+		}
+	} while (improved);
+
+	if (high != NULL) *high = t_high;
+	if (low != NULL) *low = t_low;
+
+	free(assignments);
+}
+
+float measure_max(SampleBuffer* samples)
+{
+	float max;
+	findMinMax(samples, NULL, &max);
 	return max;
 }
 
 float measure_min(SampleBuffer* samples)
 {
-	float min = samples->data[0];
-	int i;
-
-	for (i = 1; i < samples->size; ++i)
-	{
-		if (samples->data[i] < min)
-			min = samples->data[i];
-	}
-
+	float min;
+	findMinMax(samples, &min, NULL);
 	return min;
 }
 
 float measure_vpp(SampleBuffer* samples)
 {
-	float min = measure_min(samples);
-	float max = measure_max(samples);
+	float min, max;
+	findMinMax(samples, &min, &max);
 	return max - min;
+}
+
+// returns the average number of samples it takes
+// the signal to rise from 10% to 90% of max value
+float measure_rise_time(SampleBuffer* samples)
+{
+	float lowValue, highValue;
+	findHighLow(samples, &highValue, &lowValue);
+	float low = 0.1 * highValue, high = 0.9 * highValue;
+	int i;
+
+	int riseCount = 0;
+	int riseSamples = 0;
+	
+	bool counting = FALSE;
+	float lastSample = samples->data[0];
+	int count = 0;
+	for (i = 1; i < samples->size; ++i)
+	{
+		float sample = samples->data[i];
+		if (counting)
+		{
+			count++;
+
+			// see if we crossed/reached high
+			if ((lastSample < high) && (sample >= high))
+			{
+				counting = FALSE;
+				riseCount++;
+				riseSamples += count;
+				count = 0;
+			}
+		}
+		else
+		{
+			// see if we crossed low
+			if ((lastSample <= low) && (sample > low))
+			{
+				counting = TRUE;
+				if ((lastSample < high) && (sample >= high))
+				{
+					counting = FALSE;
+					riseCount++;
+					riseSamples += 1;
+				}
+			}
+		}
+
+		lastSample = sample;
+	}
+
+	if (riseCount > 0)
+	{
+		Scope* scope = scope_get();
+		return scope->screen.dt * (float)riseSamples / riseCount;
+	}
+
+	return 0;
 }
 
 float measure_rms(SampleBuffer* samples)
@@ -297,4 +447,45 @@ float measure_rms(SampleBuffer* samples)
 	}
 
 	return (float)sqrt(sum_squares / samples->size);
+}
+
+float* digitize(SampleBuffer* samples)
+{
+	float* assignments = (float*)malloc(sizeof(float) * samples->size);
+	float high, low;
+	int i;
+
+	findHighLow(samples, &high, &low);
+	updateAssignments(samples, assignments, high, low);
+	for (i = 0; i < samples->size; ++i)
+	{
+		assignments[i] = assignments[i] == high ? 1 : 0;
+	}
+
+	return assignments;
+}
+
+float measure_dutyCycle(SampleBuffer* samples)
+{
+	float* digitized = digitize(samples);
+
+	float avg = average(digitized, samples->size);
+
+	free(digitized);
+
+	return avg;
+}
+
+float measure_high(SampleBuffer* samples)
+{
+	float high;
+	findHighLow(samples, &high, NULL);
+	return high;
+}
+
+float measure_low(SampleBuffer* samples)
+{
+	float low;
+	findHighLow(samples, NULL, &low);
+	return low;
 }

@@ -560,29 +560,13 @@ void populate_traces_list()
 
 void scope_math_change(MathTrace* math)
 {
-	// create MathTraceInstance
-	// create Trace
-	// backup existing pointer
-
-	// lock traces
-		// override pointer
-		// change selected trace if needed
-		// set MathTraceInstance
-	// free traces
-
-	// free backup pointer
+	scope.mathTraceDefinition.mathTrace = math;
 }
 
 void init_math()
 {
 	int offset = config_get_int("display", "mathOffset");
 	cairo_pattern_t* pattern = cairo_pattern_create_rgb(0, 0, 1);
-
-	scope.hMathMutex = CreateMutexSimple();
-	if (scope.hMathMutex == INVALID_HANDLE_VALUE)
-	{
-		// TODO: handle error
-	}
 
 	// initial math
 	MathTrace* math = &MathTrace_Fft_Amplitude;

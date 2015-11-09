@@ -84,7 +84,7 @@ char* formatNumber(float value, Units units)
 	switch (units)
 	{
 	case UNITS_PERCENT:
-		sprintf(string, "%.1f%%", value);
+		sprintf(string, "%.2f%%", value);
 		break;
 	case UNITS_VOLTAGE:
 		formatVolts(value, string);

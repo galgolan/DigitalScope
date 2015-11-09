@@ -236,7 +236,7 @@ void on_buttonAddMeasurement_clicked(GtkButton* button, gpointer user_data)
 	Scope* scope = scope_get();
 	ScopeUI* ui = common_get_ui();
 
-	gtk_combo_box_set_active(ui->addMeasurementSource, -1);
+	gtk_combo_box_set_active(ui->addMeasurementSource, 0);
 	gtk_combo_box_set_active(ui->addMeasurementType, -1);
 
 	GtkDialog* dlg = ui->addMeasurementDialog;

@@ -188,10 +188,7 @@ typedef struct Scope
 	ScopeState state;	
 	Cursors cursors;
 	DisplayMode display_mode;
-
 	MathTraceInstance mathTraceDefinition;
-	HANDLE hMathMutex;
-
 	int bufferSize;
 	int posInBuffer;
 	bool shuttingDown;	// signals all the threads to terminate gracefully
@@ -228,7 +225,7 @@ bool scope_screen_next_pos();
 
 void scope_cursor_set(Cursor* cursor, int position);
 
-void handle_scope_event(ScopeEvent event, float* samples);
+void handle_scope_event(ScopeEvent event, void* args);
 
 void scope_math_change(MathTrace* math);
 

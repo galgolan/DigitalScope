@@ -42,7 +42,6 @@ void math_update_trace()
 	Scope* scope = scope_get();
 	Trace* mathTrace = scope_trace_get_math();
 	
-	// TODO: lock math
 	MathTraceInstance* mathInstance = &scope->mathTraceDefinition;
 
 	if ((mathTrace->visible == TRUE) && (mathInstance != NULL) && (scope->display_mode == DISPLAY_MODE_WAVEFORM))
@@ -50,8 +49,6 @@ void math_update_trace()
 		// perform calculation to update the samples
 		mathInstance->mathTrace->function(mathInstance->firstTrace->samples, mathTrace->samples);
 	}
-
-	// TODO: release math
 }
 
 DWORD WINAPI math_worker_thread(LPVOID param)
