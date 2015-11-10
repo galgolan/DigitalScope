@@ -203,8 +203,8 @@ void serial_worker_demo()
 	for (int i = 0; i < scope.bufferSize; ++i)
 	{		
 		//ch2->buffer->data[i] = ch2->probeRatio * sin(0.2*n*T) * - 3 * sin(5e3 * n * T);
-		samples[0] = (float)sin(100e3 * n * T) >= 0.0f ? 3.0f : 0.0f;	// square wave 100KHz
-		samples[1] = 2 * (float)sin(200e3 * n * T + G_PI / 4);	// cosine 200KHz
+		samples[0] = (float)sin(2 * G_PI * 100e3 * n * T) >= 0.0f ? 3.0f : 0.0f;	// square wave 100KHz
+		samples[1] = 2 * (float)sin(2 * G_PI * 200e3 * n * T + G_PI / 4);	// cosine 200KHz
 
 		// add some noise
 		samples[0] += (float)(rand() % 100) / 1000.0f;
