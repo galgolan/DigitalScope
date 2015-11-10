@@ -7,7 +7,8 @@ typedef enum Units
 	UNITS_FREQUENCY,
 	UNITS_TIME,
 	UNITS_DECIBEL,
-	UNITS_PERCENT
+	UNITS_PERCENT,
+	UNITS_VRMS
 } Units;
 
 // returns a string representing the given value in the specified units

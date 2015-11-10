@@ -12,7 +12,7 @@
 void math_trace_fft_amplitude(const SampleBuffer* first, SampleBuffer* result);
 void math_trace_fft_amplitude_db(const SampleBuffer* first, SampleBuffer* result);
 
-MathTrace MathTrace_Fft_Amplitude = { .name = "FFT", .function = math_trace_fft_amplitude, .horizontal = UNITS_FREQUENCY, .vertical = UNITS_VOLTAGE };	// TODO: change to normalized units (%)
+MathTrace MathTrace_Fft_Amplitude = { .name = "FFT", .function = math_trace_fft_amplitude, .horizontal = UNITS_FREQUENCY, .vertical = UNITS_VRMS };
 MathTrace MathTrace_Fft_Amplitude_Db = { .name = "FFT dB", .function = math_trace_fft_amplitude_db, .horizontal = UNITS_FREQUENCY, .vertical = UNITS_DECIBEL };
 
 static kiss_fftr_cfg kiss_cfg;
@@ -116,7 +116,7 @@ void math_trace_fft_amplitude(const SampleBuffer* first, SampleBuffer* result)
 	// copy amplitude to result
 	for (i = 0; i < nfft/2+1; ++i)
 	{
-		result->data[i] = sqrt(fft[i].i/nfft * fft[i].i/nfft + fft[i].r/nfft * fft[i].r/nfft);
+		result->data[i] = sqrt(2) * sqrt(fft[i].i * fft[i].i + fft[i].r * fft[i].r) / nfft;	// results are Vrms
 	}
 	for (; i < result->size; ++i)
 	{

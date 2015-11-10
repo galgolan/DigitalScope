@@ -35,6 +35,29 @@ void formatVolts(float value, char* string)
 		sprintf(string, "%.2fV", value);
 }
 
+void formatVoltsRms(float value, char* string)
+{
+	int mantisa = abs((int)value);
+	if (mantisa / KILO > 0)
+	{
+		sprintf(string, "%.2fKVrms", value / KILO);
+	}
+	else if (mantisa / 1 > 0)
+	{
+		sprintf(string, "%.2fVrms", value);
+	}
+	else if ((int)(fabsf(value) * KILO) > 0)
+	{
+		sprintf(string, "%.2fmVrms", value * KILO);
+	}
+	else if ((int)(fabsf(value) * MEGA) > 0)
+	{
+		sprintf(string, "%.2fuVrms", value * MEGA);
+	}
+	else
+		sprintf(string, "%.2fVrms", value);
+}
+
 void formatTime(float value, char* string)
 {
 	int mantisa = abs((int)value);
@@ -92,6 +115,9 @@ char* formatNumber(float value, Units units)
 		break;
 	case UNITS_VOLTAGE:
 		formatVolts(value, string);
+		break;
+	case UNITS_VRMS:
+		formatVoltsRms(value, string);
 		break;
 	case UNITS_FREQUENCY:
 		formatFrequency(value, string);
