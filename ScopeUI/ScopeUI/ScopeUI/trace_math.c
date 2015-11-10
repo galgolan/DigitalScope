@@ -18,6 +18,8 @@ MathTrace MathTrace_Fft_Amplitude_Db = { .name = "FFT dB", .function = math_trac
 static kiss_fftr_cfg kiss_cfg;
 static int nfft;
 
+HANDLE hKissFftMutex = INVALID_HANDLE_VALUE;
+
 GQueue* math_get_all()
 {
 	static gboolean ready = FALSE;
@@ -58,6 +60,10 @@ DWORD WINAPI math_worker_thread(LPVOID param)
 
 	nfft = scope->bufferSize % 2 == 0 ? scope->bufferSize : scope->bufferSize - 1;
 	kiss_cfg = kiss_fftr_alloc(nfft, false, NULL, NULL);
+
+	hKissFftMutex = CreateMutexSimple();
+	if (hKissFftMutex == INVALID_HANDLE_VALUE)
+		return 1;
 	
 	while (!scope->shuttingDown)
 	{
@@ -75,21 +81,39 @@ void math_trace_fft_amplitude_db(const SampleBuffer* first, SampleBuffer* result
 	math_trace_fft_amplitude(first, result);
 
 	// modify to db
-	for (int i = 0; i < nfft; ++i)
+	for (int i = 0; i < result->size; ++i)
 	{
-		result->data[i] = 10 * log(result->data[i]);
+		result->data[i] = result->data[i] != 0 ? 10 * log(result->data[i]) : 0;
 	}
+}
+
+float math_get_frequency(int k)
+{
+	int bin = k % (nfft / 2 + 1);
+	Scope* scope = scope_get();
+	return (float)bin / scope->screen.dt / nfft;
 }
 
 void math_trace_fft_amplitude(const SampleBuffer* first, SampleBuffer* result)
 {
 	kiss_fft_cpx* fft = (kiss_fft_cpx*)malloc(sizeof(kiss_fft_cpx) * nfft);
+
+	if (!WaitForMutex(hKissFftMutex, 200))
+		return;
+
 	kiss_fftr(kiss_cfg, first->data, fft);
 
+	ReleaseMutex(hKissFftMutex);
+
+	int i;
 	// copy amplitude to result
-	for (int i = 0; i < nfft; ++i)
+	for (i = 0; i < nfft/2+1; ++i)
 	{
 		result->data[i] = sqrt(fft[i].i * fft[i].i + fft[i].r * fft[i].r);
+	}
+	for (; i < result->size; ++i)
+	{
+		result->data[i] = 0;
 	}
 
 	free(fft);

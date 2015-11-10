@@ -12,4 +12,8 @@ GQueue* math_get_all();
 
 DWORD WINAPI math_worker_thread(LPVOID param);
 
+void math_trace_fft_amplitude(const SampleBuffer* first, SampleBuffer* result);
+
+float math_get_frequency(int k);
+
 #endif

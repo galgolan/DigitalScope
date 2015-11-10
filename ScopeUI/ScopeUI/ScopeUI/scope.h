@@ -194,6 +194,7 @@ typedef struct Scope
 	bool shuttingDown;	// signals all the threads to terminate gracefully
 } Scope;
 
+SampleBuffer* sample_buffer_create(int size);
 
 void screen_init();
 

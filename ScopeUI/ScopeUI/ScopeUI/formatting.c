@@ -73,6 +73,10 @@ void formatFrequency(float value, char* string)
 	{
 		sprintf(string, "%.2fKHz", value / KILO);
 	}
+	else if (mantisa / 1 > 0)
+	{
+		sprintf(string, "%.2fHz", value);
+	}
 	else
 		sprintf(string, "%fHz", value);
 }

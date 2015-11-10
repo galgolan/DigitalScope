@@ -8,6 +8,7 @@
 #include "scope_ui_handlers.h"
 #include "drawing.h"
 #include "config.h"
+#include "trace_math.h"
 #include "threads.h"
 
 // measurement prototypes
@@ -17,9 +18,11 @@ float measure_max(SampleBuffer* samples);
 float measure_vpp(SampleBuffer* samples);
 float measure_rms(SampleBuffer* samples);
 float measure_rise_time(SampleBuffer* samples);
+float measure_fall_time(SampleBuffer* samples);
 float measure_dutyCycle(SampleBuffer* samples);
 float measure_high(SampleBuffer* samples);
 float measure_low(SampleBuffer* samples);
+float measure_frequency(SampleBuffer* samples);
 
 // measurements
 Measurement Measurement_Average = { .name = "Average", .measure = measure_avg, .units = UNITS_VOLTAGE };
@@ -28,9 +31,11 @@ Measurement Measurement_Maximum = { .name = "Maximum", .measure = measure_max, .
 Measurement Measurement_PeakToPeak = { .name = "Vpp", .measure = measure_vpp, .units = UNITS_VOLTAGE };
 Measurement Measurement_RMS = { .name = "Vrms", .measure = measure_rms, .units = UNITS_VOLTAGE };
 Measurement Measurement_DutyCycle = { .name = "Duty Cycle", .measure = measure_dutyCycle, .units = UNITS_PERCENT };
-Measurement Measurement_RiseTime = { .name = "Rising Time", .measure = measure_rise_time, .units = UNITS_TIME };
+Measurement Measurement_RiseTime = { .name = "Rise Time", .measure = measure_rise_time, .units = UNITS_TIME };
+Measurement Measurement_FallTime = { .name = "Fall Time", .measure = measure_fall_time, .units = UNITS_TIME };
 Measurement Measurement_High = { .name = "High", .measure = measure_high, .units = UNITS_VOLTAGE };
 Measurement Measurement_Low = { .name = "Low", .measure = measure_low, .units = UNITS_VOLTAGE };
+Measurement Measurement_Frequency = { .name = "Frequency", .measure = measure_frequency, .units = UNITS_FREQUENCY };
 
 GQueue* measurement_get_all()
 {
@@ -48,9 +53,11 @@ GQueue* measurement_get_all()
 		g_queue_push_tail(allMeasurements, &Measurement_PeakToPeak);
 		g_queue_push_tail(allMeasurements, &Measurement_RMS);
 		g_queue_push_tail(allMeasurements, &Measurement_RiseTime);
+		g_queue_push_tail(allMeasurements, &Measurement_FallTime);
 		g_queue_push_tail(allMeasurements, &Measurement_DutyCycle);
 		g_queue_push_tail(allMeasurements, &Measurement_High);
 		g_queue_push_tail(allMeasurements, &Measurement_Low);
+		g_queue_push_tail(allMeasurements, &Measurement_Frequency);
 
 		ready = TRUE;
 	}
@@ -379,7 +386,7 @@ float measure_vpp(SampleBuffer* samples)
 }
 
 // returns the average number of samples it takes
-// the signal to rise from 10% to 90% of max value
+// the signal to rise from 10% to 90% of high value
 float measure_rise_time(SampleBuffer* samples)
 {
 	float lowValue, highValue;
@@ -436,6 +443,64 @@ float measure_rise_time(SampleBuffer* samples)
 	return 0;
 }
 
+// returns the average number of samples it takes
+// the signal to fall from 90% to 10% of high value
+float measure_fall_time(SampleBuffer* samples)
+{
+	float highValue;
+	findHighLow(samples, &highValue, NULL);
+	float low = 0.1 * highValue, high = 0.9 * highValue;
+	int i;
+
+	int fallCount = 0;
+	int fallSamples = 0;
+
+	bool counting = FALSE;
+	float lastSample = samples->data[0];
+	int count = 0;
+	for (i = 1; i < samples->size; ++i)
+	{
+		float sample = samples->data[i];
+		if (counting)
+		{
+			count++;
+
+			// see if we crossed/reached low on a way down
+			if ((lastSample > low) && (sample <= low))
+			{
+				counting = FALSE;
+				fallCount++;
+				fallSamples += count;
+				count = 0;
+			}
+		}
+		else
+		{
+			// see if we crossed high on a way down
+			if ((lastSample <= high) && (sample < high))
+			{
+				counting = TRUE;
+				if ((lastSample < high) && (sample >= high))
+				{
+					counting = FALSE;
+					fallCount++;
+					fallSamples += 1;
+				}
+			}
+		}
+
+		lastSample = sample;
+	}
+
+	if (fallCount > 0)
+	{
+		Scope* scope = scope_get();
+		return scope->screen.dt * (float)fallSamples / fallCount;
+	}
+
+	return 0;
+}
+
 float measure_rms(SampleBuffer* samples)
 {
 	float sum_squares = 0;
@@ -468,11 +533,8 @@ float* digitize(SampleBuffer* samples)
 float measure_dutyCycle(SampleBuffer* samples)
 {
 	float* digitized = digitize(samples);
-
 	float avg = average(digitized, samples->size);
-
 	free(digitized);
-
 	return avg;
 }
 
@@ -488,4 +550,31 @@ float measure_low(SampleBuffer* samples)
 	float low;
 	findHighLow(samples, NULL, &low);
 	return low;
+}
+
+// we ignore the DC component here
+float measure_frequency(SampleBuffer* samples)
+{
+	int i, max_index = 1;
+	float max;
+
+	// compute DFT
+	SampleBuffer* result = sample_buffer_create(samples->size);
+	math_trace_fft_amplitude(samples, result);
+	
+	max = result->data[1];
+	// find best bin
+	for (i = 1; i < result->size/2+1; ++i)
+	{
+		if (result->data[i] > max)
+		{
+			max = result->data[i];
+			max_index = i;
+		}
+	}
+
+	free(result->data);
+
+	float f = math_get_frequency(max_index);
+	return f;
 }
