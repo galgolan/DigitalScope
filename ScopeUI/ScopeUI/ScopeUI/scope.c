@@ -190,6 +190,40 @@ void simulate_trigger(float* samples)
 	last_samples[1] = samples[1];
 }
 
+float sine_generator(float t, float amplitude, float frequency, float offset, float phase)
+{
+	return amplitude * sin(2 * G_PI * frequency * t + phase) + offset;
+}
+
+float pulse_generator(float t, float pulse_width, float t_rise, float t_fall, float t_off, float amplitude, float offset)
+{
+	float result;
+	float t0 = fmod(t, pulse_width + t_off);	
+
+	if ((0 <= t0) && (t0 < t_rise))
+	{
+		// rising
+		result = amplitude / t_rise * t0;
+	}
+	else if ((t_rise <= t0) && (t0 < pulse_width - t_fall))
+	{
+		// flat
+		result = amplitude;
+	}
+	else if ((pulse_width - t_fall <= t0) && (t0 < pulse_width))
+	{
+		// falling
+		result = -amplitude / t_fall * (t0 - pulse_width);
+	}
+	else //if ((pulse_width <= t0) && (t0 < pulse_width + t_off))
+	{
+		// off
+		result = 0;
+	}
+
+	return result + offset;
+}
+
 void serial_worker_demo()
 {
 	static unsigned long long n = 0;
@@ -202,9 +236,8 @@ void serial_worker_demo()
 	// fill channels with samples
 	for (int i = 0; i < scope.bufferSize; ++i)
 	{		
-		//ch2->buffer->data[i] = ch2->probeRatio * sin(0.2*n*T) * - 3 * sin(5e3 * n * T);
-		samples[0] = (float)sin(2 * G_PI * 100e3 * n * T) >= 0.0f ? 3.0f : 0.0f;	// square wave 100KHz
-		samples[1] = 2 * (float)sin(2 * G_PI * 200e3 * n * T + G_PI / 4);	// cosine 200KHz
+		samples[0] = pulse_generator(n*T, 10e-3, 1e-3, 1e-3, 10e-3, 3.3, 0);
+		samples[1] = sine_generator(n*T, 2, 15e3, 0, G_PI / 4);
 
 		// add some noise
 		samples[0] += (float)(rand() % 100) / 1000.0f;

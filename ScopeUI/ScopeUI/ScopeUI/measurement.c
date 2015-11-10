@@ -16,6 +16,7 @@ float measure_avg(SampleBuffer* samples);
 float measure_min(SampleBuffer* samples);
 float measure_max(SampleBuffer* samples);
 float measure_vpp(SampleBuffer* samples);
+float measure_amplitude(SampleBuffer* samples);
 float measure_rms(SampleBuffer* samples);
 float measure_rise_time(SampleBuffer* samples);
 float measure_fall_time(SampleBuffer* samples);
@@ -25,10 +26,11 @@ float measure_low(SampleBuffer* samples);
 float measure_frequency(SampleBuffer* samples);
 
 // measurements
-Measurement Measurement_Average = { .name = "Average", .measure = measure_avg, .units = UNITS_VOLTAGE };
+Measurement Measurement_Average = { .name = "Mean", .measure = measure_avg, .units = UNITS_VOLTAGE };
 Measurement Measurement_Minimum = { .name = "Minimum", .measure = measure_min, .units = UNITS_VOLTAGE };
 Measurement Measurement_Maximum = { .name = "Maximum", .measure = measure_max, .units = UNITS_VOLTAGE };
-Measurement Measurement_PeakToPeak = { .name = "Vpp", .measure = measure_vpp, .units = UNITS_VOLTAGE };
+Measurement Measurement_PeakToPeak = { .name = "Peak-To-Peak", .measure = measure_amplitude, .units = UNITS_VOLTAGE };
+Measurement Measurement_Amplitude = { .name = "Amplitude", .measure = measure_vpp, .units = UNITS_VOLTAGE };
 Measurement Measurement_RMS = { .name = "Vrms", .measure = measure_rms, .units = UNITS_VOLTAGE };
 Measurement Measurement_DutyCycle = { .name = "Duty Cycle", .measure = measure_dutyCycle, .units = UNITS_PERCENT };
 Measurement Measurement_RiseTime = { .name = "Rise Time", .measure = measure_rise_time, .units = UNITS_TIME };
@@ -51,6 +53,7 @@ GQueue* measurement_get_all()
 		g_queue_push_tail(allMeasurements, &Measurement_Minimum);
 		g_queue_push_tail(allMeasurements, &Measurement_Maximum);
 		g_queue_push_tail(allMeasurements, &Measurement_PeakToPeak);
+		g_queue_push_tail(allMeasurements, &Measurement_Amplitude);
 		g_queue_push_tail(allMeasurements, &Measurement_RMS);
 		g_queue_push_tail(allMeasurements, &Measurement_RiseTime);
 		g_queue_push_tail(allMeasurements, &Measurement_FallTime);
@@ -385,6 +388,12 @@ float measure_vpp(SampleBuffer* samples)
 	return max - min;
 }
 
+float measure_amplitude(SampleBuffer* samples)
+{
+	float vpp = measure_vpp(samples);
+	return vpp / 2;
+}
+
 // returns the average number of samples it takes
 // the signal to rise from 10% to 90% of high value
 float measure_rise_time(SampleBuffer* samples)
@@ -477,10 +486,10 @@ float measure_fall_time(SampleBuffer* samples)
 		else
 		{
 			// see if we crossed high on a way down
-			if ((lastSample <= high) && (sample < high))
+			if ((lastSample >= high) && (sample < high))
 			{
 				counting = TRUE;
-				if ((lastSample < high) && (sample >= high))
+				if ((lastSample > low) && (sample <= low))
 				{
 					counting = FALSE;
 					fallCount++;
