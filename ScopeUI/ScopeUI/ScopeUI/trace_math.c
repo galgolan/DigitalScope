@@ -45,6 +45,7 @@ void math_update_trace()
 	Trace* mathTrace = scope_trace_get_math();
 	
 	MathTraceInstance* mathInstance = &scope->mathTraceDefinition;
+	mathTrace->horizontalScale = math_get_frequency(1);
 
 	if ((mathTrace->visible == TRUE) && (mathInstance != NULL) && (scope->display_mode == DISPLAY_MODE_WAVEFORM))
 	{
@@ -78,12 +79,18 @@ DWORD WINAPI math_worker_thread(LPVOID param)
 
 void math_trace_fft_amplitude_db(const SampleBuffer* first, SampleBuffer* result)
 {
+	int i;
+
 	math_trace_fft_amplitude(first, result);
 
 	// modify to db
-	for (int i = 0; i < result->size; ++i)
+	for (i = 0; i < nfft/2+1; ++i)
 	{
-		result->data[i] = result->data[i] != 0 ? 10 * log(result->data[i]) : 0;
+		result->data[i] = 10 * log(result->data[i]);
+	}
+	for (; i < result->size; ++i)
+	{
+		result->data[i] = -1000;
 	}
 }
 
@@ -109,7 +116,7 @@ void math_trace_fft_amplitude(const SampleBuffer* first, SampleBuffer* result)
 	// copy amplitude to result
 	for (i = 0; i < nfft/2+1; ++i)
 	{
-		result->data[i] = sqrt(fft[i].i * fft[i].i + fft[i].r * fft[i].r);
+		result->data[i] = sqrt(fft[i].i/nfft * fft[i].i/nfft + fft[i].r/nfft * fft[i].r/nfft);
 	}
 	for (; i < result->size; ++i)
 	{

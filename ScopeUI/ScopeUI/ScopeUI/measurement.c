@@ -29,8 +29,8 @@ float measure_frequency(SampleBuffer* samples);
 Measurement Measurement_Average = { .name = "Mean", .measure = measure_avg, .units = UNITS_VOLTAGE };
 Measurement Measurement_Minimum = { .name = "Minimum", .measure = measure_min, .units = UNITS_VOLTAGE };
 Measurement Measurement_Maximum = { .name = "Maximum", .measure = measure_max, .units = UNITS_VOLTAGE };
-Measurement Measurement_PeakToPeak = { .name = "Peak-To-Peak", .measure = measure_amplitude, .units = UNITS_VOLTAGE };
-Measurement Measurement_Amplitude = { .name = "Amplitude", .measure = measure_vpp, .units = UNITS_VOLTAGE };
+Measurement Measurement_PeakToPeak = { .name = "Peak-To-Peak", .measure = measure_vpp, .units = UNITS_VOLTAGE };
+Measurement Measurement_Amplitude = { .name = "Amplitude", .measure = measure_amplitude, .units = UNITS_VOLTAGE };
 Measurement Measurement_RMS = { .name = "Vrms", .measure = measure_rms, .units = UNITS_VOLTAGE };
 Measurement Measurement_DutyCycle = { .name = "Duty Cycle", .measure = measure_dutyCycle, .units = UNITS_PERCENT };
 Measurement Measurement_RiseTime = { .name = "Rise Time", .measure = measure_rise_time, .units = UNITS_TIME };
@@ -165,9 +165,10 @@ char* calculate_cursor_value(const Cursor* cursor)
 	Units units;
 	if (cursor->type == CURSOR_TYPE_VERTICAL)
 	{
-		// value of the cursor is number of pixels from the left * dt
-		value = cursor->position * scope->screen.dt;	// TODO: support frequency axis
 		units = trace->horizontal;
+		
+		// value of the cursor is number of pixels from the left * horizontalScale
+		value = cursor->position * scope_trace_get_horizontal_scale(trace);
 	}
 	else // horizontal
 	{
@@ -189,7 +190,7 @@ char* calculate_cursor_value_diff(const Cursor* cursor1, const Cursor* cursor2)
 	{
 		// value of the cursor is number of pixels from the left * dt
 		// TODO: use screen.dt for time and frequency bins for frequency
-		value = (cursor1->position - cursor2->position) * scope->screen.dt;
+		value = (cursor1->position - cursor2->position) * scope_trace_get_horizontal_scale(trace);
 		units = trace->horizontal;
 	}
 	else // horizontal

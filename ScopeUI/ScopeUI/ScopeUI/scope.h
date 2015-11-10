@@ -68,6 +68,8 @@ typedef struct Trace
 
 	Units horizontal;
 	Units vertical;
+
+	float horizontalScale;	// used only when horizontal != UNITS_TIME
 } Trace;
 
 typedef struct MeasurementInstance
@@ -205,6 +207,8 @@ void screen_add_measurement(const char* name, const char* source, guint id);
 void screen_clear_measurements();
 
 bool scope_build_and_send_config();
+
+float scope_trace_get_horizontal_scale(const Trace* trace);
 
 MeasurementInstance* scope_measurement_get_nth(int n);
 

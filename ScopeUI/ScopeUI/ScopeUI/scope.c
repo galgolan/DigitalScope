@@ -102,6 +102,14 @@ AnalogChannel* scope_channel_get_nth(int n)
 	return (AnalogChannel*)g_queue_peek_nth(scope.channels, n);
 }
 
+float scope_trace_get_horizontal_scale(const Trace* trace)
+{
+	if (trace->horizontal == UNITS_TIME)
+		return scope.screen.dt;
+	else
+		return trace->horizontalScale;
+}
+
 Trace* scope_trace_add_new(cairo_pattern_t* pattern, SampleBuffer* samples, const char* name, int offset, Units horizontal, Units vertical)
 {
 	Trace* trace = (Trace*)malloc(sizeof(Trace));
