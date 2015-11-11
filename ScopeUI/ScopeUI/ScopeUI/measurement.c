@@ -545,7 +545,7 @@ float measure_dutyCycle(SampleBuffer* samples)
 	float* digitized = digitize(samples);
 	float avg = average(digitized, samples->size);
 	free(digitized);
-	return avg;
+	return avg * 100;
 }
 
 float measure_high(SampleBuffer* samples)

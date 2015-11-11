@@ -39,13 +39,6 @@ __error__(char *pcFilename, uint32_t ui32Line)
 }
 #endif
 
-//*****************************************************************************
-//
-// System clock rate in Hz.
-//
-//*****************************************************************************
-//uint32_t g_ui32SysClock;
-
 void configureFPU()
 {
 	FPUEnable();
@@ -78,17 +71,16 @@ void setup()
 	configAdc();
 	configSPI();
 	configureAnalogFrontend();
-	configProbeCompensation();
+	//configProbeCompensation();
 
 	IntMasterEnable();
 }
 
 void waitUntilReady()
 {
-	//ScopeConfig* config = getConfig();
 	while(adcState == ADC_STATE_CAPTURING)
 	{
-		SysCtlDelay(1);	// TODO: i think there is no point in a delay (its not like we can starve a thread)
+		//SysCtlDelay(1);	// TODO: i think there is no point in a delay (its not like we can starve a thread)
 	}
 }
 
@@ -135,7 +127,6 @@ int main(void)
 	while(1)
 	{
 		waitUntilReady();
-
 		outputTrigger();
 
 		// send all data
@@ -146,7 +137,6 @@ int main(void)
 			outputData(ch1, ch2);
 		}
 		adcState = ADC_STATE_CAPTURING;
-		//ADCIntEnable(ADC0_BASE, 0);
 	}
 
 	return 0;

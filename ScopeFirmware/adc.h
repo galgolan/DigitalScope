@@ -16,7 +16,7 @@ typedef enum AdcState
 	ADC_STATE_SUSPENDED=2			// adc is currently suspended (probably because the main loop is sending the data)
 } AdcState;
 
-extern AdcState adcState;
+extern volatile AdcState adcState;
 extern uint16_t samples_ch1[BUFFER_SIZE];
 extern uint16_t samples_ch2[BUFFER_SIZE];
 

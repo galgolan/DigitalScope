@@ -12,6 +12,7 @@
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
 #include "inc/hw_ints.h"
+#include "inc/hw_adc.h"
 
 #include "driverlib/gpio.h"
 #include "driverlib/pin_map.h"
@@ -34,6 +35,8 @@
 #define MUX_CHANNEL_1	0x03		//Y3
 #define MUX_CHANNEL_2	0x04		//Y4
 
+#define ADC_SSTSH               (ADC_O_SSTSH0 - ADC_O_SSMUX0)
+
 typedef enum AdcInterruptSource
 {
 	ADC_INTERRUPT_SRC_NONE = 0,
@@ -45,9 +48,8 @@ uint16_t samples_ch1[BUFFER_SIZE];
 uint16_t samples_ch2[BUFFER_SIZE];
 static volatile uint32_t index = 0;
 
-AdcState adcState = ADC_STATE_CAPTURING;
+volatile AdcState adcState = ADC_STATE_CAPTURING;
 AdcInterruptSource interruptSource = ADC_INTERRUPT_SRC_NONE;
-static uint32_t samples[2] = {0, 0};
 
 const double adcRes = 4096;
 const double analogRef = VCC;
@@ -145,25 +147,38 @@ void configureSequencer(uint32_t trigger)
 	ADCSequenceConfigure(ADC0_BASE, 0, trigger, 0);
 	ADCSequenceStepConfigure(ADC0_BASE, 0, 0, ADC_CTL_CH3);
 	ADCSequenceStepConfigure(ADC0_BASE, 0, 1, ADC_CTL_IE | ADC_CTL_END | ADC_CTL_CH4);
+
+	uint32_t sampleAndHold = HWREG(ADC_SSTSH + ADC0_BASE);
+	HWREG(ADC_SSTSH + ADC0_BASE) = 0x00000000;
+	//sampleAndHold = HWREG(ADC_SSTSH + ADC0_BASE);
+
 	ADCSequenceEnable(ADC0_BASE, 0);
 	ADCIntClear(ADC0_BASE, 0);
+
+	//SysCtlDelay(100000);
 }
 
 void setSampleRate()
 {
 	ScopeConfig* config = getConfig();
-	unsigned long timer_value = config->systClock / config->sampleRate;
+	uint32_t timer_value = config->systClock / config->sampleRate;
 	TimerLoadSet(TIMER1_BASE, TIMER_A, timer_value);
 }
 
 void setAdcInterruptSourceTimer()
 {
+	//TimerIntEnable(TIMER1_BASE, INT_TIMER1A);
+	//TimerControlTrigger(TIMER1_BASE, TIMER_A, true);
+
 	interruptSource = ADC_INTERRUPT_SRC_TIMER;
 	configureSequencer(ADC_TRIGGER_TIMER);
 }
 
 void setAdcInterruptSourceComparator()
 {
+	//TimerIntDisable(TIMER1_BASE, INT_TIMER1A);
+	//TimerControlTrigger(TIMER1_BASE, TIMER_A, false);
+
 	interruptSource = ADC_INTERRUPT_SRC_COMP;
 	configureSequencer(ADC_TRIGGER_COMP0);
 }
@@ -215,8 +230,6 @@ void configComparator()
 
 void setupSamplingTimer()
 {
-	ScopeConfig* config = getConfig();
-
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
 	TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC);
 	setSampleRate();
@@ -269,19 +282,18 @@ void configAdc()
 
 void AdcISR(void)
 {
+	//IntMasterDisable();
 	ADCIntClear(ADC0_BASE, 0);
 
 	//IntPendClear(INT_ADC0SS0);	// TODO: where to put this ?
 
-	ScopeConfig* config = getConfig();
-
 	if(adcState == ADC_STATE_CAPTURING)
 	{
+		uint32_t samples[8];
 		// Read the value from the ADC.
-		ADCSequenceDataGet(ADC0_BASE, 0, samples);
-
-		samples_ch1[index] = samples[0];
-		samples_ch2[index] = samples[1];
+		int32_t n = ADCSequenceDataGet(ADC0_BASE, 0, samples);
+		samples_ch1[index] = samples[n-2];
+		samples_ch2[index] = samples[n-1];
 		++index;
 
 		if(index >= BUFFER_SIZE)
@@ -289,12 +301,11 @@ void AdcISR(void)
 			// aquisition completed
 			adcState = ADC_STATE_SUSPENDED;
 			index = 0;
-
+			ScopeConfig* config = getConfig();
 			// if triggered - disable timer, enable comparator
 			if((config->trigger.mode != TRIG_MODE_FREE_RUNNING) && (interruptSource == ADC_INTERRUPT_SRC_TIMER))
 			{
 				setAdcInterruptSourceComparator();
-
 			}
 		}
 		else
@@ -304,4 +315,5 @@ void AdcISR(void)
 				setAdcInterruptSourceTimer();
 		}
 	}
+	//IntMasterEnable();
 }
