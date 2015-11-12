@@ -11,6 +11,9 @@
 
 static ScopeUI scopeUI;
 
+static gboolean btn1 = FALSE;
+static gboolean btn3 = FALSE;
+
 ScopeUI* common_get_ui()
 {
 	return &scopeUI;
@@ -58,6 +61,9 @@ void populate_ui(GtkBuilder* builder)
 	scopeUI.treeviewCursorValues = (GtkTreeView*)GET_GTK_OBJECT("treeviewCursorValues");
 
 	scopeUI.runButton = (GtkToggleButton*)GET_GTK_OBJECT("runButton");
+
+	// set event masks
+	gtk_widget_add_events(scopeUI.drawingArea, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON3_MOTION_MASK);
 }
 
 void populate_list_store(GtkListStore* listStore, GQueue* items, gboolean clear)
@@ -573,20 +579,49 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget, GdkEventButton  *e
 	Scope* scope = scope_get();
 	if (event->button == 1)
 	{
+		btn1 = TRUE;
 		// put x1 & y1 cursors on this position
 		scope_cursor_set(&(scope->cursors.x1), (int)event->x);
+		scope_cursor_set(&(scope->cursors.y1), (int)event->y);
 	}
+	else if (event->button == 3)
+	{
+		btn3 = TRUE;
+		// put x2 & y2 cursors on this position
+		scope_cursor_set(&(scope->cursors.x2), (int)event->x);
+		scope_cursor_set(&(scope->cursors.y2), (int)event->y);
+	}
+	
 	return TRUE;
 }
 
 G_MODULE_EXPORT
-gboolean on_drawingarea_button_release_event(GtkWidget *widget, GdkEvent  *event, gpointer   user_data)
+gboolean on_drawingarea_button_release_event(GtkWidget *widget, GdkEventButton  *event, gpointer   user_data)
 {
+	if (event->button == 1)
+		btn1 = FALSE;
+	else if (event->button == 3)
+		btn3 = FALSE;
+	
 	return TRUE;
 }
 
 G_MODULE_EXPORT
 gboolean on_drawingarea_motion_notify_event(GtkWidget *widget, GdkEventMotion  *event, gpointer   user_data)
 {
+	Scope* scope = scope_get();
+	if ((btn1) && (scope->cursors.visible))
+	{
+		// put x1 & y1 cursors on this position
+		scope_cursor_set(&(scope->cursors.x1), (int)event->x);
+		scope_cursor_set(&(scope->cursors.y1), (int)event->y);
+	}
+	else if ((btn3) && (scope->cursors.visible))
+	{
+		// put x2 & y2 cursors on this position
+		scope_cursor_set(&(scope->cursors.x2), (int)event->x);
+		scope_cursor_set(&(scope->cursors.y2), (int)event->y);
+	}
+	
 	return TRUE;
 }
