@@ -11,6 +11,9 @@
 
 static ScopeUI scopeUI;
 
+static gboolean btn1 = FALSE;
+static gboolean btn3 = FALSE;
+
 ScopeUI* common_get_ui()
 {
 	return &scopeUI;
@@ -58,6 +61,9 @@ void populate_ui(GtkBuilder* builder)
 	scopeUI.treeviewCursorValues = (GtkTreeView*)GET_GTK_OBJECT("treeviewCursorValues");
 
 	scopeUI.runButton = (GtkToggleButton*)GET_GTK_OBJECT("runButton");
+
+	// set event masks
+	gtk_widget_add_events(scopeUI.drawingArea, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON3_MOTION_MASK);
 }
 
 void populate_list_store(GtkListStore* listStore, GQueue* items, gboolean clear)
@@ -111,31 +117,72 @@ void populate_list_store_values_int(GtkListStore* listStore, GQueue* names, GQue
 	}
 }
 
+char* get_trace_scale_string_horizontal(const Trace* trace, char* name)
+{
+	Scope* scope = scope_get();
+	float scale = scope_trace_get_horizontal_scale(trace);
+	float perDiv = scale * ((float)scope->screen.width / scope->screen.grid.vertical);
+	char* perDiv_s = formatNumber(perDiv, trace->horizontal);
+	char* result = g_strdup_printf("   %s: %s/div", name, perDiv_s);
+	free(perDiv_s);
+	return result;
+}
+
+char* get_trace_scale_string_vertical(const Trace* trace, int ratio)
+{
+	Scope* scope = scope_get();
+	float perDiv = (float)scope->screen.maxVoltage * 2 * ratio / scope->screen.grid.horizontal / trace->scale;
+	char* perDiv_s = formatNumber(perDiv, trace->vertical);
+	char* result = g_strdup_printf("   %s: %s/div", trace->name, perDiv_s);
+	free(perDiv_s);
+	return result;
+}
+
+char* concat(char* dst, char* src)
+{
+	char* backup = dst;
+	dst = g_strconcat(dst, src, NULL);
+	g_free(src);
+	g_free(backup);
+	return dst;
+}
+
 void update_statusbar()
 {
-	// CH1: xv/div, CH2: yv/div, Time: 1ms/div
-
-	Scope* scope = scope_get();
 	ScopeUI* ui = common_get_ui();
 
 	guint context_id = gtk_statusbar_get_context_id(GTK_STATUSBAR(ui->statusBar), "Statusbar example");
 
-	float voltsPerDiv1 = (float)scope->screen.maxVoltage * 2 * scope_channel_get_nth(0)->probeRatio / scope->screen.grid.horizontal / scope_trace_get_nth(0)->scale;
-	float voltsPerDiv2 = (float)scope->screen.maxVoltage * 2 * scope_channel_get_nth(1)->probeRatio / scope->screen.grid.horizontal / scope_trace_get_nth(1)->scale;
-	float secondsPerDiv = scope->screen.dt * ((float)scope->screen.width / scope->screen.grid.vertical);
+	const Trace* ch1 = scope_trace_get_nth(0);
+	const Trace* ch2 = scope_trace_get_nth(1);
+	const Trace* math = scope_trace_get_math();	
+	const AnalogChannel* ch1_analog = scope_channel_get_nth(0);
+	const AnalogChannel* ch2_analog = scope_channel_get_nth(1);
 
-	char* voltsPerDiv1_s = formatNumber(voltsPerDiv1, UNITS_VOLTAGE);
-	char* voltsPerDiv2_s = formatNumber(voltsPerDiv2, UNITS_VOLTAGE);
-	char* secondsPerDiv_s = formatNumber(secondsPerDiv, UNITS_TIME);
-
-	gchar* msg = g_strdup_printf("CH1: %s/div, CH2: %s/div, Time: %s/div",
-		voltsPerDiv1_s,
-		voltsPerDiv2_s,
-		secondsPerDiv_s);
-
-	free(voltsPerDiv1_s);
-	free(voltsPerDiv2_s);
-	free(secondsPerDiv_s);
+	gchar* msg = g_strdup_printf("");
+	boolean chVisible = FALSE;
+	if (ch1->visible)
+	{
+		char* scale = get_trace_scale_string_vertical(ch1, ch1_analog->probeRatio);
+		msg = concat(msg, scale);
+		chVisible = TRUE;
+	}
+	if (ch2->visible)
+	{
+		char* scale = get_trace_scale_string_vertical(ch2, ch2_analog->probeRatio);
+		msg = concat(msg, scale);
+		chVisible = TRUE;
+	}
+	if (math->visible)
+	{
+		char* scale = get_trace_scale_string_horizontal(math, "Math");
+		msg = concat(msg, scale);
+	}
+	if (chVisible)
+	{
+		char* scale = get_trace_scale_string_horizontal(ch1, "Time");
+		msg = concat(msg, scale);
+	}
 
 	guint remove = gtk_statusbar_push(GTK_STATUSBAR(ui->statusBar), context_id, msg);
 	g_free(msg);
@@ -270,6 +317,7 @@ G_MODULE_EXPORT
 void checkMathVisible_toggled(GtkToggleButton* btn, gpointer user_data)
 {
 	scope_trace_get_math()->visible = gtk_toggle_button_get_active(btn);
+	update_statusbar();
 }
 
 G_MODULE_EXPORT
@@ -321,19 +369,21 @@ G_MODULE_EXPORT
 void on_checkCh1Visible_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 {
 	scope_trace_get_nth(0)->visible = gtk_toggle_button_get_active(togglebutton);
+	update_statusbar();
 }
 
 G_MODULE_EXPORT
 void on_checkCh2Visible_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 {
 	scope_trace_get_nth(1)->visible = gtk_toggle_button_get_active(togglebutton);
+	update_statusbar();
 }
 
 G_MODULE_EXPORT
 void on_change_scaleMath(GtkSpinButton *spin_button, gpointer user_data)
 {
 	scope_trace_get_math()->scale = (float)gtk_spin_button_get_value(spin_button);
-	update_statusbar();
+	//update_statusbar();
 }
 
 G_MODULE_EXPORT
@@ -343,6 +393,7 @@ void on_comboMathType_changed(GtkComboBox *widget, gpointer user_data)
 	GQueue* mathTypes = math_get_all();
 	MathTrace* math = (MathTrace*)g_queue_peek_nth(mathTypes, mathType);
 	scope_math_change(math);
+	update_statusbar();
 }
 
 G_MODULE_EXPORT
@@ -351,6 +402,7 @@ void on_math_source_changed(GtkComboBox *widget, gpointer user_data)
 	int sourceChannel = gtk_combo_box_get_active(widget);
 	Scope* scope = scope_get();
 	scope->mathTraceDefinition.firstTrace = scope_trace_get_nth(sourceChannel);
+	update_statusbar();
 }
 
 G_MODULE_EXPORT
@@ -573,20 +625,49 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget, GdkEventButton  *e
 	Scope* scope = scope_get();
 	if (event->button == 1)
 	{
+		btn1 = TRUE;
 		// put x1 & y1 cursors on this position
 		scope_cursor_set(&(scope->cursors.x1), (int)event->x);
+		scope_cursor_set(&(scope->cursors.y1), (int)event->y);
 	}
+	else if (event->button == 3)
+	{
+		btn3 = TRUE;
+		// put x2 & y2 cursors on this position
+		scope_cursor_set(&(scope->cursors.x2), (int)event->x);
+		scope_cursor_set(&(scope->cursors.y2), (int)event->y);
+	}
+	
 	return TRUE;
 }
 
 G_MODULE_EXPORT
-gboolean on_drawingarea_button_release_event(GtkWidget *widget, GdkEvent  *event, gpointer   user_data)
+gboolean on_drawingarea_button_release_event(GtkWidget *widget, GdkEventButton  *event, gpointer   user_data)
 {
+	if (event->button == 1)
+		btn1 = FALSE;
+	else if (event->button == 3)
+		btn3 = FALSE;
+	
 	return TRUE;
 }
 
 G_MODULE_EXPORT
 gboolean on_drawingarea_motion_notify_event(GtkWidget *widget, GdkEventMotion  *event, gpointer   user_data)
 {
+	Scope* scope = scope_get();
+	if ((btn1) && (scope->cursors.visible))
+	{
+		// put x1 & y1 cursors on this position
+		scope_cursor_set(&(scope->cursors.x1), (int)event->x);
+		scope_cursor_set(&(scope->cursors.y1), (int)event->y);
+	}
+	else if ((btn3) && (scope->cursors.visible))
+	{
+		// put x2 & y2 cursors on this position
+		scope_cursor_set(&(scope->cursors.x2), (int)event->x);
+		scope_cursor_set(&(scope->cursors.y2), (int)event->y);
+	}
+	
 	return TRUE;
 }

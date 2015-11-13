@@ -614,6 +614,7 @@ void init_math()
 
 	// create the math trace
 	Trace* mathTrace = scope_trace_add_new_alloc_buffer(pattern, "Math", scope.bufferSize, offset, math->horizontal, math->vertical);
+	mathTrace->horizontalScale = 0;
 	mathTrace->visible = FALSE;
 	scope.mathTraceDefinition.mathTrace = math;
 	scope.mathTraceDefinition.firstTrace = scope_trace_get_nth(0);
