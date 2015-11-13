@@ -200,13 +200,13 @@ void simulate_trigger(float* samples)
 
 float sine_generator(float t, float amplitude, float frequency, float offset, float phase)
 {
-	return amplitude * sin(2 * G_PI * frequency * t + phase) + offset;
+	return amplitude * (float)sin(2 * G_PI * frequency * t + phase) + offset;
 }
 
 float pulse_generator(float t, float pulse_width, float t_rise, float t_fall, float t_off, float amplitude, float offset)
 {
 	float result;
-	float t0 = fmod(t, pulse_width + t_off);	
+	float t0 = (float)fmod(t, pulse_width + t_off);	
 
 	if ((0 <= t0) && (t0 < t_rise))
 	{

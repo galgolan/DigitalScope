@@ -63,7 +63,7 @@ void populate_ui(GtkBuilder* builder)
 	scopeUI.runButton = (GtkToggleButton*)GET_GTK_OBJECT("runButton");
 
 	// set event masks
-	gtk_widget_add_events(scopeUI.drawingArea, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON3_MOTION_MASK);
+	gtk_widget_add_events((GtkWidget*)scopeUI.drawingArea, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON3_MOTION_MASK);
 }
 
 void populate_list_store(GtkListStore* listStore, GQueue* items, gboolean clear)
