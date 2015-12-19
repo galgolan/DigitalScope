@@ -125,10 +125,16 @@ void setOffset()
 	setDac2Voltage(vdacCh2, 2);
 }
 
+void setCompRef(double v)
+{
+	setDac1Voltage(v, 2);
+}
+
 void configureAnalogFrontend()
 {
 	// set reference voltage for both PGAs
 	setDac1Voltage(VCC/2, 1);
+	setCompRef(0.0);
 
 	setOffset();
 

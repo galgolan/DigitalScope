@@ -28,6 +28,7 @@
 #include "calc.h"
 #include "config.h"
 #include "scope_common.h"
+#include "spi.h"
 
 //#include "driverlib/rom.h"
 //#include "driverlib/rom_map.h"
@@ -136,8 +137,7 @@ void setTriggerLevel()
 	if(config->trigger.source == TRIG_SRC_CH1) channel = 0;
 	else if (config->trigger.source == TRIG_SRC_CH2) channel = 1;
 	double vout2 = calcVout2FromVin(channel, config->trigger.level);
-	uint32_t compRef = translateCompRef(vout2);
-	ComparatorRefSet(COMP_BASE, compRef);
+	setCompRef(vout2);
 }
 
 void configureSequencer(uint32_t trigger)
@@ -154,8 +154,6 @@ void configureSequencer(uint32_t trigger)
 
 	ADCSequenceEnable(ADC0_BASE, 0);
 	ADCIntClear(ADC0_BASE, 0);
-
-	//SysCtlDelay(100000);
 }
 
 void setSampleRate()
@@ -167,18 +165,12 @@ void setSampleRate()
 
 void setAdcInterruptSourceTimer()
 {
-	//TimerIntEnable(TIMER1_BASE, INT_TIMER1A);
-	//TimerControlTrigger(TIMER1_BASE, TIMER_A, true);
-
 	interruptSource = ADC_INTERRUPT_SRC_TIMER;
 	configureSequencer(ADC_TRIGGER_TIMER);
 }
 
 void setAdcInterruptSourceComparator()
 {
-	//TimerIntDisable(TIMER1_BASE, INT_TIMER1A);
-	//TimerControlTrigger(TIMER1_BASE, TIMER_A, false);
-
 	interruptSource = ADC_INTERRUPT_SRC_COMP;
 	configureSequencer(ADC_TRIGGER_COMP0);
 }
@@ -196,7 +188,10 @@ void setTriggerType()
 {
 	ScopeConfig* config = getConfig();
 	uint32_t type = getTriggerType(config->trigger.type);
-	ComparatorConfigure(COMP_BASE, 0, type | COMP_ASRCP_REF | COMP_OUTPUT_INVERT);
+
+	// use external Comp+ as voltage reference C6
+	// we invert the output because the test signal is connected to the negative input
+	ComparatorConfigure(COMP_BASE, 0, type | COMP_ASRCP_PIN | COMP_OUTPUT_INVERT);
 }
 
 void configMux()
@@ -219,7 +214,7 @@ void configComparator()
 	GPIOPinConfigure(GPIO_PL2_C0O);
 
 	GPIOPinTypeComparator(GPIO_PORTC_BASE, GPIO_PIN_7);		// neg input (PC7)
-	GPIOPinTypeComparator(GPIO_PORTC_BASE, GPIO_PIN_6);		// pos input / internal reference
+	GPIOPinTypeComparator(GPIO_PORTC_BASE, GPIO_PIN_6);		// pos input / reference voltage
 	GPIOPinTypeComparator(GPIO_PORTL_BASE, GPIO_PIN_2);		// out
 
 	setTriggerLevel();

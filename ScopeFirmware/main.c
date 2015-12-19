@@ -68,8 +68,8 @@ void setup()
 	SysCtlDelay(1000);
 
 	configUART();
-	configAdc();
 	configSPI();
+	configAdc();
 	configureAnalogFrontend();
 	//configProbeCompensation();
 

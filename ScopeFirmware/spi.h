@@ -37,4 +37,6 @@ void setOffset();
 
 bool isValidGain(int gain);
 
+void setCompRef(double v);
+
 #endif
