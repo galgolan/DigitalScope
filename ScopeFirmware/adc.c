@@ -33,8 +33,8 @@
 //#include "driverlib/rom.h"
 //#include "driverlib/rom_map.h"
 
-#define MUX_CHANNEL_1	0x03		//Y3
-#define MUX_CHANNEL_2	0x04		//Y4
+#define MUX_CHANNEL_1	0b00000000		//Y3
+#define MUX_CHANNEL_2	0b00000001		//Y4
 
 #define ADC_SSTSH               (ADC_O_SSTSH0 - ADC_O_SSMUX0)
 

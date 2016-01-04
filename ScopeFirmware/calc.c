@@ -21,14 +21,13 @@
 
 const double vref = VCC/2;
 
-const double m[NUM_CHANNELS] = { 0.069051, 0.068276};
-const double b[NUM_CHANNELS] = { 1.6602, 1.6559 };
+// Gal's Calibration
+const double m[NUM_CHANNELS] = { 0.0763, 0.0769 };
+const double b[NUM_CHANNELS] = { 1.6959, 1.6826 };
 
-//const double b1 = 0.0102;
-//const double m1 = 0.069051;
-
-//const double b2 = 0.0059;
-//const double m2 = 0.068276;
+// Tzvikool's Calibration
+//const double m[NUM_CHANNELS] = { 0.0769, 0};
+//const double b[NUM_CHANNELS] = { 1.6847, 0 };
 
 // Vout1 = Vin * m + b + offset
 // Vdac = Vref + offset
