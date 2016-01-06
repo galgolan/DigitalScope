@@ -244,8 +244,9 @@ void serial_worker_demo()
 	// fill channels with samples
 	for (int i = 0; i < scope.bufferSize; ++i)
 	{		
-		samples[0] = pulse_generator(n*T, 10e-3, 1e-3, 1e-3, 10e-3, 3.3, 0);
-		samples[1] = sine_generator(n*T, 2, 15e3, 0, G_PI / 4);
+		//samples[0] = pulse_generator(n*T, 10e-3, 1e-3, 1e-3, 10e-3, 3.3, 0);
+		samples[0] = sine_generator(n*T, 2, 15e3, 0, G_PI / 4);
+		samples[1] = sine_generator(n*T, 2, 30e3, 0, G_PI / 4);
 
 		// add some noise
 		samples[0] += (float)(rand() % 100) / 1000.0f;
