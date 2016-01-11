@@ -5,14 +5,14 @@ Specifications (subject to change):
 
 * Analog Channels	2
 * Input Voltage		-24v to +24v
-* Input Impedance	1MOhm, 10pF (compatible with standard probes)
+* Input Impedance	1MOhm, 500pF (compatible with standard probes)
 * Analog Bandwidth	1MHz
-* Sample Rate		1 MSamples/sec per channel
+* Sample Rate		650 KSamples/sec per channel
 * Coupling			DC
 * Trigger			Mode: Auto, Single or None.
 					Type: Rising Edge, Falling Edge or Both.
-					Level: Selectable in the range [-24v,10.5v] with 1.5v increments.
-					Source: Channel1 or Channel2.
+					Level: Selectable in the range [-24v,24v] with 0.1v increments.
+					Source: Channel1/Channel2.
 * Cursors
 * Math				FFT (linear or dB)
 * Measurements		Frequency, DC Mean, Vpp, Vrms, Max, Min, Duty Cycle, Rise Time, Fall Time
@@ -25,5 +25,3 @@ The project contains:
 * embedded C code for the dev board - for CodeComposer Studio
 * schematics for the electronic circuits
 * code for a GUI based on GTK+3.0 written in C for Windows. Can be compiled with the included VS2013 project or the included makefile to compile with gcc.
-
-This project is still under work and is expected to be completed at the end of 2015 - check back soon !
